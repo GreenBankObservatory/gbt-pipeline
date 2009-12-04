@@ -26,7 +26,7 @@ pro refbeamposition, update
     ref_el =  el_comp + del
 
     ;now that we have the az, el of ref, need ra,dec
-    hor2eq, ref_el, ref_az, jd, ref_ra, ref_dec, lat=gbtlat, lon=gbtlon, $
+    hor2eq, el_comp, ref_az, jd, ref_ra, ref_dec, lat=gbtlat, lon=gbtlon, $
             altitude=gbtalt
     hor2eq, el_comp, az_comp, jd, comp_ra, comp_dec, lat=gbtlat, lon=gbtlon, $
             altitude=gbtalt
