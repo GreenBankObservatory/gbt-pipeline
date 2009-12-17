@@ -21,6 +21,7 @@ pro nameDc, myDc, fileName, type
    doppler = 1.0+(myDc.source_velocity/299792458.)
    iFreq = round( doppler*myDc.reference_frequency * 1.E-6)
    sfreq = strtrim(fstring( iFreq,'(f7.0)'),2)
+
    ; source and scan numbers
    src=strtrim(string(myDc.source),2)
    sscn=strtrim(fstring(myDc.scan_number,'(I6)'),2)

@@ -1,4 +1,4 @@
-;IDL Procedure to calibrate map scans for a 2x2x degree region around M81
+;IDL Procedure to calibrate map scans for a 2x2 degree region around M81
 ;HISTORY
 ; 09DEC02 GIL revised for a 2x2 degree map
 ; 09NOV30 GIL initial version
