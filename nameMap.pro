@@ -29,10 +29,10 @@ pro nameMap, myDc, fileName, scans, type
    ; construct integer frequency MHz   
    doppler = 1.0+(myDc.source_velocity/299792458.)
    iFreq = round( doppler*myDc.reference_frequency * 1.E-6)
-   sfreq = strtrim(fstring( iFreq,'(f7.0)'),2)
+   sfreq = strtrim(string( iFreq,format='(f7.0)'),2)
    ; source and scan numbers
    src=strtrim(string(myDc.source),2)
-   iFeed=strtrim(fstring(myDc.feed,'(I3)'),2)
+   iFeed=strtrim(string(myDc.feed,format='(I3)'),2)
    fileName=type + '_' + src + '_' + iFeed + '_' + scanStr $\
      + sfreq + 'fits'
 
