@@ -1,0 +1,17 @@
+This directory contains code for the Green Bank Telescope K-band Focal Plane Array (KFPA) data analysis and reduction pipeline.
+
+The code is authored by Joe Masters, Bob Garwood and Glen Langston at the National Radio Astronomy Observatory (NRAO).
+
+Joe Masters   -- jmasters@nrao.edu
+Bob Garwood   -- bgarwood@nrao.edu
+Glen Langston -- glangsto@nrao.edu
+
+Project website:
+
+https://safe.nrao.edu/wiki/bin/view/Kbandfpa/WebHome
+
+At the moment, this directory includes one example use case:  mapping the spiral galaxy M81 in a position-switched observing mode.
+
+All code is written in IDL.  The highest level script is m81Map.pro and scan numbers are hard-coded.
+
+Last modified:  5 January 2010
