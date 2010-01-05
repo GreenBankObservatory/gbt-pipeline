@@ -87,14 +87,18 @@ pro scaleIntsRef, scans, iPol, iBand, iFeed, dcBRef, dcERef, $\
    calMids = (*dcSCal.data_ptr)[bChan:eChan]
 
                                 ; now select all integrations for this
-                                ; scan; separate cal on/off and pol A/B
-   calOns = getchunk(scan=scans[iScan], count=count, cal="T", plnum=iPol, $\
-                      ifnum=iBand, fdnum=iFeed)
-   calOfs = getchunk(scan=scans[iScan], cal="F", plnum=iPol, ifnum=iBand, $\
-                      fdnum=iFeed)
+                                ; scan; separate cal on/off and pol
+                                ; A/B
+   ; its cheaper to get both in one call and use a mask here
+   data = getchunk(scan=scans[iScan], count=count, plnum=iPol, $\
+                   ifnum=iBand, fdnum=iFeed)
    if (count le 0) then begin $\
      print,'Error reading scan: ', scans[iScan], ', No integrations' & $\
      return & endif
+
+   calOns = where(data.cal_state eq 1, count)
+   calOfs = where(data.cal_state eq 0)
+
 
 ;   gains = fltarr( count)  ; prepare to collect an array of gains
    count=count-1; correct for 0 based counting
@@ -102,8 +106,8 @@ pro scaleIntsRef, scans, iPol, iBand, iFeed, dcBRef, dcERef, $\
 
    ; for all integrations in a scan collect arrays of gains
 ;   for iInt= 0, count do begin
-;      subs = (*calOns[iInt].data_ptr)[bchan:eChan] - $\ 
-;        (*calOfs[iInt].data_ptr)[bchan:eChan] ;
+;      subs = (*(data[calOns[iInt]]).data_ptr)[bchan:eChan] - $\ 
+;        (*(data[calOfs[iInt]]).data_ptr)[bchan:eChan] ;
 
 ;      ratios = subs*calMids
 ;      gain = avg( ratios)
@@ -113,16 +117,43 @@ pro scaleIntsRef, scans, iPol, iBand, iFeed, dcBRef, dcERef, $\
    ; Now boxcar smooth gains, a few samples wide 
  ;  gainSmooths = smooth( gains, 7, /edge_truncate)
 
+   ; get the zenith opacities at the band edges
+   refChan = data[calOns].reference_channel
+    nChan = n_elements(*(data[calOns[0]]).data_ptr)
+    delChan = data[calOns].frequency_interval
+    freqMHzA = (data[calOns].observed_frequency + ((0-refChan)*delChan)) * 1.E-6
+    freqMHzB = (data[calOns].observed_frequency + ((nChan - refChan)*delChan)) * 1.E-6
+    mjd = data[calOns].mjd
+
+    tauArray = getTau(mjd, [freqMHzA,freqMHzB])
+    ; decompose it - many unused values
+    nMJD = n_elements(mjd)
+    tauZenithsA = dblarr(nMJD)
+    tauZenithsB = tauZenithsA
+    for i=0,(nMJD-1) do begin
+        tauZenithsA[i] = tauArray[i,i]
+        tauZenithsB[i] = tauArray[i,i+nMJD]
+    endfor
+
+                                ; if we're going to be keeping
+                                ; something, we need an array of data
+                                ; containers, one for each integration
+
+    if doKeep then begin
+        ; all elements here are undefined
+        keepArray = make_array(count+1,value={spectrum_struct})
+    endif
+
    ; for all integrations in a scan; apply gain correction
    doPrint = 0
    nInt2 = round(count / 2) 
    for iInt= 0, count do begin
-      setTSky, calOns[count], tSkys, doPrint, opacityA, opacityB
+      setTSky, data[calOns[iInt]], tSkys, doPrint, opacityA, opacityB, tauZenithsA[iInt], tauZenithsB[iInt]
                                 ; now create an opacity array for this scan
       factors = tSkys
       dOpacity = (opacityB - opacityA)/float(nChan)
       etaA = 1.0 &  etaB = 1.0
-      etaGBT, 1.E-6*calOns[0].reference_frequency, etaA, etaB
+      etaGBT, 1.E-6*data[calOns[0]].reference_frequency, etaA, etaB
       ; compute frequency dependent opacity factor (no eta B dependence yet)
       for i = 0, (nChan -1) do begin $\
         factors[i]=(opacityA+(i*dOpacity))/etaB & endfor
@@ -130,45 +161,53 @@ pro scaleIntsRef, scans, iPol, iBand, iFeed, dcBRef, dcERef, $\
         print,'factors: ',factors[0], factors[nChan-1], opacityA, opacityB, $\
         dOpacity    
 
-      aves = (*calOns[iInt].data_ptr + *calOfs[iInt].data_ptr)*.5;
-      t = calOns[iInt].utc
+      aves = (*(data[calOns[iInt]]).data_ptr + *(data[calOfs[iInt]]).data_ptr)*.5;
+      t = data[calOns[iInt]].utc
       ; compute interpolated reference
       a = (dcERef.utc-t)/dT
       b = (t - dcBRef.utc)/dT
       ; interpolate reference spectrum (sky has been removed)
       refs = (a*(*dcBRef.data_ptr)) + (b*(*dcERef.data_ptr))
       tSys  = (a*dcBRef.tsys) + (b*dcERef.tsys)
-      *calOns[iInt].data_ptr = factors*(((aves * *(dcSCal.data_ptr)) - (tSkys + refs)))
-;      *calOns[iInt].data_ptr = aves * *(dcSCal.data_ptr)
-      middleT = avg( (*calOns[iInt].data_ptr)[bChan:eChan])
-      rmsT = stddev( (*calOns[iInt].data_ptr)[bChan:eChan])
-      calOns[iInt].units = 'T_B*'
+      *(data[calOns[iInt]]).data_ptr = factors*(((aves * *(dcSCal.data_ptr)) - (tSkys + refs)))
+;      *(data[calOns[iInt]]).data_ptr = aves * *(dcSCal.data_ptr)
+      middleT = avg( (*(data[calOns[iInt]]).data_ptr)[bChan:eChan])
+      rmsT = stddev( (*(data[calOns[iInt]]).data_ptr)[bChan:eChan])
+      data[calOns[iInt]].units = 'T_B*'
       ; tsys is composed of source, sky and reference (without sky).
-      calOns[iInt].tsys = middleT + tSkys[round(nChan/2)] + dcSCal.tsys
-      calcRms = calOns[iInt].tsys/sqrt(calOns[iInt].exposure*calOns[iInt].frequency_resolution)
-      set_data_container, calOns[iInt]
+      data[calOns[iInt]].tsys = middleT + tSkys[round(nChan/2)] + dcSCal.tsys
+      calcRms = data[calOns[iInt]].tsys/sqrt(data[calOns[iInt]].exposure*data[calOns[iInt]].frequency_resolution)
+      set_data_container, data[calOns[iInt]]
       refbeamposition, 1
 ;      if (iInt eq 0) then show else oshow
-      if (doKeep gt 0) then keep
+      if (doKeep gt 0) then begin
+          ; because of the way IDL passes array elements, you
+          ; can do data_copy,!g.s[0],keepArray[iInt]
+          ; This works.
+          data_copy,!g.s[0],spectrumToKeep
+          keepArray[iInt] = spectrumToKeep
+      endif
 
-      if ((iInt eq 0) or (iInt eq nInt2)) then begin unfreeze & $\
-        !g.frozen = 0 & show,calOns[iInt] & !g.frozen = 1 & freeze & endif
+;      if ((iInt eq 0) or (iInt eq nInt2)) then begin unfreeze & $\
+;        !g.frozen = 0 & show,data[calOns[iInt]] & !g.frozen = 1 & freeze & endif
 
       ; report
-      printf, wlun, scans[iScan], iInt, calOns[iInt].utc, $\
-         middleT, (*calOns[iInt].data_ptr)[round(nChAn/2)], tSys,  $\
-         calOns[iInt].tsys, rmsT, calcRms, $\
+      printf, wlun, scans[iScan], iInt, data[calOns[iInt]].utc, $\
+         middleT, (*(data[calOns[iInt]]).data_ptr)[round(nChAn/2)], tSys,  $\
+         data[calOns[iInt]].tsys, rmsT, calcRms, $\
          format='(I-5, I-5, F-10.3, x, F-10.4, F-10.4, F-10.4, F-10.4, F-7.3, F-7.3)'
     endfor             
 
+   if doKeep then begin
+       putchunk, keepArray
+       data_free, keepArray
+   endif
+
 ;   clean up to avoid memory disaster
-   for i = 0, count do begin
-      data_free, calOns[i]
-      data_free, calOfs[i]
-  endfor
+   data_free, data
 
 endfor
-!g.frozen = 0 & unfreeze
+;!g.frozen = 0 & unfreeze
 ; close report file
 close,wlun
 

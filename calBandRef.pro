@@ -15,44 +15,53 @@ pro calBandRef, allscans, refScans, iBand, nFeed, nPol, doWait
       print, 'usage: cal, allScans, refScans, feedInN, bandInN, polN'
       print, '   allScans  all scans to include in the map'
       print, '   refScans  begin and end reference scans'
-      print, '    bandInN  single observation band number, range 0 to n-1'
-      print, '      nFeed  number of feeds to process range 1 to n'
-      print, '       nPol  number of polarizations to process 1 to n'
+      print, '    bandInN  single observation band number, range: 0 to n-1'
+      print, '      nFeed  number of feeds to process range: 1 to n'
+      print, '       nPol  number of polarizations to process: 1 to n'
       print, '     doWait  optionally wait for user input to continue cal'
       print, 'Output is to a log file and keep files'
       print, '----- Glen Langston, 2009 November 19; glangsto@nrao.edu'
       return
    endif
 
-   doShow = 1
+   ;optionally show accumulated spectra
+   doShow = 0
+
+   ;set default values, if necessary
    if (not keyword_set(nPol)) then nPol = 2
    if (not keyword_set(nFeed)) then nFeed = 2
    if (not keyword_set(doWait)) then doWait=0
 
-   for iFeed = 0, (nFeed-1) do begin 
+   ;for each beam or feed
+   for iFeed = 0, (nFeed-1) do begin
+ 
       print, '************ Band ', iBand, ' Feed ',iFeed,' **************'
+
+      ;for each polarization
       for iPol = 0, (nPol-1) do begin 
+
          ; pol, beginning reference
-         gettp, refscans[0], int=0, plnum=iPol, fdnum=iFeed, ifnum=iBand
-         data_copy, !g.s[0], dcBRef0
-         data_copy, !g.s[0], dcCal0
-         data_copy, !g.s[0], dcRef0
          getRef, refscans[0], iPol, iBand, iFeed, dcBRef0, dcCal0, doShow
-         ; pol, end reference
-         gettp, refscans[1], int=0, plnum=0, fdnum=iFeed, ifnum=iBand
+
          ; prepare to create the output calibration file name
          mapName = !g.s[0].source
          mapType = 'Cal' 
-         firstLast = [allscans[0], allscans[n_elements(allscans)-1]]
-         nameMap, !g.s[0], mapName, firstLast, mapType
+
+         ; JSM: the following appears no different from refscans
+         ;firstLast = [allscans[0], allscans[n_elements(allscans)-1]]
+
+         nameMap, !g.s[0], mapName, refscans, mapType
          data_copy, !g.s[0], dcERef0
+
+         ; pol, end reference
          getRef, refscans[1], iPol, iBand, iFeed, dcERef0, dcCal0, doShow
 
          ; prepare to get tau for these obs
          obsDate = dcBRef0.timestamp
          obsMjd =  dateToMjd( obsDate)
          freqMHz = dcBRef0.observed_frequency  * 1.E-6
- ; get and report tau
+         
+         ; get and report tau
          zenithTau = getTau( obsMjd, freqMHz)
          print,'Obs:',dcBRef0.projid,' ',obsDate, ' Freq:',freqMHz, $\
           ' (MHz) Tau: ',zenithTau
@@ -62,9 +71,9 @@ pro calBandRef, allscans, refScans, iBand, nFeed, nPol, doWait
          getRef, allscans, iPol, iBand, iFeed, dcRef0, dcCal0, doshow
 
       ; show the before and after reference for both polarizations.
-         show,dcBRef0
-         oshow,dcERef0
-         oshow,dcCal0
+      ;   show,dcBRef0
+      ;   oshow,dcERef0
+      ;   oshow,dcCal0
 ;        create containers for scaled cal values and references
          data_copy, dcCal0, dcSCal0
          data_copy, dcBRef0, dcSBRef0
@@ -90,7 +99,7 @@ pro calBandRef, allscans, refScans, iBand, nFeed, nPol, doWait
          print, 'Saved: ', refname
       ; reference scaled cals are approxmately tRx
          sety, -1, 50.
-         show, dcSCal0
+      ;   show, dcSCal0
          if (doWait gt 0) then begin 
             print,'Enter X to continue (Pol ',dcSCal0.polarization,' :'
             read,x

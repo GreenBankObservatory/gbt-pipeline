@@ -1,5 +1,7 @@
 ;IDL Procedure to test cal noise diode based calibration
 ;HISTORY
+; 09DEC14 JSM comment: this is a replacement for and more featured version
+;             of gettp in GBTIDL
 ; 09NOV30 GIL get integrations one scan at a time, to avoid overflow problem
 ; 09NOV13 GIL use getTau() to get the predicted tau for this date
 ; 09NOV12 GIL use only the on-off 3C48 scans to define the cal reference
@@ -38,52 +40,56 @@ pro getRef, scans, iPol, iBand, iFeed, dcRef, dcCal, doShow
    data_copy, !g.s[0], dcRef
    data_copy, !g.s[0], dcCal
 
-   a = {accum_struct}         ; structure to hold the ongoing sum
-   accumclear, a              ; clear it
+   aOn = {accum_struct}         ; structure to hold the ongoing calOn sum
+   accumclear, aOn              ; clear it
+   aOf = {accum_struct}         ; structure to hold the ongoing calOf sum
+   accumclear, aOf              ; clear it
 
    nScans = n_elements( scans)
-   for iScan=0, (nScans-1) do begin
-     calOns = getchunk(scan=scans[iScan], cal="T", plnum=iPol, $\
-                       ifnum=iBand, fdnum=iFeed)
-     
-     if (doShow le 0) then freeze
-     
-     for i=0,n_elements(calOns)-1 do begin dcaccum, a, calOns[i] & $\
-       if (doShow) then show, calOns[i] & endfor
 
-     ; get average coordiate and system temps
-     for i=0,n_elements(calOns)-1 do begin & $\
-       tInt=calOns[i].exposure & tSum=tSum+tInt &$\
-       elSum=elSum+(tInt*calOns[i].elevation) & $\
-       azSum=azSum+(tInt*calOns[i].azimuth) & $\
-       lonSum=lonSum+(tInt*calOns[i].longitude_axis) & $\
-       latSum=latSum+(tInt*calOns[i].latitude_axis) & $\
-       tLonSum=tlonSum+(tInt*calOns[i].target_longitude) & $\
-       tLatSum=tlatSum+(tInt*calOns[i].target_latitude) & endfor
+   ;for each scan
+   for iScan=0, (nScans-1) do begin
+
+     ;get all integrations for a scan at the given polarization, band and feed
+     data = getchunk(scan=scans[iScan], plnum=iPol, $\
+                     ifnum=iBand, fdnum=iFeed)
+
+     ;split the integration spectra into calOn's and calOff's
+     calOns = where(data.cal_state eq 1,onCount)
+     calOfs = where(data.cal_state eq 0,ofCount)
+     
+;     if (doShow le 0) then freeze
+     
+     ;accumulate all calOn integrations for the scan
+     ; (adding to prev. scans)
+     for i=0,onCount-1 do begin dcaccum, aOn, data[calOns[i]] & $\
+       if (doShow) then show, data[calOns[i]] & endfor
+
+     ; get average coordiates and exposure time for the scan
+     for i=0,onCount-1 do begin & $\
+       tInt=data[calOns[i]].exposure & tSum=tSum+tInt &$\
+       elSum=elSum+(tInt*data[calOns[i]].elevation) & $\
+       azSum=azSum+(tInt*data[calOns[i]].azimuth) & $\
+       lonSum=lonSum+(tInt*data[calOns[i]].longitude_axis) & $\
+       latSum=latSum+(tInt*data[calOns[i]].latitude_axis) & $\
+       tLonSum=tlonSum+(tInt*data[calOns[i]].target_longitude) & $\
+       tLatSum=tlatSum+(tInt*data[calOns[i]].target_latitude) & endfor
+         
+     ;accumulate all calOff integrations for the scan
+     ; (adding to prev. scans)
+     for i=0,n_elements(calOfs)-1 do begin dcaccum, aOf, data[calOfs[i]] & $\
+       if (doshow gt 0) then show, data[calOfs[i]] & endfor
 
      ; now clean up
-     for i=0,n_elements(calOns)-1 do begin 
-        data_free, calOns[i]
-     endfor
+     data_free, data
    endfor
 
-   accumave, a, calOnAve   ; get the average
-   ; now start Cal Off average
-   accumclear, a       ; clear it
+   accumave, aOn, calOnAve   ; get the cal ON average
+   accumave, aOf, calOfAve   ; get the cal OFF average
 
-   for iScan=0, (nScans-1) do begin
-
-     calOfs = getchunk(scan=scans[iScan], cal="F", plnum=iPol, $\
-                       ifnum=iBand, fdnum=iFeed)
-     for i=0,n_elements(calOfs)-1 do begin dcaccum, a, calOfs[i] & $\
-       if (doshow gt 0) then show, calOfs[i] & endfor
-
-     for i=0,n_elements(calOfs)-1 do begin 
-        data_free, calOfs[i]
-     endfor
-   endfor  
-
-   accumave,a, calOfAve    ; get the average
+   ; this clears any memory in the accumulators
+   accumclear, aOn
+   accumclear, aOf
 
    ;now complete cal on - cal off spectrum and store as a data container
    setdcdata, dcCal, (*calOnAve.data_ptr - *calOfAve.data_ptr)
@@ -115,16 +121,21 @@ pro getRef, scans, iPol, iBand, iFeed, dcRef, dcCal, doShow
 
    ; compute spectrum in units of cal
    ratios = (*dcRef.data_ptr)[bChan:eChan] / (*dcCal.data_ptr)[bchan:echan] 
-   ; 
-   tSys = avg( ratios)*dcRef.mean_tcal
+   
+   tSys = avg( ratios ) * dcRef.mean_tcal
+   
+   ; returned via the dcCal and dcRef structures, which are passed parameters
+   ; from the calling routine
    dcCal.tsys = tSys
    dcRef.tsys = tSys
 
-   unfreeze
+;   unfreeze
 
    data_free, calOfAve & data_free, calOnAve
-   accumclear, a & data_free, calOfAve & data_free, calOnAve
+   data_free, calOfAve & data_free, calOnAve
+
    return
+
 end
 
 

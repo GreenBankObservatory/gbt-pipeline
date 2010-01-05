@@ -1,4 +1,4 @@
-;IDL Procedure to calibrate map scans for a 2x2 degree region around M81
+;IDL Procedure to calibrate map scans for a 2x2x degree region around M81
 ;HISTORY
 ; 09DEC02 GIL revised for a 2x2 degree map
 ; 09NOV30 GIL initial version
@@ -11,7 +11,6 @@ sdfitsStr = '/opt/local/bin/sdfits -fixbadlags -backends=acs scans=61:91 /home/a
 
 ; or spawn within IDL (uncomment the line below)
 ; spawn, sdfitsStr
-
 mapDataName='AGBT03B_034_01.raw.acs.fits'
 filein,mapDataName
 
@@ -27,4 +26,3 @@ nFeed=1 & nPol=2
 for iBand = 0, 0 do begin $\
   gettp,refScans[0], int=0, ifnum=iBand & $\
   calBand, allscans, refscans, iBand, nFeed, nPol & endfor 
-
