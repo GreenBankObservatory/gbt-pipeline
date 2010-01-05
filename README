@@ -12,6 +12,6 @@ https://safe.nrao.edu/wiki/bin/view/Kbandfpa/WebHome
 
 At the moment, this directory includes one example use case:  mapping the spiral galaxy M81 in a position-switched observing mode.
 
-All code is written in IDL.  The highest level script is m81Map.pro and scan numbers are hard-coded.
+All code is written in IDL.  The highest level script is m81Map.pro and scan numbers are hard-coded.  Due to the interaction with weather prediction scripts only available in Green Bank, the code can only be effectively run on a Green Bank network computer.  In addition, an IDL license is required.
 
 Last modified:  5 January 2010
