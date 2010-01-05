@@ -11,7 +11,8 @@ sdfitsStr = '/opt/local/bin/sdfits -fixbadlags -backends=acs scans=61:91 /home/a
 
 ; or spawn within IDL (uncomment the line below)
 ; spawn, sdfitsStr
-mapDataName='AGBT03B_034_01.raw.acs.fits'
+; note the following line will only work in Green Bank, possibly only on colossus
+mapDataName='/home/sandboxes/jmasters/data/AGBT03B_034_01.raw.acs.fits'
 filein,mapDataName
 
 firstScan=61
