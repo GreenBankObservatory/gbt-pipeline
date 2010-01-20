@@ -1,3 +1,19 @@
+#!/bin/bash
+
+# This is a simple script for reading kfpa pipeline input parameters
+# and passing control to idl.
+#
+# Author: Joe Masters (jmasters@nrao.edu)
+
+# set default parameter values
+INFILE=0
+BEGINSCAN=0
+ENDSCAN=0
+RUNSDFITS=-0
+SDFITSDIR=0
+VERBOSE=0
+
+# check parameters
 for i in $*
 do
 	case $i in
@@ -13,33 +29,40 @@ do
 	--end-scan*)
 		ENDSCAN=`echo $i | sed 's/[-a-zA-Z0-9]*=//'`
 		;;
+	--verbose*)
+		VERBOSE=`echo $i | sed 's/[-a-zA-Z0-9]*=//'`
+		;;
 	--help)
 		HELP=HELP
 		;;
 	-h)
 		HELP=HELP
 		;;
+	--sdfits-dir*)
+		SDFITSDIR=`echo $i | sed 's/[-a-zA-Z0-9]*=//'`
+		;;
     *)
         echo "Error:" $i "not recognized"
+        ERROR=1
 		;;
   	esac
 done
-echo ${INFILE} ${BEGINSCAN} ${ENDSCAN} ${HELP}
+
+if [ ${ERROR} ]; then exit; fi
+
 if [ $# == 0 ] || [[ -n "${HELP}" ]]; then
    echo "Usage: kfpa_pipeline [--infile=filename] [--begin-scan=scan]"
    echo "                     [--end-scan=scan] [--help] [--run-sdfits]"
    echo "                     [--sdfits-dir=directory]"
-   echo ""
    echo "Options:"
    echo "  --infile=file           SDFITS file name containing map scans"
    echo "  --begin-scan=scan       beginning map scan number"
    echo "  --end-scan=scan         ending map scan number"
+   echo "  --sdfits-dir=directory  SDFITS input directory; used if infile"
+   echo "                          option is not usable"
+   echo "  --verbose=level         set the verbosity level"
    echo "  -h --help               print this help"
-   echo "  --run-sdfits            run sdfits program first instead of"
-   echo "                          providing SDFITS output file"
-   echo "  --sdfits-dir=directory  SDFITS input directory; must be used"
-   echo "                          with --run-sdfits option"       
 else
-   echo ""
-#   idl -quiet -e @params.pro -args ${INFILE} ${BEGINSCAN} ${ENDSCAN} ${HELP}
+   idl -quiet -e @m81Map.pro -args ${INFILE} ${BEGINSCAN} ${ENDSCAN} \
+   ${SDFITSDIR} ${VERBOSE}
 fi

@@ -90,8 +90,12 @@ pro scaleIntsRef, scans, iPol, iBand, iFeed, dcBRef, dcERef, $\
                                 ; scan; separate cal on/off and pol
                                 ; A/B
    ; its cheaper to get both in one call and use a mask here
-   data = getchunk(scan=scans[iScan], count=count, plnum=iPol, $\
-                   ifnum=iBand, fdnum=iFeed)
+   scan=scans[iScan]
+   count=count
+   plnum=iPol
+   ifnum=iBand
+   fdnum=iFeed
+   data = getchunk(scan, count, plnum, ifnum, fdnum)
    if (count le 0) then begin $\
      print,'Error reading scan: ', scans[iScan], ', No integrations' & $\
      return & endif

@@ -51,8 +51,11 @@ pro getRef, scans, iPol, iBand, iFeed, dcRef, dcCal, doShow
    for iScan=0, (nScans-1) do begin
 
      ;get all integrations for a scan at the given polarization, band and feed
-     data = getchunk(scan=scans[iScan], plnum=iPol, $\
-                     ifnum=iBand, fdnum=iFeed)
+     scan=scans[iScan]
+     plnum=iPol
+     ifnum=iBand
+     fdnum=iFeed
+     data = getchunk(scan, plnum, ifnum, fdnum)
 
      ;split the integration spectra into calOn's and calOff's
      calOns = where(data.cal_state eq 1,onCount)

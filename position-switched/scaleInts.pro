@@ -71,11 +71,16 @@ pro scaleInts, scans, iPol, iBand, iFeed, dcSCal, bChan, eChan
 
     ; now select all integrations for this
     ; scan; separate cal on/off and pol A/B
-    calOns = getchunk(scan=scans[iScan], count=count, cal="T", $\
-                     plnum=iPol, ifnum=iBand, fdnum=iFeed)
-
-    calOfs = getchunk(scan=scans[iScan], count=countOff, cal="F", $\
-                     plnum=iPol, ifnum=iBand, fdnum=iFeed)
+    scan=scans[iScan]
+    count=count
+    cal="T"
+    plnum=iPol
+    ifnum=iBand
+    fdnum=iFeed
+    calOns = getchunk(scan, count, cal, plnum, ifnum, fdnum)
+    count=countOff
+    cal="F"
+    calOfs = getchunk(scan, count, cal, plnum, ifnum, fdnum)
 
      if (count le 0) then begin $\
        print,'Error reading scan: ', scans[iScan], ', No integrations' & $\
