@@ -1,0 +1,45 @@
+for i in $*
+do
+	case $i in
+    	--default)
+		DEFAULT=YES
+		;;
+	--infile*)
+		INFILE=`echo $i | sed 's/[-a-zA-Z0-9]*=//'`
+		;;
+	--begin-scan*)
+		BEGINSCAN=`echo $i | sed 's/[-a-zA-Z0-9]*=//'`
+		;;
+	--end-scan*)
+		ENDSCAN=`echo $i | sed 's/[-a-zA-Z0-9]*=//'`
+		;;
+	--help)
+		HELP=HELP
+		;;
+	-h)
+		HELP=HELP
+		;;
+    *)
+        echo "Error:" $i "not recognized"
+		;;
+  	esac
+done
+echo ${INFILE} ${BEGINSCAN} ${ENDSCAN} ${HELP}
+if [ $# == 0 ] || [[ -n "${HELP}" ]]; then
+   echo "Usage: kfpa_pipeline [--infile=filename] [--begin-scan=scan]"
+   echo "                     [--end-scan=scan] [--help] [--run-sdfits]"
+   echo "                     [--sdfits-dir=directory]"
+   echo ""
+   echo "Options:"
+   echo "  --infile=file           SDFITS file name containing map scans"
+   echo "  --begin-scan=scan       beginning map scan number"
+   echo "  --end-scan=scan         ending map scan number"
+   echo "  -h --help               print this help"
+   echo "  --run-sdfits            run sdfits program first instead of"
+   echo "                          providing SDFITS output file"
+   echo "  --sdfits-dir=directory  SDFITS input directory; must be used"
+   echo "                          with --run-sdfits option"       
+else
+   echo ""
+#   idl -quiet -e @params.pro -args ${INFILE} ${BEGINSCAN} ${ENDSCAN} ${HELP}
+fi
