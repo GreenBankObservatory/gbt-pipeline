@@ -1,7 +1,6 @@
 ;IDL Procedure to test cal noise diode based calibration
 ;HISTORY
-; 09DEC14 JSM comment: this is a replacement for and more featured version
-;             of gettp in GBTIDL
+; 09DEC14 JSM comment: this is an enhancement of gettp in GBTIDL
 ; 09NOV30 GIL get integrations one scan at a time, to avoid overflow problem
 ; 09NOV13 GIL use getTau() to get the predicted tau for this date
 ; 09NOV12 GIL use only the on-off 3C48 scans to define the cal reference
@@ -34,18 +33,19 @@ pro getRef, scans, iPol, iBand, iFeed, dcRef, dcCal, doShow
    tLatSum = 0.0 & tLonSum = 0.0
 
 ;   print, 'GetRef: s,p,b,f: ',scans[0], iPol, iBand, iFeed
-   gettp, scans[0], int=0, plnum=iPol, ifnum=iBand, fdnum=iFeed
+;   JSM: the following lines don't seem to add anything
+;   gettp, scans[0], int=0, plnum=iPol, ifnum=iBand, fdnum=iFeed
 
    ; copy most parameters to outputs
-   data_copy, !g.s[0], dcRef
-   data_copy, !g.s[0], dcCal
+;   data_copy, !g.s[0], dcRef
+;   data_copy, !g.s[0], dcCal
 
    aOn = {accum_struct}         ; structure to hold the ongoing calOn sum
    accumclear, aOn              ; clear it
-   aOf = {accum_struct}         ; structure to hold the ongoing calOf sum
-   accumclear, aOf              ; clear it
+   aOff = {accum_struct}        ; structure to hold the ongoing calOf sum
+   accumclear, aOff             ; clear it
 
-   nScans = n_elements( scans)
+   nScans = n_elements( scans )
 
    ;for each scan
    for iScan=0, (nScans-1) do begin
@@ -56,7 +56,7 @@ pro getRef, scans, iPol, iBand, iFeed, dcRef, dcCal, doShow
 
      ;split the integration spectra into calOn's and calOff's
      calOns = where(data.cal_state eq 1,onCount)
-     calOfs = where(data.cal_state eq 0,ofCount)
+     calOffs = where(data.cal_state eq 0,offCount)
      
 ;     if (doShow le 0) then freeze
      
@@ -77,25 +77,25 @@ pro getRef, scans, iPol, iBand, iFeed, dcRef, dcCal, doShow
          
      ;accumulate all calOff integrations for the scan
      ; (adding to prev. scans)
-     for i=0,n_elements(calOfs)-1 do begin dcaccum, aOf, data[calOfs[i]] & $\
-       if (doshow gt 0) then show, data[calOfs[i]] & endfor
+     for i=0,offCount-1 do begin dcaccum, aOff, data[calOffs[i]] & $\
+       if (doshow gt 0) then show, data[calOffs[i]] & endfor
 
      ; now clean up
      data_free, data
    endfor
 
    accumave, aOn, calOnAve   ; get the cal ON average
-   accumave, aOf, calOfAve   ; get the cal OFF average
+   accumave, aOff, calOffAve   ; get the cal OFF average
 
    ; this clears any memory in the accumulators
    accumclear, aOn
-   accumclear, aOf
+   accumclear, aOff
 
    ;now complete cal on - cal off spectrum and store as a data container
-   setdcdata, dcCal, (*calOnAve.data_ptr - *calOfAve.data_ptr)
+   setdcdata, dcCal, (*calOnAve.data_ptr - *calOffAve.data_ptr)
 
    ;now complete (cal on + cal off)/2 spectrum and store as a data container
-   setdcdata, dcRef, (*calOnAve.data_ptr + *calOfAve.data_ptr)*0.5
+   setdcdata, dcRef, (*calOnAve.data_ptr + *calOffAve.data_ptr)*0.5
 
    ; normalize the sums and transfer to output
    dcCal.elevation = elSum/tSum
@@ -131,8 +131,9 @@ pro getRef, scans, iPol, iBand, iFeed, dcRef, dcCal, doShow
 
 ;   unfreeze
 
-   data_free, calOfAve & data_free, calOnAve
-   data_free, calOfAve & data_free, calOnAve
+   ; cleanup memory
+   ;data_free, calOffAve & data_free, calOnAve
+   data_free, calOffAve & data_free, calOnAve
 
    return
 

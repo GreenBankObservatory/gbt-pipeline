@@ -1,4 +1,5 @@
 ;IDL Procedure to test cal noise diode based calibration
+; JSM:  smooth the data and remove RFI
 ;HISTORY
 ; 09DEC02 GIL reduce min cal values  and increase smooth width
 ; 09DEC01 GIL smooth reference with savgol filter and convolution

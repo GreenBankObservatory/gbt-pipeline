@@ -55,43 +55,47 @@ pro scaleInts, scans, iPol, iBand, iFeed, dcSCal, bChan, eChan
      tSkys = *!g.s[0].data_ptr  ; prepare for sky correction 
 
      aScanInfo=scan_info(scans[iScan])
-; retrieve counts of different spectra types
-     nInt = aScanInfo.n_integrations & nPol = aScanInfo.n_polarizations
+
+     ; retrieve counts of different spectra types
+     nInt  = aScanInfo.n_integrations & nPol = aScanInfo.n_polarizations
      nFeed = aScanInfo.n_feeds       & nIf = aScanInfo.n_ifs
      nChan = aScanInfo.n_channels    & nSample = aScanInfo.n_samplers
-; default trimming of channels 
+
+     ; default trimming of channels 
      if (not keyword_set( bchan)) then bChan = 12 * (nChan/1024);
      if (not keyword_set( echan)) then eChan = nChan - (bChan + 1)
      oChan = eChan - bChan + 1       & oChan1 = eChan - bChan
 
-   ; trip off ends of spectra to save some computations of the average
-   calMids = (*dcSCal.data_ptr)[bChan:eChan]
+    ; trip off ends of spectra to save some computations of the average
+    calMids = (*dcSCal.data_ptr)[bChan:eChan]
 
-                                ; now select all integrations for this
-                                ; scan; separate cal on/off and pol A/B
-   calOns = getchunk(scan=scans[iScan], count=count, cal="T", $\
+    ; now select all integrations for this
+    ; scan; separate cal on/off and pol A/B
+    calOns = getchunk(scan=scans[iScan], count=count, cal="T", $\
                      plnum=iPol, ifnum=iBand, fdnum=iFeed)
-   calOfs = getchunk(scan=scans[iScan], count=countOff, cal="F", $\
+
+    calOfs = getchunk(scan=scans[iScan], count=countOff, cal="F", $\
                      plnum=iPol, ifnum=iBand, fdnum=iFeed)
-   if (count le 0) then begin $\
-     print,'Error reading scan: ', scans[iScan], ', No integrations' & $\
+
+     if (count le 0) then begin $\
+       print,'Error reading scan: ', scans[iScan], ', No integrations' & $\
      return & endif
 
 ;   gains = fltarr( count)  ; prepare to collect an array of gains
-   count=count-1; correct for 0 based counting
-   countOff = countOff - 1
-   opacityA = 1.0 & opacityB = 1.0
+     count=count-1; correct for 0 based counting
+     countOff = countOff - 1
+     opacityA = 1.0 & opacityB = 1.0
 
-   ; for all integrations in a scan; apply gain correction
-   doPrint = 0
-   nInt2 = round(count / 2) 
-   sCals = (*dcSCal.data_ptr)[bchan:eChan] ; selecte useful cal values
-   nKeep = eChan - bChan
-   nKeep16 = round(nKeep/16)
-   tsysInds = indgen(2*nKeep16) + nKeep16
-   tsysInds[nKeep16:(2*nKeep16-1)] = tsysInds[nKeep16:(2*nKeep16-1)] + $\
-     (12*nKeep16)
-   for iInt= 0, count do begin
+     ; for all integrations in a scan; apply gain correction
+     doPrint = 0
+     nInt2 = round(count / 2) 
+     sCals = (*dcSCal.data_ptr)[bchan:eChan] ; selecte useful cal values
+     nKeep = eChan - bChan
+     nKeep16 = round(nKeep/16)
+     tsysInds = indgen(2*nKeep16) + nKeep16
+     tsysInds[nKeep16:(2*nKeep16-1)] = tsysInds[nKeep16:(2*nKeep16-1)] + $\
+       (12*nKeep16)
+     for iInt= 0, count do begin
       etaGBT, 1.E-6*calOns[0].observed_frequency, etaA, etaB
       setTSky, calOns[count], tSkys, doPrint, opacityA, opacityB
                                 ; now create an opacity array for this scan

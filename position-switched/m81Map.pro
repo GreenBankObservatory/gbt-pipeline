@@ -12,18 +12,29 @@ sdfitsStr = '/opt/local/bin/sdfits -fixbadlags -backends=acs scans=61:91 /home/a
 ; or spawn within IDL (uncomment the line below)
 ; spawn, sdfitsStr
 ; note the following line will only work in Green Bank, possibly only on colossus
-mapDataName='/home/sandboxes/jmasters/data/AGBT03B_034_01.raw.acs.fits'
-filein,mapDataName
+;mapDataName='/home/sandboxes/jmasters/data/AGBT03B_034_01.raw.acs.fits'
+;filein,mapDataName
 
-firstScan=61
-lastScan=91
+args = command_line_args()
+
+mapDataName = args[0]
+
+;firstScan=61
+;lastScan=91
+
+firstScan = fix(args[1])
+lastScan  = fix(args[2])
+
 refscans = [firstScan,lastScan]
 allscans = indgen(1+lastScan-firstScan) + firstScan
-print,allscans
+;print,allscans
 
-; observation is for one feed and two polarizations
-nFeed=1 & nPol=2
+scanInfo = scan_info(allscans[0])
+nFeed = scanInfo.n_feeds
+nPol = scanInfo.n_polarizations
+nBand = scanInfo.n_ifs
 
-for iBand = 0, 0 do begin $\
-  gettp,refScans[0], int=0, ifnum=iBand & $\
-  calBand, allscans, refscans, iBand, nFeed, nPol & endfor 
+; for a single spectral window
+band = 0
+wait = 1
+calBand, scanInfo, allscans, refscans, band, nFeed, nPol, wait
