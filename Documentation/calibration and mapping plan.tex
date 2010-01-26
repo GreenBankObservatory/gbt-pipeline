@@ -1,6 +1,8 @@
 %Description of the GBTIDL calibration process along with summary
 %of AIPS mapping functions.
 %HISTORY
+%10JAN23 GIL Expand calibration info
+%09DEC23 GIL Expand AIPS info
 %09DEC18 GIL Expand on the observing details
 %09DEC17 GIL first complete version
 %09DEC16 GIL limit document to calBand calibration full description
@@ -28,7 +30,8 @@
 \newcommand\textstylePageNumber[1]{\textcolor{black}{#1}}
 \newcommand\textstyleFootnoteSymbol[1]{\textsuperscript{#1}}
 % Outline numbering
-\setcounter{secnumdepth}{0}
+%\setcounter{secnumdepth}{0}    %% use this for no section numbering
+\setcounter{secnumdepth}{2}
 \newcommand{\arcs}{''~}
 \newcommand{\arcm}{'~}
 % List styles
@@ -56,7 +59,7 @@
 \newcommand\ps@Standard{%
 \renewcommand\@oddhead{}%
 \renewcommand\@evenhead{}%
-\renewcommand\@oddfoot{KFPA Mapping Test Report \hfill 2009 November 27}%
+\renewcommand\@oddfoot{KFPA Calibration/Mapping Test Report \hfill \today}%
 \renewcommand\@evenfoot{\@oddfoot}%
 \setlength\paperwidth{8.5in}\setlength\paperheight{11in}\setlength\voffset{-1in}\setlength\hoffset{-1in}\setlength\topmargin{1in}\setlength\headheight{12pt}\setlength\headsep{0cm}\setlength\footskip{12pt+0.461in}\setlength\textheight{11in-1in-0.5in-0cm-12pt-0.461in-12pt}\setlength\oddsidemargin{1.25in}\setlength\textwidth{8.5in-1.25in-1.25in}
 \renewcommand\thepage{\arabic{page}}
@@ -82,46 +85,48 @@
 \renewcommand\thefootnote{\arabic{footnote}}
 \makeatother
 
-\title{KFPA Mapping Tests 2009 November 27}
+\title{KFPA Test Observations on 2009 November 27}
 
 \begin{document}
 \clearpage\pagestyle{Standard}
 \thispagestyle{FirstPage}
 {\centering\bfseries
-KFPA Pipeline Calibration and Mapping Plan with Description of Tests on 2009 November 27
+KFPA Pipeline Calibration and Mapping Procedures for \\ Observations on 2009 November 27
 \par}
 
 
 \bigskip
 
 \centerline{Glen Langston}
-\centerline{2009 December 18}
-\centerline{--- DRAFT ---}
+\centerline{2010 January 24}
+
 \bigskip
 
 \setcounter{tocdepth}{3}
 \renewcommand\contentsname{}
 
 \bigskip
-\abstract{This document describes the steps of calibration of GBT molecular line
-observations and production of images of molecular emission from the spectra.
-These steps are tested by reduction of GBT K-band molecular
+\abstract{This document describes the observations made with the GBT towards
+galactic radio source W49.   We summarize the observations and present a
+series of data calibration imaging steps to produce a set of four images
+of this region, attempting to detect a variety of molecular species.
+These observations were made using the dual feed, dual polarization GBT
+high K-band (22 to 26 GHz) system, for spectral
 line observations of molecular transistions of $NH_3$ $1-1$, $2-2$, $3-3$,
-$H_2O$ and $CH_3OH$,   
+$H_2O$ and $CH_3OH$.   These observations were  
 made in preparation for KFPA commissioning.   Poor weather prevented
 us from achieving all the test goals, but a number of valuable lessons from this
 session are discussed.   We summarize GBTIDL scripts that allow nearly completely
 automatic calibration of dual beam observations.   We also outline requirements
-for improved "Submapping" procedures, to facilitate efficiency when
+for improved "Sub-mapping" procedures, to facilitate efficiency when
 mapping large angular regions or observations interrupted for adverse weather.
 
 This document contains a description of the major steps of
 the calibration and mapping process and documents the RMS noise and
 and Signal-Noise-Ratio achieved for the method of "Noise Diode Calibration".
 In addition to test observations of W49, these calibration routines have been
-tested on narrow line observations of the Taurus Molecular Cloud and wide bandwidth
-line searches for neutral hydrogen clouds near galaxy NGC 784.   We note the differences
-in calibration approaches for these different types of observations.
+tested on wide bandwidth
+line searches for neutral hydrogen clouds near galaxy NGC 784.   
 
 Later documents will compare different methods of calibration, but the implementation
 of these alternate methods will not significantly change our approach to pipeline
@@ -137,13 +142,19 @@ calibration and imaging.
 \caption{Image produced from the two beam, $NH_3$ $3-3$, observation of W49.
 The region of peak emission was imaged with both beams.}
 \end{figure}
+
 \section{Test Goals}
-The purpose of these tests was to compare mapping and calibration methods for
-three observing methods, $1)$ position switched,
+The purpose of these tests were to prepare for commissioning of the the 7 pixel GBT
+K-band focal plane array.   The KFPA will be normally be used in a rapid scan and 
+dump of spectra mode, so we focused on mapping observations 
+with the maximum spectrometer
+dump rate.
+These particular observations were intended to compare mapping and calibration 
+methods for three observing methods, $1)$ position switched,
 $2)$ position switched without winking cal and
 $3)$ frequency switched.
 We intended to make small maps of a point source, 3C286, and a larger map
-of a know spectral line source, W49.   The point source maps were to be
+of a known spectral line source, W49.   The point source maps were to be
 8\arcm square and the spectral line maps were to be 15\arcm square.
 Astrid scripts were prepared for these observing methods, but only
 the position switched scripts were used. 
@@ -153,10 +164,32 @@ but we were stopped for high winds.   After the winds,
 snow accumulation required pointing the telescope
 at lower elevations and we immediately moved to W49.
 
+Only the position switched data were obtained during these tests, and future observations
+must be scheduled to perform the frequency switched tests.
+Data were obtained to allow position switched and noise-diode calibration.
+In this document, we describe only the noise diode calibration method.
+The conversion and imaging steps described here are applicable to all
+calibration methods.
+We intend to separately perform position switched calibration and compare
+the calibration accuracy and spectral baseline flatness in a separate memo.
+
+Section \S 2 describes the observations and \S 3 describes the calibration process.
+Section \S 4 describes the conversion from GBTIDL {\tt keep} format to AIPS input
+format. 
+Section \S 5 describes the commands used in AIPS to examine and image the
+observations.   Section \S 6 lists recommendations to ASTRID that will facilitate
+mapping large regions and also maps interrupted for adverse weather.
+Section 7 summarizes the test results.
+
+Appendix A describes the highest level GBTIDL calibration procedure.   Appendix
+B describes the noise diode calibration procedure.  Appendix C is an observing
+log, to facilitate others to compare reduction processes.
+Appendix D lists an AIPS {\tt runfile} to aid in configuring the AIPS imaging routines.
+
 \section{Observations}
 
 This document summarizes Mapping Test observations made with the GBT
-on November 27, 2009 and the current 18 to 26 GHz receiver.  
+on November 27, 2009 and the current 22 to 26 GHz receiver system.  
 The observations were made immediately after the Thanksgiving
 holiday shutdown, an NRAO holiday.   Kevin Gum first moved the
 telescope slowly in Azimuth to condition the grease and bearing oil before
@@ -183,7 +216,7 @@ The data were archived under project T\_09NOV27, and consisted of 130 scans
 taken in the interval between 14:00 and 18:08 UTC.   Sources 3C286, J1856+06,
 and the region surrounding W49 were observed.
  
-\section[K-Band Mapping Parameters]{K-Band Mapping Parameters}
+\subsection[K-Band Mapping Sequence]{K-Band Mapping Sequence}
 \bigskip
 
 The K-Band mapping parameters are set by the beam size and the
@@ -234,20 +267,41 @@ to the system temperature is subtracted from the spectra.
 The calibration routines generate an output file containing one or more polarizations,
 but from only 1 GBT beam.   For this example, processing of the 23870 MHz observations
 from the third of four beams of the GBT K-band feed, the calibrated W49 data
-have name:  {\tt TCal\_W49\_3\_51\_82\_23870.fits}
+have name:  {\tt TCal\_NH3\_W49\_3\_51\_82\_23870.fits}
 These files are given names with the following parts:
 \begin{description}
 \myitem{Calibration Type} Method of calibrating the Spectrum.  In this case the
 calibration is performed only using the difference of the Noise Diode Cal-On - Cal-Off
 values.
+\myitem{Molecule} The name of one molecule in the spectrum.
 \myitem{Source} Source name for the first scan in the observation.
-\myitem{Beam} The beam of the observation.   In this case beam 3 (range 1 to N).
+\myitem{Beam} The beam of the observation.   In this case beams 3 and 4 (range 1 to N).
 \myitem{First Scan}  First scan number processed.
 \myitem{Last Scan}  Last scan number processed.
 \myitem{Center Freq.}  Center frequency of this frequency band (MHz).
 \end{description}
 
-\section{Conversion to AIPS Input Format}
+Before proceeding further, we must point out that 
+all calibration of Radio Astronomy data depends on some method for removing
+the receiver contribution to the system temperature and the spectral baseline shape.
+In many cases, an off source position can be found, where it is reasonable to assume
+there is no source contributing to the measured spectra.  This {\tt reference} position
+may be subtracted from the observation to yield a good estimate of the spectral
+properties of the science target spectrum.   However for some spectral lines,
+such as $H_I$, there is no emission free off location.   Also since the GBT is
+remarkably sensitive, there is also almost no location free of a background source,
+so there is always some contribution to the spectral baseline from the integrated
+collection of faint background sources.
+
+Combined with an interest in attempting calibration from first principles, here
+we have focused on noise diode only calibration.   The system 
+contribution is still present in this reduction technique, and in the
+next step the system contribution is removed by assuming that most
+of the spectral baseline is free of line emission, and the baseline
+is removed using a median filter baseline (See Langston and Turner 2007, {\it Ap. J.},
+{\bf 658}, 455 for more details on the median filter baseline removal process).
+
+\section{Conversion to {\tt AIPS} Input Format}
 
 After completing the calibration process, the data are converted into another data
 format compatible with the AIPS package.   The program {\tt idlToSdfits}, written by
@@ -256,7 +310,7 @@ The program has a variety of control parameters, which allow data flagging, data
 selection, averaging of channels and subtraction of a median baseline.
 
 The program {\tt idlToSdfits} takes as input the calibrated spectra and produces
-an AIPS "Single Dish Fits" format file, which is different that the GBT format.
+an {\tt AIPS} "Single Dish Fits" format file, which is different that the GBT format.
 The program gives this file the extension "{\tt .sdf}".   
 By default, the program gives the output file a name similar to the input file.
 The program also
@@ -264,6 +318,12 @@ produces a {\tt .tex} summary of the observation and a tabulation of the
 RMS noise in all spectra  ({\tt .noi}).
 The high level GBTIDL procedure automatically calls {\tt idlToSdfits} at the end
 of calibration.
+
+The selection of the spectra are selected and the spectral baseline removed by a
+call from GBTIDL to a procedure {\tt toaips}.  This procedure accesses the 
+output GBTIDL file name ({\tt !g.line\_fileout\_name}) and converts this
+output into the required {\tt AIPS} input format.
+
 \section{AIPS Processing}
 
 The AIPS program is used to produce images for the observer.   This process
@@ -310,35 +370,12 @@ dimensional value, but usually the pixels are square.   A good rule of thumb is 
 the {\tt CELLSIZE} to 1/3 to 1/5 the GBT beam size at the center frequency.
 For comparing observations of lines at several frequencies it is convenient to 
 make all images with the same cell size and image size.    AIPS has the
-capability of creating procedures for repeating tedious operations.  Two procedures
-are listed below, the first sets the GBT BEAM size in the file header, and
-the second computes the GBT BEAM Size, in Degrees.   These procedures
-will be used to estimate an appropriate {\tt CELLSIZE} for imaging
-the spectra
-\begin{verbatim}
-$Set spectra and Image header values for a circular beam with FWHM
-$Angular size X (degrees)
-PROC CIRCULAR( X)
-  keyword='BMAJ'   ; KEYVAL = X/3600., 0; PUTHEAD 
-  keyword='BMIN'   ; KEYVAL = X/3600., 0; PUTHEAD 
-  keyword='BPA'    ; KEYVAL = 0; PUTHEAD 
-  keyword='NITER'  ; KEYVAL = 1, 0; PUTHEAD
-  RETURN
-FINISH
+capability of creating procedures for repeating tedious operations.  
+Several AIPS procedures are listed in Appendix D for setting the
+proper values for the imaging convolution step.
 
-$Compute the GBT FWHM Beam size in in degrees and update
-$the image or spectra file header.
-PROC GBTBEAM
-  keyword 'restfreq' ; gethead
-  FREQMHZ = KEYVAL(1)*.000001
-  LAMBDACM = 29979.245/FREQMHZ
-  BEAMSIZE = 0.423*LAMBDACM*60.
-  CIRCULAR( BEAMSIZE)
-  RETURN
- FINISH
-\end{verbatim}
 For the $NH_3$ $1-1$ transition at 23,694.506 MHz, the GBT FWHM beam size is
-32.1".   Setting {\tt CELLSIZE=6} yields a reasonable image.
+32.1".   Setting {\tt CELLSIZE=5} yields a reasonable image.
 \myitem{IMSIZE} Image size in pixels.  The product of image size and {\tt CELLSIZE} in 
 (arc-seconds per pixel) and should be slightly larger than the region mapped.
 \myitem{XTYPE} The convolving function for placing spectra into the image grid.
@@ -351,25 +388,96 @@ $$
 \myitem{XPARM}  The convolving function $f(\theta)$ has three parameters that are specified
 in units of arc-seconds, and the forth parameter, the exponential exponent, is
 always 2.   These convolving function parameters are set relative to the single dish
-beam size and may conveniently set using an equation in AIPS.   First define
-a variable {\tt Y} to be the size of the GBT beam in pixels (typically between 3 and
-7 pixels per beam).    For 5 pixels per beam, set {\tt Y = 5}.   This quantity is
-not critical for scientific reasons, but is set for esthetic  reasons such as making
-the resulting image appear smoother.   Set \\
-{\tt XPARM =  CELLS(1)*Y, CELLS(1)*1.55*Y, CELLS(1)*2.55*Y, 2} ~~~
-yielding:
-$$
-f(\theta) = e^{- [\theta/Xparm(3)]^2} ~ Bessel_{J=1}( \theta/Xparm(2)) / (\theta/Xparm(2))
-$$ 
-The inquisitive observer can get AIPS help on this topic by typing {\tt HELP UV6TYPE}.
+beam size and may conveniently set using an equation in AIPS.   
+An AIPS procedure {\tt SETCONV} is listed in appendix D, to aid in the setup.
+This procedure is summarized here.  First an AIPS variable, {\tt BMAJ}, is defined
+by an equation to be approximately the GBT beam size (in arc seconds) at the 
+rest frequency of the line.
+All other parameters in the convolution function are multiples of this value:
+\\
+{\tt XPARM =  BMAJ, BMAJ*1.55, BMAJ*2.55, 2} ~~~
+
+The first {\tt XPARM} argument is the angular size of the convolving function.
+The inquisitive observer can get more {\tt AIPS} help on this topic by typing {\tt HELP UV6TYPE}.
 \myitem{REWEIGHT} The data of low significance may be flagged using the
 {\tt REWEIGHT} parameter, but usually this produces unsatisfactory results.  To
-avoid this, use {\tt REWEIGHT = 0, 1E-12}.
+avoid this, use {\tt REWEIGHT = 0, 1E-12}.   (Remember to set this value
+back to zero before running {\tt UVLOD} again!, or the second data set will have
+insignificant weight).
 \myitem{OPTYPE} The project on coordinates onto a rectangular grid is controlled by
 this parameter.  For large single dish fields,  setting {\tt OPTYPE = '-GLS'} produces
 a rectangular image.
 \end{description}
+\subsection{Examining the Image: {\tt TVLOD, TVPS, TVLAB, TVWED, TVWLAB}}
+To load images for examination, list the AIPS image catalog ({\tt MCAT}) and
+select the image ({\tt GETN ??}), where {\tt ??} is the number of the
+image.     First set the pixel range to all values, {\tt PIXRA = 0} and load
+the image {\tt TVLOD}.   To label the image, type {\tt TVLAB} and
+show a color wedge type {\tt TVWED}.   To label the color wedge
+type {\tt TVWLAB} and then to adjust the colors type {\tt TVPS}
+and use the mouse and keyboard letters {\tt A, B, C and D} to 
+adjust the color range.
 
+An AIPS procedure {\tt TVLOOP} is listed in Appendix D, which is
+convenient for rapidly viewing selected channels of the resulting image.
+
+\subsection{Spectrum of an Image Region: {\tt ISPEC}}
+After producing the map, the spectral properties of a region may be
+examined using AIPS task {\tt ISPEC}.   Generally ISPEC is used several
+times to select the region of interest.   First select the image to examine,
+load it on the AIPS TV, using {TVLOD} and adjust the colors using
+{\tt TVPS}.   After setting the color range to show the noise
+and regions with emission,  use {\tt TVWIN}  to select a large region, 
+avoiding the partially mapped regions.    Then set the display to 
+the AIPS TV ({tt DOTV=1}) and do not print out the values ({\tt DOCRT=0}).
+Set the axis value to channels (pixels) {\tt LTYPE=6}, so that
+the when running {\tt ISPEC}, the channels containing emission can
+be selected for production of a moment map.
+\subsection{Switching Frequency/Velocity 3rd Dimension}
+The GBTIDL calibration has transfered the rest frequency of this observation
+to the file header.  With that information, AIPS can transform between velocity
+and frequency on the 3rd axis.  The AIPS verb {\tt ALTSW} switches
+between these two options.   Running {\tt ALTSW} a second time
+switches back to the original display option.
+\subsection{Image of Molecular distribution: {\tt TRANS} and {\tt MOMNT}}
+Often the observer will need to view the distribution of a particular
+molecular transition over all velocity ranges.   Two AIPS tasks are
+required to accomplish this.   The first is {\tt TRANS} which is
+used to re-organize the image from RA, Dec, Frequency order to
+Frequency, RA, Dec order.    This new order is specified
+by the argument {\tt TRANSCOD = '312'}. 
+At the same time, the image planes containing emission may be selected using the 
+{\tt Bottom Left Corner (BLC)} and {\tt Top Right Corner (TRC)} arguments.
+The task will run much faster if only the required channels are selected, so
+set the {\tt BLC(3)} and {\tt TRC(3)} values to the start and stop channels
+with line emission.   
+
+After transforming the image, an new {\tt TRANS} image is produced.  Select
+this image for input to {\tt MOMNT}, using {\tt GETN ??}.   If only the total
+intensity image is required, set the output class to {\tt OUTCL = '0'}, and
+to include all values in the selected region {\tt ICUT= 0}.
+Produce the total intensity image by commanding {\tt GO MOMNT}.
+Find the new image ({\tt MCAT}), select it ({\tt GETN ??}) and display it
+({\tt PIXRA 0; TBLC 0; TTRC 0; TVLOD})
+
+\subsection{Measure Image properties: {\tt JMFIT}}
+The source structure and integrated intensity is measured using {\tt JMFIT}, but
+first the telescope resolution must be described in the image header.   Above,
+the AIPS procedure {\tt GBTBEAM} is listed.   
+{\tt GBTBEAM} will set this information in the AIPS image header.    
+The value is approximate, as the mapping method can reduce the effective
+angular resolution of the observations.   The most precise method of determining
+the angular resolution is mapping a point calibration source in the manner
+identical that used for making the science observation.
+
+After setting the beam size, the angular region to be fit is selected with
+AIPS verb {\tt TVWIN}.    The number of iterations of the fitting should
+be large, {\tt NITER=1000}.   The number of gaussian components to
+fit depends on the source structure.   For a single component set
+{tt NGAUS = 1}.   To fit position, width and intensity set 
+{\tt DOPOS = 1; DOMAX = 1; DOWID = 1}.
+Don't display the values on the terminal ({\tt DOCRT=0}).
+  
 \section{Observation Support Recommendations}
 One important result of these tests is the identification of requirements for
 improving the ASTRID
@@ -422,6 +530,10 @@ hardware becomes available.
 The position switched observations of W49 were carried out successfully,
 with the observations of a 15\arcm map divided into three sections.
 All data were processed in a consistent manner with the calibration scripts.
+The full calibration processing time is significant for a 2 beam, 4 spectral
+band observation.  The processing required almost 24 hours for these
+mapping observations.   The pipeline processing can be significantly
+speeded if the calibration can be run on several processors simultaneously.
 
 The time required for calibration, pointing and focus were underestimated
 and future tests should image smaller regions.
@@ -432,6 +544,12 @@ can produce good spectral baselines, but only with a dynamic range of
 about 1 in 400, relative to the system temperature.  This implies
 that spectral features fainter than 20K/400 $\sim$ 0.05K can
 not be reliable detected with this technique.
+Note that if the observer can accurately identify line - free regions, then
+AIPS can be used to fit a spectral baseline, after the imaging step.
+This allows fainter lines to be detected.   Also note that frequently
+a final spectral baseline must be subtracted in the position switched
+and frequency switched calibration modes.
+
 In a companion document, we describe the RMS noise found for
 position switched and frequency switched observations.
 
@@ -439,9 +557,7 @@ Future KFPA images can be produced using these methods, but a
 number of improvements to the starting and stopping of mapping
 image sub-sections would improve observer efficiency.
 
-\appendix
 
-\appendix
 \begin{figure}
 \vskip -0.75in
 \includegraphics[width=120mm,angle=-90]{n784SmoothCal.pdf}
@@ -454,7 +570,9 @@ in the spectrum and the model fit.
 }
 \end{figure}
 
-\section{Mapping Procedures}
+\clearpage
+\appendix
+\section{Calibration Procedures for Mapping}
 This appendix describes in more detail the functions of the mapping
 procedures and points at the relevant new features of these procedures.
 Each mapping technique makes some assumptions concerning the
@@ -476,6 +594,8 @@ of the effective noise temperature of these noise diode values.
 \begin{verbatim}
 ;IDL Procedure to calibrate map scans
 ;HISTORY
+; 10JAN23 GIL use toaips to prepare data for AIPS imaging
+; 10JAN22 GIL add code for selecting line emitting region
 ; 09DEC16 GIL break up sdfits call for clarity
 ; 09DEC15 GIL revised for tmc map
 ; 09DEC02 GIL revised for a 2x2 degree map
@@ -506,30 +626,41 @@ filein,mapDataName
 ;now specify first and last scans, to guide mapping
 firstScan=51
 lastScan=82
-refscans = [50,51,82,83]
+refscans = [50,83]
 ;use all map scans as ref scans
 allscans = indgen(1+lastScan-firstScan) + firstScan
 refscans = allscans
 print,allscans
 
 ; observation is for two feeds and two polarizations
-nFeed=2 & nPol=2
+nPol=2
 
-for iBand = 3, 3 do begin $\
+; set velocity parameters for selecting relevant channels
+vSource = 10.0        ; km/sec - defines center channel to select
+vSourceWidth  = 10.0 ; km/sec - defines median filter width
+vSourceBegin  = -30.0 ; km/sec - defines beginning channel to select
+vSourceEnd    = 50.0 ; km/sec - defines endding channel to select
+; The rest frequency frequencies guide the selection of data to be
+; converted to AIPS format.   If no rest frequencies are provided,
+; The rest frequencies in the observation header are used.
+;            NH3 1-1 and 2-2, H2O,         CH3OH+CCCS,   NH3 3-3
+restFreqHzs = [ 23694.5060D6, 22235.120D6, 23121.024D6,  23870.1296D6]
+;below the line rest frequency for each band is set.
+;There are many-many NH3 lines, so to set the velocity the strong line 
+;must be identified.  
+
+for iFeed = 0, 1 do begin $\
+for iBand = 0, 3 do begin $\
   gettp,refScans[0], int=0, ifnum=iBand & $\
-  calBand, allscans, refscans, iBand, nFeed, nPol & endfor 
-  
-;define path for program to convert spectra to AIPS format
-idlToSdfitsPath = '/users/glangsto/bin/idlToSdfits '
-; select 2000 channels for processing
-; then average 3 channels, median filter 100 channels to subtract a baseline
-idlToSdfitsArgs = '-c 7192:9191 -a 3 -w 100'
-;create the full command and execute it with the GBTIDL output file name
-idlToSdfitsCmd = idlToSdfitsPath + idlToSdfitsArgs + ' ' + !g.line_fileout_name
-spawn, idlToSdfitsCmd
-  
+  calBand, allscans, refscans, iBand, iFeed, nPol & $\
+  data_copy, !g.s[0], myDc & $\
+;change rest frequency for computation of velocities in AIPS
+  myDc.line_rest_frequency = restFreqHzs[iBand] & $\
+;select channels and write the AIPS compatible data 
+  toaips,myDc,vSource,vSourceWidth,vSourceBegin,vSourceEnd & endfor&endfor
+
 \end{verbatim}
-\centerline{Listing of the top level calibration script}
+\centerline{Listing of the top level calibration script: w49.pro}
 
 \clearpage
 \begin{figure}
@@ -643,112 +774,118 @@ StartStop Source Proc.  # RA-2000  Dec-2000   #   Sky  BandWidth
  126 129 J1856+06 Peak  4 18h56m32  6d10'15  576 23700 1280 DCR 18:05:53
  130 130 J1856+06 Focus 1 18h56m32  6d10'17  294 23700 1280 DCR 18:08:14
 \end{verbatim}
-\section{\tt calBand.pro}
-Below is a listing of the {\tt calBand.pro} procedure for this date.
+
+\section{AIPS Utility for Imaging parameters}
+Imaging of GBT spectra in AIPS is relatively straightforward, however
+the setting the convolving function values to yield good results is
+slightly tricky.   Below is a listing of an AIPS {\tt runfile} to
+aid in setup of the inputs to AIPS task {\tt SDIMG}.
+
+The critical procedure {\tt SETCONV}, below is run after all other inputs
+to the AIPS task {\tt SDIMG} are set.   This includes selecting the input
+spectra for the subsequent imaging process.   The header of the input
+single dish data will be modified to include an estimate of the GBT beam size
+at the frequency of the molecular line.
+
+To use these procedures, within AIPS one must first compile these procedures.
+to do this type 
+
+{\tt RUN IDLTOSD}
+
+at the AIPS command prompt.
+
+
+Below is a listing of the {\tt IDLTOSD.001} procedure for this date.
 
 \begin{verbatim}
-;IDL Procedure to test cal noise diode based calibration
-;HISTORY
-; 09DEC01 GIL use refScans
-; 09NOV19 GIL replace pair of polarization processes with loop
-; 09NOV19 GIL replace pair of polarization processes with loop
-; 09NOV18 GIL fix indexing of polarizations
-; 09NOV13 GIL use getTau() to get the predicted tau for this date
-; 09NOV12 GIL use only the on-off 3C48 scans to define the cal reference
-; 09NOV11 GIL initial test of gainScanInt2
-; 09NOV10 GIL use ratioScanInt2.pro 
+$ aips scripts transfer circular beam shape to map header 
+$ Allows imstat to return the correct intensities
+$ HISTORY
+$ 10JAN24 GIL add scripts for seting SDIMG convolution function
 
+$ define some variables for procedures
+PROC INITGBT
+  SCALAR FREQMHZ, FWHM, BEAMSIZE, LAMBDACM
+  SCALAR ISTART, IEND, PAUSEL
+FINISH
 
-pro calBand, allScans, refScans, iBand, nFeed, nPol, doWait, bChan, eChan
+$ Assume a "Circular Clean Beam"
+$ INPUT beam size in arc-seconds
+PROC CIRCULAR( X)
+  keyword='BMAJ'   ; KEYVAL = X/3600., 0; PUTHEAD 
+  keyword='BMIN'   ; KEYVAL = X/3600., 0; PUTHEAD 
+  keyword='BPA'    ; KEYVAL = 0; PUTHEAD 
+  keyword='NITER'  ; KEYVAL = 1, 0; PUTHEAD
+  RETURN
+FINISH
 
-   if (not keyword_set( allScans)) then begin
-      print, 'calBand: calibrates all obs of a band for GBT scans.'
-      print, 'values must be pre-computed and scaled with scaleRef()'
-      print, 'usage: cal, allScans, refScans, feedInN, bandInN, polN'
-      print, '   allScans  all scans to include in the map'
-      print, '   refScans  reference scans for average Cal Signal'
-      print, '    bandInN  single observation band number, range 0 to n-1'
-      print, '      nFeed  number of feeds to process range 1 to n'
-      print, '       nPol  number of polarizations to process 1 to n'
-      print, '     doWait  optionally wait for user input to continue cal'
-      print, 'Output is to a log file and keep files'
-      print, '----- Glen Langston, 2009 November 13; glangsto@nrao.edu'
-      return
-   endif
+$compute the GBT beam size expected for a GBT mapping
+$observation.   This model assumes the data are sampled
+$much faster than the time to cross a point source, so
+$no source smearing correction for finite integration
+$time is required.
+PROC GBTBEAM
+  keyword 'restfreq' ; gethead
+  FREQMHZ = KEYVAL(1)*.000001
+  LAMBDACM = 29979.245/FREQMHZ
+  BEAMSIZE = 0.423*LAMBDACM*60.
+  CIRCULAR( BEAMSIZE)
+  KEYWORD 'BUNIT'; gethead
+  KEYWORD 'BUNIT'; KEYSTR = KEYSTR !! '/BEAM'; puthead
+$ need Jy/beam for IMSTAT to work 
+  KEYWORD 'BUNIT'; KEYSTR = 'Jy/BEAM'; puthead
+  RETURN
+FINISH
 
-   doShow = 1
-   if (not keyword_set(nPol)) then nPol = 2
-   if (not keyword_set(nFeed)) then nFeed = 2
-   if (not keyword_set(doWait)) then doWait=0
+$setCONV() computes the appropriate convolution
+$function for a GBT observation.   This function should
+$be used after setting the CELLSIZE for SDIMG.
+$The proceedure uses 5 arc second cellsize if cells is
+$not set.
+PROC SETCONV
+  XTYPE = -16; YTYPE = -16
+  GBTBEAM
+  KEYWORD = 'BMAJ'; gethead
+  BMAJ = KEYVAL(1)*3600.
+  IF (CELLS(1) < 0.1) then cells = 5; END
+  Y = BMAJ/CELLS(1) 
+  XPARM = BMAJ, 1.55*BMAJ, 2.55*BMAJ, 2, 0
+  YPARM = XPARM
+  RETURN
+FINISH
+    
+$Fix a common spelling error 
+PROC TPYE(I)
+  TYPE I
+  RETURN
+FINISH
 
-   gettp, allScans[0], int=0, plnum=0, fdnum=0, ifnum=iBand
-   nChan = n_elements( *!g.s[0].data_ptr)
-   ; trim a small part of ends of spectrum (rouns to even 1000s of channels)
-   if (not keyword_set(bChan)) then bChan = (12 * round( nChan/1024)) + 100
-   if (not keyword_set(eChan)) then eChan = nChan - (bChan + 1)
+$Fix a common spelling error 
+PROC TYEP(I)
+  TYPE I
+  RETURN
+FINISH
 
-   for iFeed = 0, (nFeed-1) do begin 
-      print, '****** Band:', iBand, ' Feed:',iFeed,' nChan:', nChan, ' *******'
-      for iPol = 0, (nPol-1) do begin 
-                  ; pol, beginning reference
-         gettp, allScans[0], int=0, plnum=iPol, fdnum=iFeed, ifnum=iBand
-         data_copy, !g.s[0], dcRef0
-         data_copy, !g.s[0], dcCal0
-         mapName = !g.s[0].source
-         mapType = 'TCal' 
-         firstLast = [allScans[0], allScans[n_elements(allScans)-1]]
-         nameMap, !g.s[0], mapName, firstLast, mapType
-         ; prepare to get tau for these obs
-         obsDate = dcRef0.timestamp
-         obsMjd =  dateToMjd( obsDate)
-         freqMHz = dcRef0.observed_frequency  * 1.E-6
- ; get and report tau
-         zenithTau = getTau( obsMjd, freqMHz)
-         print,'Obs:',dcRef0.projid,' ',obsDate, ' Freq:',freqMHz, $\
-          ' (MHz) Tau: ',zenithTau
+$Fix another common spelling error 
+PROC GENT(I)
+  GETN I
+  RETURN
+FINISH
 
-      ; compute the cal references from all scans
-      ; get references for the beginning of the map
-         getRef, refScans, iPol, iBand, iFeed, dcRef0, dcCal0, doshow
+$display a sequence of images on the TV
+$Arguments are start and stop frequency channels
+PROC TVLOOP(ISTART,IEND)
+  FOR I=ISTART to IEND 
+    TBLC(3) = I; TVLOD; TVLAB
+    PRINT I
+$Just enter <CR> to continue
+    IF (PAUSEL > 0) THEN READ X; END
+  END
+  RETURN
+FINISH
 
-      ; show the before and after reference for both polarizations.
-         show,dcRef0
-
-;        create containers for scaled cal values and references
-         data_copy, dcCal0, dcSCal0
-         data_copy, dcRef0, dcSRef0
-
-; compute the cal references from all scans
-; do the pre-computations to save later calculations
-         scaleRef, dcRef0, dcCal0, dcSRef0, dcSCal0
-      ;next save the calibration spectra
-         refname = 'scal'
-         reftype = 'TRef_'
-         saveDc, dcSCal0, refname, reftype
-         print, 'Saved: ', refname
-      ; reference scaled cals are approxmately tRx
-         show, dcSCal0
-         if (doWait gt 0) then begin 
-            print,'Enter X to continue (Pol ',dcSCal0.polarization,' :'
-            read,x
-         endif
-
-; clean up any old keep files and prepare to create new
-         if (iPol eq 0) then begin
-           file_delete, mapName, /ALLOW_NONEXISTENT
-           fileout, mapName
-         endif
-; for this polarization, process and keep the data
-         scaleInts, allScans, iPol, iBand, iFeed, dcSCal0, bChan, eChan 
-
-                                ; now clean up all accumulated memory   
-         data_free, dcCal0 & data_free, dcSCal0 
-         data_free, dcRef0 & data_free, dcSRef0 
-
-      endfor                   ; end for all polarizations
-   endfor                      ; end for all feeds  
-
-return
-end                         ; end of calBand.pro
+$ set PAUSEL = 1 to wait between channels
+$ set PAUSEL = 0 for no pause in display loop
+PAUSEL = 0
 \end{verbatim}  
 \end{document}
