@@ -1,6 +1,7 @@
 ;IDL Procedure to test cal noise diode based calibration
 ; JSM:  smooth the data and remove RFI
 ;HISTORY
+; 09DEC16 GIL use a higher order SavGol filter and more channels
 ; 09DEC02 GIL reduce min cal values  and increase smooth width
 ; 09DEC01 GIL smooth reference with savgol filter and convolution
 ; 09NOV23 GIL found code error, now using smoothed cals
@@ -31,26 +32,11 @@ pro scaleRef, dcRef, dcCal, dcScaleRef, dcScaleCal
    nChan = n_elements( *dcCal.data_ptr) -1
    bChan = nChan/32
    eChan = nChan - bChan
-   nChan1 = nChan-1
-   calMin = 0.003
+   calMin = 0.001
 
-   for i = 2, (nChan-3) do begin
-      ; median to remove Narrow RFI
-      (*dcScaleCal.data_ptr)[i] = median((*dcCal.data_ptr)[(i-2):(i+2)])
-      ; perform minimum test to avoid divide by zero.
-      if ((*dcScaleCal.data_ptr)[i] lt calMin) then $\
-        (*dcScaleCal.data_ptr)[i]=calMin 
-   endfor
-   (*dcScaleCal.data_ptr)[0] = (*dcScaleCal.data_ptr)[2]
-   (*dcScaleCal.data_ptr)[1] = (*dcScaleCal.data_ptr)[2]
-   (*dcScaleCal.data_ptr)[nChan-2] = (*dcScaleCal.data_ptr)[nChan-3]
-   (*dcScaleCal.data_ptr)[nChan-1] = (*dcScaleCal.data_ptr)[nChan-3]
+   ; Smooth the cal values
+   smoothCal, dcScaleCal, calMin
 
-;   savgolFilter = SAVGOL(149, 149, 0, 1) 
-   nSavGol = round(nChan/256)
-   savgolFilter = SAVGOL(nSavGol, nSavGol, 0, 1) 
-   ; savgolFilter = SAVGOL(199, 199, 0, 1) 
-   *dcScaleCal.data_ptr = CONVOL(*dcCal.data_ptr, savgolFilter, /EDGE_TRUNCATE)
    *dcScaleCal.data_ptr = dcRef.mean_tcal / *dcScaleCal.data_ptr
 
    dcScaleCal.units = 'K/Count'   ; kevins per spectrometer count
@@ -66,6 +52,8 @@ pro scaleRef, dcRef, dcCal, dcScaleRef, dcScaleCal
    (*dcScaleRef.data_ptr)[nChan-2] = (*dcScaleRef.data_ptr)[nChan-3]
    (*dcScaleRef.data_ptr)[nChan-1] = (*dcScaleRef.data_ptr)[nChan-3]
 
+   nSavGol = nChan/16
+   savgolFilter = SAVGOL(nSavGol, nSavGol, 0, 5) 
    *dcScaleRef.data_ptr = CONVOL(*dcScaleCal.data_ptr, savgolFilter, $\
                                  /EDGE_TRUNCATE)
    *dcScaleRef.data_ptr = *dcScaleRef.data_ptr * *dcScaleCal.data_ptr 
@@ -79,7 +67,6 @@ pro scaleRef, dcRef, dcCal, dcScaleRef, dcScaleCal
    doPrint = 1
    setTSky, dcScaleRef, tSkys, doPrint
    *dcScaleRef.data_ptr = smooth( *dcScaleRef.data_ptr - tSkys, $\
-
                                   11, /edge_truncate)
    ; prepare to compute reference Tsys with the Sky removed
    bChan = round(nChan/10)

@@ -47,10 +47,8 @@ pro calBandRef, allscans, refScans, iBand, nFeed, nPol, doWait
          mapName = !g.s[0].source
          mapType = 'Cal' 
 
-         ; JSM: the following appears no different from refscans
-         ;firstLast = [allscans[0], allscans[n_elements(allscans)-1]]
-
-         nameMap, !g.s[0], mapName, refscans, mapType
+         firstLast = [allscans[0], allscans[n_elements(allscans)-1]]
+         nameMap, !g.s[0], mapName, firstLast, mapType
          data_copy, !g.s[0], dcERef0
 
          ; pol, end reference
@@ -71,9 +69,9 @@ pro calBandRef, allscans, refScans, iBand, nFeed, nPol, doWait
          getRef, allscans, iPol, iBand, iFeed, dcRef0, dcCal0, doshow
 
       ; show the before and after reference for both polarizations.
-      ;   show,dcBRef0
-      ;   oshow,dcERef0
-      ;   oshow,dcCal0
+         show,dcBRef0
+         oshow,dcERef0
+         oshow,dcCal0
 ;        create containers for scaled cal values and references
          data_copy, dcCal0, dcSCal0
          data_copy, dcBRef0, dcSBRef0
@@ -99,7 +97,7 @@ pro calBandRef, allscans, refScans, iBand, nFeed, nPol, doWait
          print, 'Saved: ', refname
       ; reference scaled cals are approxmately tRx
          sety, -1, 50.
-      ;   show, dcSCal0
+         show, dcSCal0
          if (doWait gt 0) then begin 
             print,'Enter X to continue (Pol ',dcSCal0.polarization,' :'
             read,x

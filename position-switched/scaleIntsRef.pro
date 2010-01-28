@@ -87,15 +87,10 @@ pro scaleIntsRef, scans, iPol, iBand, iFeed, dcBRef, dcERef, $\
    calMids = (*dcSCal.data_ptr)[bChan:eChan]
 
                                 ; now select all integrations for this
-                                ; scan; separate cal on/off and pol
-                                ; A/B
+                                ; scan; separate cal on/off and pol A/B
    ; its cheaper to get both in one call and use a mask here
-   scan=scans[iScan]
-   count=count
-   plnum=iPol
-   ifnum=iBand
-   fdnum=iFeed
-   data = getchunk(scan, count, plnum, ifnum, fdnum)
+   data = getchunk(scan=scans[iScan], count=count, plnum=iPol, $\
+                   ifnum=iBand, fdnum=iFeed)
    if (count le 0) then begin $\
      print,'Error reading scan: ', scans[iScan], ', No integrations' & $\
      return & endif
@@ -103,15 +98,14 @@ pro scaleIntsRef, scans, iPol, iBand, iFeed, dcBRef, dcERef, $\
    calOns = where(data.cal_state eq 1, count)
    calOfs = where(data.cal_state eq 0)
 
-
 ;   gains = fltarr( count)  ; prepare to collect an array of gains
    count=count-1; correct for 0 based counting
    opacityA = 1.0 & opacityB = 1.0
 
    ; for all integrations in a scan collect arrays of gains
 ;   for iInt= 0, count do begin
-;      subs = (*(data[calOns[iInt]]).data_ptr)[bchan:eChan] - $\ 
-;        (*(data[calOfs[iInt]]).data_ptr)[bchan:eChan] ;
+;      subs = (*calOns[iInt].data_ptr)[bchan:eChan] - $\ 
+;        (*calOfs[iInt].data_ptr)[bchan:eChan] ;
 
 ;      ratios = subs*calMids
 ;      gain = avg( ratios)
@@ -151,13 +145,13 @@ pro scaleIntsRef, scans, iPol, iBand, iFeed, dcBRef, dcERef, $\
    ; for all integrations in a scan; apply gain correction
    doPrint = 0
    nInt2 = round(count / 2) 
+   etaA = 1.0 &  etaB = 1.0
+   etaGBT, 1.E-6*data[calOns[0]].reference_frequency, etaA, etaB
    for iInt= 0, count do begin
       setTSky, data[calOns[iInt]], tSkys, doPrint, opacityA, opacityB, tauZenithsA[iInt], tauZenithsB[iInt]
                                 ; now create an opacity array for this scan
       factors = tSkys
       dOpacity = (opacityB - opacityA)/float(nChan)
-      etaA = 1.0 &  etaB = 1.0
-      etaGBT, 1.E-6*data[calOns[0]].reference_frequency, etaA, etaB
       ; compute frequency dependent opacity factor (no eta B dependence yet)
       for i = 0, (nChan -1) do begin $\
         factors[i]=(opacityA+(i*dOpacity))/etaB & endfor
@@ -185,15 +179,16 @@ pro scaleIntsRef, scans, iPol, iBand, iFeed, dcBRef, dcERef, $\
       refbeamposition, 1
 ;      if (iInt eq 0) then show else oshow
       if (doKeep gt 0) then begin
-          ; because of the way IDL passes array elements, you
-          ; can do data_copy,!g.s[0],keepArray[iInt]
-          ; This works.
+          ; because of the way IDL passes array elements, you can't use
+          ; data copy as: data_copy,!g.s[0],keepArray[iInt]
+          ; But this this works.
+          spectrumToKeep = 0 ; ensure that any previous pointer here isn't reused incorrectly
           data_copy,!g.s[0],spectrumToKeep
-          keepArray[iInt] = spectrumToKeep
+          keepArray[iInt] = spectrumToKeep ; this pointer gets deleted later
       endif
 
-;      if ((iInt eq 0) or (iInt eq nInt2)) then begin unfreeze & $\
-;        !g.frozen = 0 & show,data[calOns[iInt]] & !g.frozen = 1 & freeze & endif
+      if ((iInt eq 0) or (iInt eq nInt2)) then begin unfreeze & $\
+        !g.frozen = 0 & show,data[calOns[iInt]] & !g.frozen = 1 & freeze & endif
 
       ; report
       printf, wlun, scans[iScan], iInt, data[calOns[iInt]].utc, $\
@@ -201,7 +196,7 @@ pro scaleIntsRef, scans, iPol, iBand, iFeed, dcBRef, dcERef, $\
          data[calOns[iInt]].tsys, rmsT, calcRms, $\
          format='(I-5, I-5, F-10.3, x, F-10.4, F-10.4, F-10.4, F-10.4, F-7.3, F-7.3)'
     endfor             
-
+ 
    if doKeep then begin
        putchunk, keepArray
        data_free, keepArray
@@ -211,9 +206,9 @@ pro scaleIntsRef, scans, iPol, iBand, iFeed, dcBRef, dcERef, $\
    data_free, data
 
 endfor
-;!g.frozen = 0 & unfreeze
+!g.frozen = 0 & unfreeze
 ; close report file
-close,wlun
+free_lun,wlun
 
 RETURN
 END

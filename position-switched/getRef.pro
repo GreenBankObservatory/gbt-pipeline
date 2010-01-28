@@ -40,65 +40,60 @@ pro getRef, scans, iPol, iBand, iFeed, dcRef, dcCal, doShow
 ;   data_copy, !g.s[0], dcRef
 ;   data_copy, !g.s[0], dcCal
 
-   aOn = {accum_struct}         ; structure to hold the ongoing calOn sum
-   accumclear, aOn              ; clear it
-   aOff = {accum_struct}        ; structure to hold the ongoing calOf sum
-   accumclear, aOff             ; clear it
+   a = {accum_struct}         ; structure to hold the ongoing sum
+   accumclear, a              ; clear it
 
    nScans = n_elements( scans )
 
    ;for each scan
    for iScan=0, (nScans-1) do begin
-
-     ;get all integrations for a scan at the given polarization, band and feed
-     scan=scans[iScan]
-     plnum=iPol
-     ifnum=iBand
-     fdnum=iFeed
-     data = getchunk(scan, plnum, ifnum, fdnum)
-
-     ;split the integration spectra into calOn's and calOff's
-     calOns = where(data.cal_state eq 1,onCount)
-     calOffs = where(data.cal_state eq 0,offCount)
+     calOns = getchunk(scan=scans[iScan], cal="T", plnum=iPol, $\
+                       ifnum=iBand, fdnum=iFeed)
      
-;     if (doShow le 0) then freeze
+     if (doShow le 0) then freeze
      
-     ;accumulate all calOn integrations for the scan
-     ; (adding to prev. scans)
-     for i=0,onCount-1 do begin dcaccum, aOn, data[calOns[i]] & $\
-       if (doShow) then show, data[calOns[i]] & endfor
+     for i=0,n_elements(calOns)-1 do begin dcaccum, a, calOns[i] & $\
+       if (doShow) then show, calOns[i] & endfor
 
-     ; get average coordiates and exposure time for the scan
-     for i=0,onCount-1 do begin & $\
-       tInt=data[calOns[i]].exposure & tSum=tSum+tInt &$\
-       elSum=elSum+(tInt*data[calOns[i]].elevation) & $\
-       azSum=azSum+(tInt*data[calOns[i]].azimuth) & $\
-       lonSum=lonSum+(tInt*data[calOns[i]].longitude_axis) & $\
-       latSum=latSum+(tInt*data[calOns[i]].latitude_axis) & $\
-       tLonSum=tlonSum+(tInt*data[calOns[i]].target_longitude) & $\
-       tLatSum=tlatSum+(tInt*data[calOns[i]].target_latitude) & endfor
-         
-     ;accumulate all calOff integrations for the scan
-     ; (adding to prev. scans)
-     for i=0,offCount-1 do begin dcaccum, aOff, data[calOffs[i]] & $\
-       if (doshow gt 0) then show, data[calOffs[i]] & endfor
+     ; get average coordiate and system temps
+     for i=0,n_elements(calOns)-1 do begin & $\
+       tInt=calOns[i].exposure & tSum=tSum+tInt &$\
+       elSum=elSum+(tInt*calOns[i].elevation) & $\
+       azSum=azSum+(tInt*calOns[i].azimuth) & $\
+       lonSum=lonSum+(tInt*calOns[i].longitude_axis) & $\
+       latSum=latSum+(tInt*calOns[i].latitude_axis) & $\
+       tLonSum=tlonSum+(tInt*calOns[i].target_longitude) & $\
+       tLatSum=tlatSum+(tInt*calOns[i].target_latitude) & endfor
 
      ; now clean up
-     data_free, data
+     for i=0,n_elements(calOns)-1 do begin 
+        data_free, calOns[i]
+     endfor
    endfor
 
-   accumave, aOn, calOnAve   ; get the cal ON average
-   accumave, aOff, calOffAve   ; get the cal OFF average
+   accumave, a, calOnAve   ; get the average
+   ; now start Cal Off average
+   accumclear, a       ; clear it
 
-   ; this clears any memory in the accumulators
-   accumclear, aOn
-   accumclear, aOff
+   for iScan=0, (nScans-1) do begin
+
+     calOfs = getchunk(scan=scans[iScan], cal="F", plnum=iPol, $\
+                       ifnum=iBand, fdnum=iFeed)
+     for i=0,n_elements(calOfs)-1 do begin dcaccum, a, calOfs[i] & $\
+       if (doshow gt 0) then show, calOfs[i] & endfor
+
+     for i=0,n_elements(calOfs)-1 do begin 
+        data_free, calOfs[i]
+     endfor
+   endfor  
+
+   accumave,a, calOfAve    ; get the average
 
    ;now complete cal on - cal off spectrum and store as a data container
-   setdcdata, dcCal, (*calOnAve.data_ptr - *calOffAve.data_ptr)
+   setdcdata, dcCal, (*calOnAve.data_ptr - *calOfAve.data_ptr)
 
    ;now complete (cal on + cal off)/2 spectrum and store as a data container
-   setdcdata, dcRef, (*calOnAve.data_ptr + *calOffAve.data_ptr)*0.5
+   setdcdata, dcRef, (*calOnAve.data_ptr + *calOfAve.data_ptr)*0.5
 
    ; normalize the sums and transfer to output
    dcCal.elevation = elSum/tSum
@@ -132,12 +127,10 @@ pro getRef, scans, iPol, iBand, iFeed, dcRef, dcCal, doShow
    dcCal.tsys = tSys
    dcRef.tsys = tSys
 
-;   unfreeze
+   unfreeze
 
-   ; cleanup memory
-   ;data_free, calOffAve & data_free, calOnAve
-   data_free, calOffAve & data_free, calOnAve
-
+   data_free, calOfAve & data_free, calOnAve
+   accumclear, a & data_free, calOfAve & data_free, calOnAve
    return
 
 end

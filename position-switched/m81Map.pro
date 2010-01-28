@@ -36,3 +36,15 @@ if (VERBOSE gt 2) then print,"sdfitsdirOK ",sdfitsdirOK
 
 check_for_sdfits_file,infileOK,sdfitsdirOK,infile,beginscan,endscan,VERBOSE
 domap,infileOK,sdfitsdirOK,infile,beginscan,endscan,VERBOSE
+
+idlToSdfitsStr = '/users/glangsto/bin/idlToSdfits '
+
+; average 32 channels and compute the RMS based on selected channels
+parameters = '-a 32 -b 100:200'
+
+;convert the file to aips input file format
+idlToSdfitsCmd = idlToSdfitsStr + parameters + ' ' + !g.line_fileout_name
+
+;convert calibrated data for input to AIPS
+if (VERBOSE gt 2) then print,"Running " + idlToSdfitsCmd
+spawn, idlToSdfitsCmd
