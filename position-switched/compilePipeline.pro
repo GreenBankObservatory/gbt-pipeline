@@ -8,6 +8,8 @@
 ;.compile /users/rmaddale/mypros/dateToMjd.pro
 .compile getTau.pro
 .compile dateToMjd.pro
+;pipeline setup procedures
+.compile pipeline_setup.pro
 ;Weather model when date is before 04 May 01
 .compile humidityToTDew.pro
 .compile partialPressureWater.pro

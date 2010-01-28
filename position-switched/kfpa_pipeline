@@ -63,6 +63,6 @@ if [ $# == 0 ] || [[ -n "${HELP}" ]]; then
    echo "  --verbose=level         set the verbosity level"
    echo "  -h --help               print this help"
 else
-   idl -quiet -e @m81Map.pro -args ${INFILE} ${BEGINSCAN} ${ENDSCAN} \
+   ./gbtidl -quiet -e @m81Map.pro -args ${INFILE} ${BEGINSCAN} ${ENDSCAN} \
    ${SDFITSDIR} ${VERBOSE}
 fi
