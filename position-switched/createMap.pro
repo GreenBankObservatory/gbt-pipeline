@@ -44,6 +44,11 @@ check_for_sdfits_file,infileOK,sdfitsdirOK,infile,beginscan,endscan,VERBOSE
 
 firstScan = fix(beginscan)
 lastScan  = fix(endscan)
+if (VERBOSE gt 2) then begin $\
+  print,"firstScan ",firstScan & $\
+  print,"lastScan ",firstScan & $\
+endif
+
 
 allscans = indgen(1+lastScan-firstScan) + firstScan
 if (VERBOSE gt 2) then print,"allscans ",allscans
@@ -64,6 +69,16 @@ nFeed = scanInfo.n_feeds
 nPol = scanInfo.n_polarizations
 nBand = scanInfo.n_ifs
 
+if (VERBOSE gt 2) then begin $\
+   print,"vSource " + string(vSource) & $\
+   print,"vSourceWidth " + string(vSourceWidth) & $\
+   print,"vSourceBegin " + string(vSourceBegin) & $\
+   print,"vSourceEnd " + string(vSourceEnd) & $\
+   print,"nFeed " + string(nFeed) & $\
+   print,"nBand " + string(nBand) & $\
+   print,"nPol " + string(nPol) & $\
+   endif
+
 ; for each band (spectral window)
 wait = 0 ; optionally wait for user input to continue cal
 for iFeed = 0, nFeed-1 do begin $\
@@ -73,3 +88,5 @@ for iFeed = 0, nFeed-1 do begin $\
     data_copy, !g.s[0], myDc & $\
     ;select channels and write the AIPS compatible data 
     toaips,myDc,vSource,vSourceWidth,vSourceBegin,vSourceEnd & endfor & endfor
+
+exit

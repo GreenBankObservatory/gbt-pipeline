@@ -1,6 +1,5 @@
 ;IDL Procedure to test cal noise diode based calibration
 ;HISTORY
-; 09DEC14 JSM comment: this is an enhancement of gettp in GBTIDL
 ; 09NOV30 GIL get integrations one scan at a time, to avoid overflow problem
 ; 09NOV13 GIL use getTau() to get the predicted tau for this date
 ; 09NOV12 GIL use only the on-off 3C48 scans to define the cal reference
@@ -33,19 +32,16 @@ pro getRef, scans, iPol, iBand, iFeed, dcRef, dcCal, doShow
    tLatSum = 0.0 & tLonSum = 0.0
 
 ;   print, 'GetRef: s,p,b,f: ',scans[0], iPol, iBand, iFeed
-;   JSM: the following lines don't seem to add anything
-;   gettp, scans[0], int=0, plnum=iPol, ifnum=iBand, fdnum=iFeed
+   gettp, scans[0], int=0, plnum=iPol, ifnum=iBand, fdnum=iFeed
 
    ; copy most parameters to outputs
-;   data_copy, !g.s[0], dcRef
-;   data_copy, !g.s[0], dcCal
+   data_copy, !g.s[0], dcRef
+   data_copy, !g.s[0], dcCal
 
    a = {accum_struct}         ; structure to hold the ongoing sum
    accumclear, a              ; clear it
 
-   nScans = n_elements( scans )
-
-   ;for each scan
+   nScans = n_elements( scans)
    for iScan=0, (nScans-1) do begin
      calOns = getchunk(scan=scans[iScan], cal="T", plnum=iPol, $\
                        ifnum=iBand, fdnum=iFeed)
@@ -119,11 +115,8 @@ pro getRef, scans, iPol, iBand, iFeed, dcRef, dcCal, doShow
 
    ; compute spectrum in units of cal
    ratios = (*dcRef.data_ptr)[bChan:eChan] / (*dcCal.data_ptr)[bchan:echan] 
-   
-   tSys = avg( ratios ) * dcRef.mean_tcal
-   
-   ; returned via the dcCal and dcRef structures, which are passed parameters
-   ; from the calling routine
+   ; 
+   tSys = avg( ratios)*dcRef.mean_tcal
    dcCal.tsys = tSys
    dcRef.tsys = tSys
 
@@ -132,7 +125,6 @@ pro getRef, scans, iPol, iBand, iFeed, dcRef, dcCal, doShow
    data_free, calOfAve & data_free, calOnAve
    accumclear, a & data_free, calOfAve & data_free, calOnAve
    return
-
 end
 
 
