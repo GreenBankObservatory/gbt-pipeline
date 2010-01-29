@@ -76,7 +76,7 @@ are not limited to:
 Installation
 ------------
 The code can be obtained as a tarball here:
-http://github.com/jmasters/KFPA-Pipeline/tarball/Version-0.1.tgz
+http://github.com/jmasters/KFPA-Pipeline/tarball/Version-0.1.1-beta.tgz
 
 Simply unpack the tarball in your chosen directory and it is ready to 
 run.
