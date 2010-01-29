@@ -1,4 +1,4 @@
-pro check_for_sdfits_file,infileOK,sdfitsdirOK,infile,beginscan,endscan,VERBOSE
+pro check_for_sdfits_file,infileOK,sdfitsdirOK,infile,sdfitsdir,beginscan,endscan,VERBOSE
   ; if the SDFITS input file doesn't exist, generate it
   if ( infileOK ne 1 ) and ( sdfitsdirOK eq 1 ) and ( beginscan lt endscan ) then begin
 

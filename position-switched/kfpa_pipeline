@@ -65,7 +65,7 @@ do
 	-h)
 		HELP=HELP
 		;;
-	--sdfits-dir)
+	--sdfits-dir*)
 		SDFITSDIR=`echo $i | sed 's/[-a-zA-Z0-9]*=//'`
 		;;
     *)

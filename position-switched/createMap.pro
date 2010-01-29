@@ -40,7 +40,7 @@ sdfitsdirOK = FILE_TEST(sdfitsdir)
 if (VERBOSE gt 2) then print,"infileOK    ",infileOK
 if (VERBOSE gt 2) then print,"sdfitsdirOK ",sdfitsdirOK
 
-check_for_sdfits_file,infileOK,sdfitsdirOK,infile,beginscan,endscan,VERBOSE
+check_for_sdfits_file,infileOK,sdfitsdirOK,infile,sdfitsdir,beginscan,endscan,VERBOSE
 
 firstScan = fix(beginscan)
 lastScan  = fix(endscan)
