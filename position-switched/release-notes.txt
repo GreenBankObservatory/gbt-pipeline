@@ -1,0 +1,142 @@
+
+KFPA pipeline Version-0.1
+
+Release date:  2010-01-29
+
+-------
+Authors
+-------
+Glen Langston	-- glangsto@nrao.edu
+Bob Garwood		-- bgarwood@nrao.edu
+Joe Masters		-- jmasters@nrao.edu
+
+------------
+Requirements
+------------
+* network access to to the following programs:
+	/users/glangsto/linux/idlToSdfits/idlToSdfits
+	/users/rmaddale/bin/getForecastValues
+	/opt/local/bin/sdfits 
+
+* network access to a GBT project directory if the SDFITS file is not
+  supplied as input to the pipeline.
+	
+* GBTIDL 2.6 (note the pipeline uses a locally modified version
+     of GBTIDL which resides in the position-switched directory)
+     
+* although not extensively tested, it is best to only run the pipeline
+  on a 32-bit machine in Green Bank.
+  
+--------
+Features
+--------
+This is the initial version of the prototype K-band Focal Plane Array
+data analysis and reduction pipeline.  As such, it is limited in
+scope and functionality but meets the desire of automatic 
+processing of raw position-switched data from a project directory,
+to a file that can be imaged with AIPS.
+
+The features of the pipeline are:
+* processing of multi-feed, multi-band, dual polarized, 
+  position-switched K-band data up to a file ready for imaging with
+  AIPS.  This includes calibration of data with and without reference
+  subtraction.  In the later case, calibration is done with the noise
+  diodes.
+
+* integration of Ron Maddalena's weather information for estimated 
+  atmospheric opacities
+  
+* autogeneration of SDFITS input.  If a SDFITS file is not ready to 
+  input to the pipeline, but you know the project directory, the 
+  pipeline will use that directory information to invoke the sdfits
+  program and produce the necessary input.
+
+* ability to find molecular lines in a dataset based on velocities 
+  provided by the user.
+  
+------------------
+Outstanding issues
+------------------
+Issues to be addressed in future versions of the pipeline include, but
+are not limited to:
+
+* processing of frequency-swithced data
+* automation of identifing mapping scans within an input dataset, thus
+  eliminating the need to supply scan numbers
+* autogeneration of velocity information for idenifying molecular lines
+  to produce the maps.
+* a direct connection to the AIPS imager
+* conversion to python for reasons of efficiency, portability and 
+  maintainability
+* we need much better documentation!
+* options to turn off or reduce plotting windows and control outputs
+* real-time visualization
+
+------------
+Installation
+------------
+The code can be obtained as a tarball here:
+http://github.com/jmasters/KFPA-Pipeline/tarball/Version-0.1.tgz
+
+Simply unpack the tarball in your chosen directory and it is ready to 
+run.
+
+----------
+How to run
+----------
+The interface to the pipeline is a simple command line tool with the
+option to supply many parameters.  These are listed below.
+
+$ ./kfpa_pipeline
+Usage: kfpa_pipeline [--infile=filename] [--begin-scan=scan]
+                     [--end-scan=scan] [--vsource]
+                     [--vsource-width] [--vsource-begin]
+                     [--vsource-end] [--refscan1] [--refscan2]
+                     [--help] [--run-sdfits] [--sdfits-dir=directory]
+                     [--all-scans-as-ref]
+Options:
+  --infile=file           SDFITS file name containing map scans
+  --begin-scan=scan       beginning map scan number
+  --end-scan=scan         ending map scan number
+  --vsource               defines center channel to select (km/sec)
+  --vsource-width         defines median filter width (km/sec)
+  --vsource-begin         defines begin channel to select (km/sec)
+  --vsource-end           defines end channel to select (km/sec)
+  --sdfits-dir=directory  SDFITS input directory; used if infile
+                          option is not usable
+  --refscan1=scan         first reference scan
+  --refscan2=scan         second reference scan
+  --all-scans-as-ref=1    use all scans as reference?
+  --verbose=level         set the verbosity level
+  -h --help               print this help
+
+The pipeline was developed using two test datasets: 
+* project AGBT08B_040_03, a Taurus Molecular Cloud map, and
+* project AGBT03B_034_01, a map of m81
+
+To get an idea of how these are run, see the test scripts:
+* do_tmcKuRa.sh, and
+* do_m81.sh
+
+For example:
+
+$ ./kfpa_pipeline \
+   --sdfits-dir= \
+   --begin-scan=16 --end-scan=49 --vsource-center=5.8 \
+   --vsource-width=2.0 --vsource-begin=-.2 --vsource-end=11.8 \
+   --refscan1=15 --refscan2=51 --all-scans-as-ref=1 --verbose=3
+
+------
+Issues
+------
+There may be an issue processing multi-feed data because a recent test
+did not identify the molecular lines in the 2nd feed.  Other tests did
+not expose this problem, so it is being futher investigated.
+
+------------------
+Questions/feedback
+------------------
+Please direct any questions or feedback about the the KFPA pipeline
+to one of the authors listed above.
+
+-- Joe M. 2010-01-29
