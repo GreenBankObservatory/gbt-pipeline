@@ -121,7 +121,7 @@ To get an idea of how these are run, see the test scripts:
 For example:
 
 $ ./kfpa_pipeline \
-   --sdfits-dir= \
+   --sdfits-dir=/home/archive/science-data/tape-0028/AGBT08B_040_03 \
    --begin-scan=16 --end-scan=49 --vsource-center=5.8 \
    --vsource-width=2.0 --vsource-begin=-.2 --vsource-end=11.8 \
    --refscan1=15 --refscan2=51 --all-scans-as-ref=1 --verbose=3
