@@ -84,7 +84,7 @@ wait = 0 ; optionally wait for user input to continue cal
 for iFeed = 0, nFeed-1 do begin $\
   for iBand = 0, nBand-1 do begin $\
     gettp,refScans[0], int=0, ifnum=iBand & $\
-    calBand, scanInfo, allscans, refscans, iBand, iFeed, nPol, wait & $\
+    calBandRef, allscans, refscans, iBand, iFeed, nPol, wait & $\
     data_copy, !g.s[0], myDc & $\
     ;select channels and write the AIPS compatible data 
     toaips,myDc,vSource,vSourceWidth,vSourceBegin,vSourceEnd & endfor & endfor
