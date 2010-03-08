@@ -18,21 +18,23 @@ pro refbeamposition, update
       print,' Az/El computed from RA/Dec values stored in header:'
     endif
 
-;    xel = (57.8/cos(el/180.0*!pi))/3600.0d
     xel = !g.s[0].beamxoff              ; offset position in degrees
     del = !g.s[0].beameoff  
+
     ; compute angular azimuth and elevation corrections for reference beam
-    ref_az =  az_comp + (xel/cos(el*!pi/180.D0))
-    ref_el =  el_comp + del
+    ; apply el offset first - see http://www.gb.nrao.edu/GBT/MC/dataproc/gbtAntFits/gbtAntFits/node5.html
+    ref_el = el_comp + del
+    ref_az = az_comp + (xel/cos(el_comp*!pi/180.D0))
 
     ;now that we have the az, el of ref, need ra,dec
-    hor2eq, el_comp, ref_az, jd, ref_ra, ref_dec, lat=gbtlat, lon=gbtlon, $
+    hor2eq, ref_el, ref_az, jd, ref_ra, ref_dec, lat=gbtlat, lon=gbtlon, $
             altitude=gbtalt
     hor2eq, el_comp, az_comp, jd, comp_ra, comp_dec, lat=gbtlat, lon=gbtlon, $
             altitude=gbtalt
 
-    dRa  = comp_ra - ref_ra; 
-    dDec = comp_dec - ref_dec
+    ; this is how much the shift was in ra,dec using computed values
+    dRa  = ref_ra - comp_ra; 
+    dDec = ref_dec - comp_dec
     if (not keyword_set(update)) then begin
       print,'Header   ra/dec = ',ra, dec
       print,'Computed ra/dec = ',comp_ra, comp_dec
@@ -52,6 +54,8 @@ pro refbeamposition, update
     endif 
 
     if (keyword_set(update)) then begin
+      ; apply the shift to header values
+      ; header values should be very close to the computed values
       !g.s[0].longitude_axis = ra + dRa
       !g.s[0].latitude_axis  = dec + dDec
       !g.s[0].beamxoff = 0;              ; make sure no double offsets
