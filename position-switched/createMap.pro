@@ -36,13 +36,11 @@ nodisplay=fix(args[12])
 
 if (VERBOSE gt 2) then print,args
 
-infileOK    = FILE_TEST(infile)
-sdfitsdirOK = FILE_TEST(sdfitsdir)
-
-if (VERBOSE gt 2) then print,"infileOK    ",infileOK
-if (VERBOSE gt 2) then print,"sdfitsdirOK ",sdfitsdirOK
-
-check_for_sdfits_file,infileOK,sdfitsdirOK,infile,sdfitsdir,beginscan,endscan,VERBOSE
+cmd = 'python check_for_sdfits_file.py ' + infile + ' ' + sdfitsdir + ' ' + $
+      string(beginscan) + ' ' + string(endscan) + ' ' + $
+      string(refscan1) + ' ' + string(refscan2) + ' ' + string(VERBOSE)
+print,cmd
+spawn,cmd
 
 firstScan = fix(beginscan)
 lastScan  = fix(endscan)
