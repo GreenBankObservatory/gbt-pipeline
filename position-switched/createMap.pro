@@ -13,6 +13,7 @@
 ;   9 -- refscan2
 ;  10 -- all-scans-as-ref
 ;  11 -- debug
+;  12 -- nodisplay
 
 args = command_line_args()
 print,args
@@ -31,6 +32,7 @@ refscan1=fix(args[8])
 refscan2=fix(args[9])
 allscansref=fix(args[10])
 VERBOSE=fix(args[11])
+nodisplay=fix(args[12])
 
 if (VERBOSE gt 2) then print,args
 
@@ -69,6 +71,10 @@ nFeed = scanInfo.n_feeds
 nPol = scanInfo.n_polarizations
 nBand = scanInfo.n_ifs
 
+; this turns display on/off in most places (e.g. gettp)
+; either according to user's wishes or if there just is no display
+!g.has_display = not nodisplay and !g.has_display
+
 if (VERBOSE gt 2) then begin $\
    print,"vSource " + string(vSource) & $\
    print,"vSourceWidth " + string(vSourceWidth) & $\
@@ -77,16 +83,16 @@ if (VERBOSE gt 2) then begin $\
    print,"nFeed " + string(nFeed) & $\
    print,"nBand " + string(nBand) & $\
    print,"nPol " + string(nPol) & $\
-   endif
+   print,"use display ", !g.has_display & $\
+endif
 
 ; for each band (spectral window)
 wait = 0 ; optionally wait for user input to continue cal
+; toaips line: selects channels and writes the AIPS compatible data 
 for iFeed = 0, nFeed-1 do begin $\
   for iBand = 0, nBand-1 do begin $\
     gettp,refScans[0], int=0, ifnum=iBand & $\
     calBandRef, allscans, refscans, iBand, iFeed, nPol, wait & $\
-    data_copy, !g.s[0], myDc & $\
-    ;select channels and write the AIPS compatible data 
-    toaips,myDc,vSource,vSourceWidth,vSourceBegin,vSourceEnd & endfor & endfor
+    toaips,!g.s[0],vSource,vSourceWidth,vSourceBegin,vSourceEnd & endfor & endfor
 
 exit

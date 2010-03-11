@@ -186,9 +186,12 @@ pro scaleInts, scans, iPol, iBand, iFeed, dcSCal, bChan, eChan
       data_copy,!g.s[0],spectrumToKeep
       keepArray[iInt] = spectrumToKeep ; this pointer gets deleted later
 
-      if ((iInt eq 0) or (iInt eq nInt2)) then begin unfreeze & $\
-        !g.frozen = 0 & show,data[calOfs[iInt]] & molecule & $\
-        !g.frozen = 1 & freeze & endif
+      if !g.has_display then begin
+         if ((iInt eq 0) or (iInt eq nInt2)) then begin 
+            show,data[calOfs[iInt]]
+            molecule
+         endif
+      endif
 
       ; report
       printf, wlun, scans[iScan], iInt, data[calOfs[iInt]].utc, $\
@@ -205,8 +208,8 @@ pro scaleInts, scans, iPol, iBand, iFeed, dcSCal, bChan, eChan
 ;   clean up to avoid memory disaster
     data_free, data
 
-endfor
-!g.frozen = 0 & unfreeze
+ endfor
+
 ; close report file
 free_lun,wlun
 

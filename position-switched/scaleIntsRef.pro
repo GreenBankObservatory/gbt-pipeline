@@ -177,7 +177,9 @@ pro scaleIntsRef, scans, iPol, iBand, iFeed, dcBRef, dcERef, $\
       calcRms = data[calOns[iInt]].tsys/sqrt(data[calOns[iInt]].exposure*data[calOns[iInt]].frequency_resolution)
       set_data_container, data[calOns[iInt]]
       refbeamposition, 1
-;      if (iInt eq 0) then show else oshow
+;      if !g.has_display then begin
+;          if (iInt eq 0) then show else oshow
+;      endif
       if (doKeep gt 0) then begin
           ; because of the way IDL passes array elements, you can't use
           ; data copy as: data_copy,!g.s[0],keepArray[iInt]
@@ -187,8 +189,7 @@ pro scaleIntsRef, scans, iPol, iBand, iFeed, dcBRef, dcERef, $\
           keepArray[iInt] = spectrumToKeep ; this pointer gets deleted later
       endif
 
-      if ((iInt eq 0) or (iInt eq nInt2)) then begin unfreeze & $\
-        !g.frozen = 0 & show,data[calOns[iInt]] & !g.frozen = 1 & freeze & endif
+      if !g.has_display and ((iInt eq 0) or (iInt eq nInt2)) then show,data[calOns[iInt]]
 
       ; report
       printf, wlun, scans[iScan], iInt, data[calOns[iInt]].utc, $\
@@ -206,7 +207,7 @@ pro scaleIntsRef, scans, iPol, iBand, iFeed, dcBRef, dcERef, $\
    data_free, data
 
 endfor
-!g.frozen = 0 & unfreeze
+
 ; close report file
 free_lun,wlun
 

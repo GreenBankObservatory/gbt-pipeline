@@ -69,9 +69,11 @@ pro calBandRef, allscans, refScans, iBand, nFeed, nPol, doWait
          getRef, allscans, iPol, iBand, iFeed, dcRef0, dcCal0, doshow
 
       ; show the before and after reference for both polarizations.
-         show,dcBRef0
-         oshow,dcERef0
-         oshow,dcCal0
+         if !g.has_display then begin
+            show,dcBRef0
+            oshow,dcERef0
+            oshow,dcCal0
+         endif
 ;        create containers for scaled cal values and references
          data_copy, dcCal0, dcSCal0
          data_copy, dcBRef0, dcSBRef0
@@ -96,10 +98,12 @@ pro calBandRef, allscans, refScans, iBand, nFeed, nPol, doWait
          saveDc, dcSCal0, refname, reftype
          print, 'Saved: ', refname
       ; reference scaled cals are approxmately tRx
-         sety, -1, 50.
-         show, dcSCal0
+         if !g.has_display then begin
+            sety, -1, 50.
+            show, dcSCal0
+         endif
          if (doWait gt 0) then begin 
-            print,'Enter X to continue (Pol ',dcSCal0.polarization,' :'
+            print,'Enter X to continue (Pol ',dcSCal0.polarization,') :'
             read,x
          endif
 
@@ -109,7 +113,8 @@ pro calBandRef, allscans, refScans, iBand, nFeed, nPol, doWait
             fileout, mapName
          endif
 ; about to create the valuable product, keep it!
-         doKeep = 1 & sety,-1,8
+         doKeep = 1
+         if !g.has_display then sety,-1,8
    ; for all polarizations, process and keep the data
          scaleIntsRef, allscans, iPol, iBand, iFeed, dcSBRef0, dcSERef0, $\
            dcSCal0, doKeep 

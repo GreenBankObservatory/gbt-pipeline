@@ -84,7 +84,8 @@ pro calBand, scanInfo, allScans, refScans, iBand, iFeed, nPol, doWait, bChan, eC
       dcCal0.line_rest_frequency = restFreqHz
 
       ; show the before and after reference for both polarizations.
-      show,dcRef0
+      if !g.has_display then show, dcRef0
+
       refname = 'counts'
       reftype = 'CRef_'
       saveDc, dcCal0, refname, reftype
@@ -103,9 +104,9 @@ pro calBand, scanInfo, allScans, refScans, iBand, iFeed, nPol, doWait, bChan, eC
       saveDc, dcSCal0, refname, reftype
       print, 'Saved: ', refname
       ; reference scaled cals are approxmately tRx
-      show, dcSCal0
+      if !g.has_display then show, dcSCal0
       if (doWait gt 0) then begin 
-         print,'Enter X to continue (Pol ',dcSCal0.polarization,' :'
+         print,'Enter X to continue (Pol ',dcSCal0.polarization,') :'
          read,x
       endif
 

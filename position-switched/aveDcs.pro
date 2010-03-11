@@ -28,7 +28,7 @@ pro aveDcs, dcs, dcOut, doShow
    accumclear, a       ; clear it
 
    for i=0,(n_elements(dcs) - 1) do begin dcaccum, a, dcs[i] & $\
-     if (doShow) then show, dcs[i] & endfor
+     if (doShow and !g.has_display) then show, dcs[i] & endfor
 
    accumave, a, dcOut  ; get the average
 

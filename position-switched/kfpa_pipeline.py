@@ -28,16 +28,23 @@ parser.add_option("-a", "--all-scans-as-ref", dest="allscanref", default='0',
                   help="use all scans as reference?", metavar="0|1")
 parser.add_option("-v", "--verbose", dest="verbose", default='0',
                   help="set the verbosity level", metavar="N")
+parser.add_option("--nodisplay", action='store_true', dest="nodisplay", default=False,
+                  help="will not attempt to use the display")
 
 if len(sys.argv) < 2:
     sys.argv.append('-h')
 
 (options, args) = parser.parse_args()
 
+idlNodisplay = "0"
+if options.nodisplay:
+    idlNodisplay = "1"
+
 cmdstring = './gbtidl -quiet -e @createMap.pro -args ' + options.infile + ' ' + \
              options.beginscan + ' ' + options.endscan + ' ' + options.vsourcecenter + ' ' + \
              options.vsourcewidth + ' ' + options.vsourcebegin + ' ' + \
              options.vsourceend + ' ' + options.sdfitsdir + ' ' + options.refscan1 + ' ' + \
-             options.refscan2 + ' ' + options.allscanref + ' ' + options.verbose
+             options.refscan2 + ' ' + options.allscanref + ' ' + options.verbose + ' ' + \
+             idlNodisplay
 
 os.system(cmdstring)

@@ -46,10 +46,10 @@ pro getRef, scans, iPol, iBand, iFeed, dcRef, dcCal, doShow
      calOns = getchunk(scan=scans[iScan], cal="T", plnum=iPol, $\
                        ifnum=iBand, fdnum=iFeed)
      
-     if (doShow le 0) then freeze
+     if (doShow le 0 and !g.has_display) then freeze
      
      for i=0,n_elements(calOns)-1 do begin dcaccum, a, calOns[i] & $\
-       if (doShow) then show, calOns[i] & endfor
+       if (doShow and !g.has_display) then show, calOns[i] & endfor
 
      ; get average coordiate and system temps
      for i=0,n_elements(calOns)-1 do begin & $\
@@ -76,7 +76,7 @@ pro getRef, scans, iPol, iBand, iFeed, dcRef, dcCal, doShow
      calOfs = getchunk(scan=scans[iScan], cal="F", plnum=iPol, $\
                        ifnum=iBand, fdnum=iFeed)
      for i=0,n_elements(calOfs)-1 do begin dcaccum, a, calOfs[i] & $\
-       if (doshow gt 0) then show, calOfs[i] & endfor
+       if (doshow gt 0 and !g.has_display) then show, calOfs[i] & endfor
 
      for i=0,n_elements(calOfs)-1 do begin 
         data_free, calOfs[i]
@@ -120,7 +120,7 @@ pro getRef, scans, iPol, iBand, iFeed, dcRef, dcCal, doShow
    dcCal.tsys = tSys
    dcRef.tsys = tSys
 
-   unfreeze
+   if !g.has_display then unfreeze
 
    data_free, calOfAve & data_free, calOnAve
    accumclear, a & data_free, calOfAve & data_free, calOnAve
