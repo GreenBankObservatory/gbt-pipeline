@@ -32,7 +32,7 @@ pro toaips, myDc, vSource, vSourceWidth, vSourceBegin, vSourceEnd, userParms
   if (not keyword_set(vSource))   then vSource = 0.0
   if (not keyword_set(vSourceWidth)) then vSourceWidth = 1.0
   if (not keyword_set(vSourceBegin)) then vSourceBegin = -10.0
-  if (not keyword_set(vSourceEnd)) then vSourceBegin = 10.0
+  if (not keyword_set(vSourceEnd)) then vSourceEnd = 10.0
 
   cLight = 299792.458D0; km/sec
 
@@ -78,7 +78,21 @@ pro toaips, myDc, vSource, vSourceWidth, vSourceBegin, vSourceEnd, userParms
   channelParameter = '-c ' + strtrim(string(round(beginChan)),2) + ':' + $\
                   strtrim(string(round(endChan)), 2) + ' '
 
-  parameters = channelParameter + widthParameter + ' ' + userParms + ' '
+; use current keep file name to form output name used by idlToSdfits
+; expect name of form Cal_<source>_<feed-scan_range-etc>.fits
+; Strip off Cal_ and trailing .fits
+  if strmatch(!g.line_fileout_name,'Cal_*.fits') then begin
+     ; this appears to be what we'd expect
+     
+     outFile = strtrim(strmid(!g.line_fileout_name,4,strlen(!g.line_fileout_name)-9),2) + '.sdf'
+     outFileParameter = '-o ' + outFile + ' '
+  endif else begin
+     ; perhaps a warning should happen here?
+     ; just rely on the idlToSdfits default name
+     outFileParameter =''
+  endelse
+
+  parameters = channelParameter + widthParameter + outFileParameter + ' ' + userParms + ' '
 
 ;define path for program to convert to AIPS format
   idlToSdfitsPath = '/users/glangsto/linux/idlToSdfits/idlToSdfits '
