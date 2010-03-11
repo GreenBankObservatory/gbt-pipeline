@@ -7,23 +7,7 @@
 ; the line frequencies.  The printed frequencies are the line
 ; frequencies in the frame being displayed on the plotter.
 ;
-; @uses <a href="../../devel/guide/moleculeread.html">moleculeread</a>
-; @uses <a href="freq.html">freq</a>
-; @uses <a href="../toolbox/veltovel.html">veltovel</a>
-; @uses <a href="../toolbox/shiftvel.html">shiftvel</a>
-; @uses <a href="../toolbox/shiftfreq.html">shiftfreq</a>
-; @uses <a href="../toolbox/decode_veldef.html">decode_veldef</a>
-; @uses <a href="../plotter/show.html">show</a>
-; @uses <a href="../plotter/vline.html">vline</a>
-; @uses <a href="../plotter/getstate.html#_getxrange">getxrange</a>
-; @uses <a href="../plotter/getstate.html#_getyrange">getyrange</a>
-; @uses <a href="../plotter/getstate.html#_getxvoffset">getxvoffset</a>
-; @uses <a href="../plotter/getstate.html#_getxunits">getxunits</a>
-; @uses <a href="../plotter/getstate.html#_getxoffset">getxoffset</a>
-; @uses <a href="../plotter/getstate.html#_getplotterdc">getplotterdc</a>
-; @uses textoidl
-; 
-; @version $Id: moleculefind.pro,v 1.8 2007/05/01 19:57:12 bgarwood Exp $
+; @version $Id$
 ;-
 pro moleculeinrange, inDc, nMolecule, nuRestGHzs, moleculeLabels, doPrint=doPrint
 
