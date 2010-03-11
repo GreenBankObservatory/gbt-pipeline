@@ -22,8 +22,8 @@ pro refbeamposition, update
     xel = !g.s[0].beamxoff              ; offset position in degrees
     del = !g.s[0].beameoff  
     ; compute angular azimuth and elevation corrections for reference beam
-    ref_az =  az_comp + (xel/cos(el*!pi/180.D0))
-    ref_el =  el_comp + del
+    ref_az =  az_comp - (xel/cos(el*!pi/180.D0))
+    ref_el =  el_comp - del
 
     ;now that we have the az, el of ref, need ra,dec
     hor2eq, el_comp, ref_az, jd, ref_ra, ref_dec, lat=gbtlat, lon=gbtlon, $
