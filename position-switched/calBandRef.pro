@@ -56,7 +56,9 @@ pro calBandRef, allscans, refScans, iBand, nFeed, nPol, doWait
 
          ; prepare to get tau for these obs
          obsDate = dcBRef0.timestamp
-         obsMjd =  dateToMjd( obsDate)
+         spawn,'python dateToMjd.py ' + obsDate
+         readcol,'mjd.txt',F='A',obsMjd
+         file_delete,'mjd.txt'
          freqMHz = dcBRef0.observed_frequency  * 1.E-6
          
          ; get and report tau

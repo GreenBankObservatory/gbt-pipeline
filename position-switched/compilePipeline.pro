@@ -8,13 +8,7 @@
 ;.compile /users/rmaddale/mypros/getTau.pro
 ;.compile /users/rmaddale/mypros/dateToMjd.pro
 .compile getTau.pro
-.compile dateToMjd.pro
-;pipeline setup procedures
-.compile check_for_sdfits_file.pro
 ;Weather model when date is before 04 May 01
-.compile humidityToTDew.pro
-.compile partialPressureWater.pro
-.compile densityWater.pro
 .compile opacityO2.pro
 .compile liebeTau.pro
 ;Now compile proceedures
@@ -24,7 +18,7 @@
 .compile tatm.pro
 .compile smoothCal.pro
 .compile refbeamposition.pro
-.compile tsysair.pro
+; .compile tsysair.pro  ; currently not used
 .compile getRef.pro
 .compile setTSky.pro
 .compile aveDcs.pro
