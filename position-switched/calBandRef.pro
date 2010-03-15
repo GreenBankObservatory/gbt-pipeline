@@ -53,7 +53,7 @@ pro calBandRef, allscans, refScans, iBand, iFeed, nPol, doWait
 
          ; prepare to get tau for these obs
          obsDate = dcBRef0.timestamp
-         spawn,'python dateToMjd.py ' + obsDate
+         spawn,'python /home/sandboxes/kfpa_pipeline/dateToMjd.py ' + obsDate
          readcol,'mjd.txt',F='A',obsMjd
          file_delete,'mjd.txt'
          freqMHz = dcBRef0.observed_frequency  * 1.E-6

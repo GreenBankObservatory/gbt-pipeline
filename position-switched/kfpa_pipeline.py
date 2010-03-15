@@ -39,7 +39,7 @@ if len(sys.argv) < 2:
 
 (options, args) = parser.parse_args()
 
-cmdstring = './gbtidl -quiet -e @createMap.pro -args ' + options.infile + ' ' + \
+cmdstring = 'gbtidl -quiet -e @createMap.pro -args ' + options.infile + ' ' + \
              options.beginscan + ' ' + options.endscan + ' ' + options.vsourcecenter + ' ' + \
              options.vsourcewidth + ' ' + options.vsourcebegin + ' ' + \
              options.vsourceend + ' ' + options.sdfitsdir + ' ' + options.refscan1 + ' ' + \

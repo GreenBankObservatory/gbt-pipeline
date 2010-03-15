@@ -16,7 +16,7 @@ export GBT_IDL_DIR=/home/gbtidl/2.6/gbtidl
 # Contrib is included in the last location.
 # An invidual may have a local library at $HOME/gbtidlpro.  That is 
 # at the head of the path - so it is search immediately after ".".
-export IDL_PATH="+$HOME/gbtidlpro:$GBT_IDL_DIR:$GBT_IDL_DIR/pro:+$GBT_IDL_DIR/pro:$GBT_IDL_DIR/tests:+$GBT_IDL_DIR/lib:<IDL_DEFAULT>:+$GBT_IDL_DIR/contrib"
+export IDL_PATH="/home/sandboxes/kfpa_pipeline:+$HOME/gbtidlpro:$GBT_IDL_DIR:$GBT_IDL_DIR/pro:+$GBT_IDL_DIR/pro:$GBT_IDL_DIR/tests:+$GBT_IDL_DIR/lib:<IDL_DEFAULT>:+$GBT_IDL_DIR/contrib"
 
 # Specify the file with which to begin execution.
 export IDL_STARTUP=$GBT_IDL_DIR/STARTUP.IDL

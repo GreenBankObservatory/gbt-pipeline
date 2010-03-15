@@ -2,4 +2,4 @@
 
 # pass control to kfpa_pipeline.py
 
-python kfpa_pipeline.py $*
+python /home/sandboxes/kfpa_pipeline/kfpa_pipeline.py $*
