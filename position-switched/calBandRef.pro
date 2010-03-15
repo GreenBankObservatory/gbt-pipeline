@@ -8,15 +8,15 @@
 ; 09NOV10 GIL use ratioScanInt2.pro 
 
 
-pro calBandRef, allscans, refScans, iBand, nFeed, nPol, doWait
+pro calBandRef, allscans, refScans, iBand, iFeed, nPol, doWait
 
    if (not keyword_set( allscans)) then begin
       print, 'calBandRef: calibrates all obs of a band GBT scans.'
       print, 'usage: cal, allScans, refScans, feedInN, bandInN, polN'
       print, '   allScans  all scans to include in the map'
       print, '   refScans  begin and end reference scans'
-      print, '    bandInN  single observation band number, range: 0 to n-1'
-      print, '      nFeed  number of feeds to process range: 1 to n'
+      print, '      iBand  single observation band number, range: 0 to n-1'
+      print, '      iFeed  feed to process range: 1 to n'
       print, '       nPol  number of polarizations to process: 1 to n'
       print, '     doWait  optionally wait for user input to continue cal'
       print, 'Output is to a log file and keep files'
@@ -29,12 +29,9 @@ pro calBandRef, allscans, refScans, iBand, nFeed, nPol, doWait
 
    ;set default values, if necessary
    if (not keyword_set(nPol)) then nPol = 2
-   if (not keyword_set(nFeed)) then nFeed = 2
+   if (not keyword_set(iFeed)) then iFeed = 0
    if (not keyword_set(doWait)) then doWait=0
 
-   ;for each beam or feed
-   for iFeed = 0, (nFeed-1) do begin
- 
       print, '************ Band ', iBand, ' Feed ',iFeed,' **************'
 
       ;for each polarization
@@ -127,7 +124,6 @@ pro calBandRef, allscans, refScans, iBand, nFeed, nPol, doWait
          data_free, dcERef0 & data_free, dcSERef0
 
       endfor                   ; end for all polarizations
-   endfor                      ; end for all feeds  
 
 return
 end                         ; end of calBand.pro
