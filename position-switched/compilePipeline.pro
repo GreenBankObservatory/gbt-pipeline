@@ -27,9 +27,8 @@
 .compile nameDc.pro
 .compile saveDc.pro
 .compile nameMap.pro
-; calBand and calBandRef are the two main calibration routines, which
-; call other procedures.
-.compile calBand.pro
+; calBandRef is the main calibration routine, which
+; calls other procedures.
 .compile calBandRef.pro
 ; add procedures to find lines
 .compile moleculefind.pro
