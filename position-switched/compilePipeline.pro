@@ -12,7 +12,6 @@
 .compile opacityO2.pro
 .compile liebeTau.pro
 ;Now compile proceedures
-.compile etaGBT.pro
 .compile opacity.pro
 .compile natm.pro
 .compile tatm.pro

@@ -131,7 +131,9 @@ pro scaleInts, scans, iPol, iBand, iFeed, dcSCal, bChan, eChan
    tsysInds[nKeep16:(2*nKeep16-1)] = tsysInds[nKeep16:(2*nKeep16-1)] + $\
      (12*nKeep16)
    ; need the observing info to compute etaA and etaB
-   etaGBT, 1.E-6*dcSCal.observed_frequency, etaA, etaB
+   spawn,'python /home/sandboxes/kfpa_pipeline/etaGBT.py ' + 1.E-6*dcSCal.observed_frequency
+   readcol,'eta.txt',F='A,A',etaA,etaB
+   file_delete,'eta.txt'
                                 ; for all integrations, get average
                                 ; (or cal Off) values and scale to T_B
    for iInt= 0, countOff do begin
