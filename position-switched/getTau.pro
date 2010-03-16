@@ -50,7 +50,7 @@ function getTau, mjd, freqMHz
        humidity = !g.s[0].humidity
        dewPtC = tempC
        spawn,'python /home/sandboxes/kfpa_pipeline/humidityToTDew.py ' + humidity +' '+ tempC
-       readcol,'dewpointtemp.txt',F='A',dewPtC
+       readcol,'dewpointtemp.txt',F='F',dewPtC,/SILENT
        file_delete,'dewpointtemp.txt'
        freqGHz = freqMHz*.001
        pressureMBar = !g.s[0].pressure*0.01

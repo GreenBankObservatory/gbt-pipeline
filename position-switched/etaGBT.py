@@ -22,10 +22,10 @@ def etaGBT(freqMHz):
 
     """
 
-    freqGHz = double(freqMHz)*0.001
+    freqGHz = float(freqMHz)*0.001
     freqScale = 0.0163 * freqGHz
-    etaA = double(0.71) * math.exp(-freqScale**2)
-    etaB = double(1.37) * etaA
+    etaA = float(0.71) * math.exp(-freqScale**2)
+    etaB = float(1.37) * etaA
 
     #if (doPrint > 0.):
         #print freqGHz,'(GHz) -> eta A, B:',etaA,etaB

@@ -45,14 +45,14 @@ pro liebeTau, pressureMBar, tempC, dewPtC, freqGHz, tauZenith, doPrint
    freqSqr = freqGHz * freqGHz
    eta = 1.0
     spawn,'python /home/sandboxes/kfpa_pipeline/partialPressureWater.py ' + pressureMBar +' '+ dewPtC
-    readcol,'partialpressure.txt',F='A',eta
+    readcol,'partialpressure.txt',F='F',eta,/SILENT
     file_delete,'partialpressure.txt'
     presDry = pressureMBar - eta
     tempK = tempC + 273.15
     theta = 300./tempK
     rho = 1.0
     spawn,'python /home/sandboxes/kfpa_pipeline/densityWater.py '+ pressureMBar +' '+ tempC +' '+ dewPtC
-    readcol,'waterdensity.txt',F='A',rho
+    readcol,'waterdensity.txt',F='F',rho,/SILENT
     file_delete,'waterdensity.txt'
 
     gamma = 2.784e-3 * ((presDry * (theta^0.8)) + (4.80*eta*theta))

@@ -146,8 +146,8 @@ pro scaleIntsRef, scans, iPol, iBand, iFeed, dcBRef, dcERef, $\
    doPrint = 0
    nInt2 = round(count / 2) 
    etaA = 1.0 &  etaB = 1.0
-   spawn,'python /home/sandboxes/kfpa_pipeline/etaGBT.py ' + 1.E-6*data[calOns[0]].reference_frequency
-   readcol,'eta.txt',F='A,A',etaA,etaB
+   spawn,'python /home/sandboxes/kfpa_pipeline/etaGBT.py ' + string(1.E-6*data[calOns[0]].reference_frequency)
+   readcol,'eta.txt',F='F,F',etaA,etaB,/SILENT
    file_delete,'eta.txt'
    for iInt= 0, count do begin
       setTSky, data[calOns[iInt]], tSkys, doPrint, opacityA, opacityB, tauZenithsA[iInt], tauZenithsB[iInt]
