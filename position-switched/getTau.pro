@@ -75,7 +75,7 @@ function getTau, mjd, freqMHz
     sMjd = strjoin(sMjdVec,' ')
     sFreqVec = strtrim(string(freqMHz/1000.,format='(f12.6)'),2)
     sFreq = strjoin(sFreqVec,' ')
-    spawn, '/users/rmaddale/bin/getForecastValues -timeList ' + sMjd + ' -freqList ' + sFreq, result;       print, 'LiebeTau: p, T, DT, F, tau:',pressureMBar, tempC, dewPtC, freqGHz, tauZenith
+    spawn, 'getForecastValues.tclsh -timeList ' + sMjd + ' -freqList ' + sFreq, result;       print, 'LiebeTau: p, T, DT, F, tau:',pressureMBar, tempC, dewPtC, freqGHz, tauZenith
 
     n = strpos(result,'=')
     ; n is potentially a vector, and all should be > 0

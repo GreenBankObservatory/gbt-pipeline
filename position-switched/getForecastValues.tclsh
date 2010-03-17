@@ -1,0 +1,605 @@
+#! /bin/sh
+#
+#   $Header: getForecastValues.tclsh  Revision:1.10  Tue Jan 26 10:45:04 2010  rmaddale $
+#
+#   $Copyright © 1999-2009 Associated Universities, Inc. Washington, D.C. ALL RIGHTS RESERVED. $
+#
+# The next line restarts using wish \
+exec tclsh "$0" "$@"
+
+proc main {argc argv} {
+
+    global auto_path now argvFound argvValues freqRanges forecastDir Coeffs env
+    global tau0 tau10 tau25 tau50 tau75 tau90 tatm0 tatm10 tatm25 tatm50 tatm75 tatm90 trcvr
+
+    # Load libraries
+    lappend auto_path [file join / users rmaddale Tcl library]
+    lappend auto_path [file join L:/ Tcl library]
+    package require Efftcl
+    package require ::Utility
+
+    useStdOutTk_messageBox
+
+    # Default values
+    set env(WEATHERSRC) [file dirname [ findFullPath [info script]]]
+    set env(WEATHERDIR) [file dirname $env(WEATHERSRC)]
+    if [file exists L:/]  {
+        set env(CLEODIR) [file join L:/ Tcl]
+    } elseif [file exists [file join / users rmaddale Tcl]] {
+        set env(CLEODIR) [file join / users rmaddale Tcl]
+    } else {
+        puts stderr "Cannot find CLEODIR directory"
+        exit 1
+    }
+    if {![file exists $env(WEATHERDIR)]} {
+        puts stderr "Cannot find $env(WEATHERDIR) directory"
+        exit 1
+    }
+
+    set now [tclTimeToMJD [clock seconds]]
+    if [catch {checkArguments {boolean {help h coeff debug} {list-of number} {freqList timeList} \
+            {one-of Opacity Tatm AtmTsys Tsys TotalTsys Est Rest Trcvr \
+            Tau0 Tau10 Tau25 Tau50 Tau75 Tau90 \
+            Tatm0 Tatm10 Tatm25 Tatm50 Tatm75 Tatm90} type string dir \
+            number {startMJD stopMJD incrMJD startFreq stopFreq incrFreq elev} } \
+            "-type Opacity -startMJD $now -stopMJD $now -incrMJD 0.041666666667 \
+            -startFreq 6 -stopFreq 116 -incrFreq 1 -elev 30"} rslts] {
+        puts stderr "******\n** Error in command line options **\n**\t$rslts"
+        puts stderr "** Use -help for more information\n*****"
+        exit
+    }
+
+    if {$argvFound(help) || $argvFound(h)} {
+        manPages 
+        exit
+    }
+
+    # Break the range of frequencies into 4 subband.  Must be in increasing order
+    set freqRanges [list 6 22 22 50 70 116]
+
+    # Create list of directories that will be examined.  If the user has selected an input directory,
+    # just use that single directory.  If the user has not specified an inout directory, the
+    # file list will contain the default dir
+    if $argvFound(dir) {
+        set forecastDir $argvValues(dir)
+    } else {
+        set forecastDir $env(WEATHERDIR)
+    }
+
+    if {$argvFound(coeff) && $argvValues(type) != "Opacity" && $argvValues(type) != "Tatm"} {
+        puts stderr "** Error: You can only use -coef for -type of either Opacity or Tatm"
+        exit 1
+    }
+
+    if $argvFound(debug) {
+        puts Main:\tforecastDir:$forecastDir
+        puts Main:\tfreqRanges:$freqRanges
+    }
+  
+    # Prepare a freqList
+    if $argvFound(coeff) {
+        puts -nonewline "# Frequency Bands: "
+        foreach {fmin fmax} $freqRanges {
+            puts -nonewline "${fmin}-$fmax"
+            if {$fmax != [lindex $freqRanges end]} {
+                puts -nonewline ", "
+            }
+        }
+        puts " GHz"
+    } else {
+        if $argvFound(freqList) {
+            set freqList [lsort -real [Utility::luniqueo $argvValues(freqList)]]
+        } elseif {$argvValues(incrFreq) == 0 && $argvValues(startFreq) == $argvValues(stopFreq)} {
+            set freqList $argvValues(startFreq)
+        } elseif {$argvValues(incrFreq) == 0} {
+            puts stderr "** Error: incrFreq cannot be zero"
+            exit
+        } else {
+            set f1 [min $argvValues(startFreq) $argvValues(stopFreq)]
+            set f2 [max $argvValues(startFreq) $argvValues(stopFreq)]
+            set nfreq [max 1 [expr {ceil(($f2-$f1)/abs($argvValues(incrFreq)))}]]
+            if {$nfreq > 1e9} {
+                puts stderr "** Error: Over 1 billion frequencies cannot be served"
+                exit
+            }
+            set freqList [list ]
+            for {set i 0} {$i <= $nfreq} {incr i} {
+                lappend freqList [expr {$f1 + $i*abs($argvValues(incrFreq))}]
+            }
+        }
+    }
+
+    # Prepare a timeList
+    if $argvFound(timeList) {
+        set mjdList [lsort -real [Utility::luniqueo $argvValues(timeList)]]
+    } elseif {$argvValues(incrMJD) == 0 && $argvValues(startMJD) == $argvValues(stopMJD)} {
+        set mjdList $argvValues(startMJD)
+    } elseif {$argvValues(incrMJD) == 0} {
+        puts stderr "** Error: incrMJD cannot be zero"
+        exit
+    } else {
+        set mjd1 [min $argvValues(startMJD) $argvValues(stopMJD)]
+        set mjd2 [max $argvValues(startMJD) $argvValues(stopMJD)]
+        set nMJD [max 1 [expr {($mjd2-$mjd1)/abs($argvValues(incrMJD))}]]
+        if {$nMJD > 1e9} {
+            puts stderr "** Error: Over 1 billion MJDs cannot be served"
+            exit
+        }
+        set mjdList [list ]
+        for {set i 0} {$i < $nMJD} {incr i} {
+            lappend mjdList [expr {$mjd1 + $i*abs($argvValues(incrMJD))}]
+        }
+    }
+
+    if $argvFound(debug) {
+        if {!$argvFound(coeff)} {
+            puts Main:\tFreqList:$freqList
+        }
+        puts Main:\tMJDList:$mjdList
+    }
+
+    switch -glob $argvValues(type) {
+        Opacity -
+        Tatm {
+            readCoeffFile $argvValues(type) $forecastDir $mjdList
+            if $argvFound(coeff) {
+                foreach mjd $mjdList {
+                    puts "$argvValues(type)($mjd) = $Coeffs($argvValues(type),$mjd)"
+                }
+            } else {
+                foreach mjd $mjdList {
+                    if [info exists Coeffs($argvValues(type),$mjd)] {
+                        foreach freq $freqList {
+                            puts "$argvValues(type)($freq,$mjd) =\
+                            [format %.4f [calculateValues $Coeffs($argvValues(type),$mjd) $freq]]"
+                        }
+                    } else {
+                        foreach freq $freqList {
+                            puts "$argvValues(type)($freq,$mjd) = -9999"
+                        }
+                    }
+                }
+            }
+        }
+        Trcvr -
+        Tau* -
+        Tatm* {
+            regsub Tau $argvValues(type) "" pTau
+            regsub Tatm $argvValues(type) "" pTatm
+            foreach mjd $mjdList {
+                foreach freq $freqList {
+                    foreach {tau0 tau10 tau25 tau50 tau75 tau90 tatm0 tatm10 tatm25 tatm50 tatm75 tatm90 trcvr} \
+                            [getTrcvrTau0Tatm0 $freq $mjd] {break}
+                    switch -glob $argvValues(type) {
+                        Trcvr {
+                            puts "Trcvr($freq,$mjd) = [format %.4f $trcvr]"
+                        }
+                        Tau* {
+                            puts "Tau${pTau}($freq,$mjd) = [format %.4f [set tau$pTau]]"
+                        }
+                        Tatm* {
+                            
+                            puts "Tatm${pTatm}($freq,$mjd) = [format %.4f [set tatm$pTatm]]"
+                        }
+                    }
+                }
+            }
+        }
+        Est -
+        Rest -
+        Tsys -
+        AtmTsys -
+        TotalTsys {
+            readCoeffFile Tatm $forecastDir $mjdList
+            readCoeffFile Opacity $forecastDir $mjdList
+            foreach mjd $mjdList {
+                if {[info exists Coeffs(Tatm,$mjd)] && [info exists Coeffs(Opacity,$mjd)]} {
+                    foreach freq $freqList {
+                        foreach {atmtsys totalTsys est rest} [calcTsysEstRest \
+                                [calculateValues $Coeffs(Tatm,$mjd) $freq] \
+                                [calculateValues $Coeffs(Opacity,$mjd) $freq] \
+                                $argvValues(elev) $freq $mjd] {break}
+                        switch $argvValues(type) {
+                            Est {
+                                puts "Est($freq,$mjd) = [format %.4f $est]"
+                            }
+                            Rest {
+                                puts "Rest($freq,$mjd) = [format %.4f $rest]"
+                            }
+                            AtmTsys {
+                                puts "AtmTsys($freq,$mjd) = [format %.4f $atmtsys]"
+                            }
+                            Tsys {
+                                puts "Tsys($freq,$mjd) = [format %.4f $atmtsys]"
+                            }
+                            TotalTsys {
+                                puts "TotalTsys($freq,$mjd) = [format %.4f $totalTsys]"
+                            }
+                        }
+                    }
+                } else {
+                    foreach freq $freqList {
+                        puts "$argvValues(type)($freq,$mjd) = -9999"
+                    }
+                }
+            }
+        }
+    }
+
+    exit
+}
+
+#------------------------------------------------------------------------------
+# manPages
+#
+#   Generates on-line help
+#
+# Arguments:
+#
+# Results:
+#
+proc manPages { } {
+    puts " "
+    puts " getForecastValues -- Returns either Opacities, Tsys_atm, Tatm, or Rest for a"
+    puts "                      list of frequencies and MJD's or a list of polynomial "
+    puts "                      coefficients that can then be used to generate values. Uses"
+    puts "                      polynomial fits which are archived once per hour by the CLEO"
+    puts "                      forecast utilities.  The results are generated much faster"
+    puts "                      than when  using the full-blown cleo forecasts programs, though"
+    puts "                      there is a small loss of accuracy over that provided by cleo"
+    puts "                      forecats. The archive goes back to 5 May 2004 and extends to "
+    puts "                      up to 7 days into the future."
+    puts " "
+    puts " SYNOPSIS"
+    puts "     getForecastValues \[-h | -help]" 
+    puts "                       \[-type Opacity|Tatm|AtmTsys|Tsys|TotalTsys|Est|Rest|Trcvr|Tau0|Tatm0]"
+    puts "                       \[-timeList listMJDs] \[startTime mjd] \[stopTime mjd] \[incrTime mjd]"
+    puts "                       \[-freqList listGHz] \[startFreq GHz] \[stopFreq GHz] \[incrFreq GHz]"
+    puts "                       \[-elev elevation] \[-dir path] \[-coeff] \[-debug]"
+    puts " "
+    puts "DESCRIPTION"
+    puts ""
+    puts "If -coeff is NOT specified:"
+    puts "      Returns a list of time and frequency-stamped values using the polynomial"
+    puts "      coefficients found as subdirectories of ~rmaddale/Weather.  The values"
+    puts "      in these files are calculated hourly by the CLEO forecasting package "
+    puts "      from the average of the three local town forecasts."
+    puts " "
+    puts "      The returned values will be interpolated between the nearest time stamps"
+    puts "      in the archived coefficient data.  The output will be multiple lines,"
+    puts "      each line will give the quantities 'type' (Opacity, Tsys, Tatm, or "
+    puts "      Rest, ...), followed by the frequency and MJD of the calculated value within"
+    puts "      parentheses, an equal sign, and then the calculated value.  For example:" 
+    puts " "
+    puts "          Opacity(115.45,54553.8158912) = -9999"
+    puts "          Opacity(22.2,54553.8158912)   = 0.185762649207"
+    puts "          Opacity(30.0,54553.8158912)   = 0.113792336834"
+    puts "          Opacity(45.0,54553.8158912)   = 0.270589812026"
+    puts " "
+    puts "      If a value cannot be calculated (either the users supplied a frequency or time"
+    puts "      stamp that is not covered by the archive, or there is a hole > 4 hrs in the "
+    puts "      archive for the desired time stamp, or there is a hole > 4 hrs in the archive for"
+    puts "      the desired time stamp), a value of -9999 will be returned."
+    puts " "
+    puts "If -coeff is specified:"
+    puts "      Returns a list of coefficients so that the user can then calculate their own"
+    puts "      values at any frequency.  The returned values will be  interpolated between the "
+    puts "      nearest time stamps in the archived coefficient data.  The output will be "
+    puts "      multiple lines, each line will give the quantities 'type' (Opacity, Tsys, Tatm,"
+    puts "      or  Rest), followed by the MJD of the calculated value within parentheses, an "
+    puts "      equal sign, and then a TCL list.  The list will have three sublists, one for"
+    puts "      each of three frequency bands.  Each sublist will itself contain a list of"
+    puts "      polynomial coefficients that are to be used in that lists band, followed by the"
+    puts "      chi square of the fit.  For example:" 
+    puts " "
+    puts "          # Frequency Bands: 6 - 22.2, 22.2 - 50, 70 - 116, in GHz"
+    puts "          Opacity(55088.6778935) = {{0.125320269774 -0.0472390090422 0.00676180639422 "
+    puts "                    -0.000407995056817 9.01221500573e-06} 6.05307117776e-06 "
+    puts "                    {3.51978524338 -0.386876540229 0.0162591862289 -0.000306717755919 "
+    puts "                    2.20976634707e-06} 0.00010600768972 {2109.1744845 -141.38630492 "
+    puts "                    3.94026053399 -0.0584161189686 0.000485808194985 -2.1484658629e-06 "
+    puts "                    3.94701743512e-09} 7.02226995613e-05}"
+    puts " "
+    puts "      If coefficients cannot be found (probably because time stamp that is not covered "
+    puts "      by the archive or there is a hole > 4 hrs in the archive for the desired time"
+    puts "      stamp), coefficients and chi squares of -9999 will be returned."
+    puts " "
+    puts "OPTIONS"
+    puts "      The user can use default options by not specifying any command-line "
+    puts "      arguments or supply values to the following arguments:"
+    puts " "
+    puts "      -h or -help"
+    puts "          Brings up this help page and all other options are ignored"
+    puts "      -coeff"
+    puts "          Whether coefficients, and not values, are to be returned.  The default"
+    puts "          is to supply values.  Only available for -types of Opacity or Tatm"
+    puts "      -type str"
+    puts "          The type of the values to be returned  Choices are Opacity, Tsys,"
+    puts "          Tatm, or Rest (Default: Opacity)."
+    puts "              Opacity: the total zenith opacity"
+    puts "              Tatm: the opacity-weighted (i.e., representative) temperature of"
+    puts "                  the atmosphere and is the value that should be used when "
+    puts "                  fitting traditional tipping curves."
+    puts "              AtmTsys:  the part of the system temperature due to just the"
+    puts "                  atmosphere, doesn't include CMB, spillover, and electronics," 
+    puts "                  and is calculated for the specified elevation."
+    puts "              Tsys: Deprecated -- the same as AtmTsys"
+    puts "              TotalTsys: the above-described Tsys value, augmented by an estimate of"
+    puts "                  the contributions from the receiver, spillover, and the CMB."
+    puts "              Est: the Effective System Temperature for the specified elevation."
+    puts "              Rest: the Relative Effective System Temperature, which includes"
+    puts "                  the contributions from the CMB, spillover, and electronics," 
+    puts "                   and is calculated for the specified elevation."
+    puts "              Trcvr: An estimate of the receiver temperature for the given frequency"
+    puts "                  and MJD"
+    puts "              Tau0: The best possible opacity for the given frequency and MJD"
+    puts "              Tau10, Tau25, Tau50, Tau75, Tau90: The opacity for various percentile "
+    puts "                  weather conditions for the given frequency and MJD, based on "
+    puts "                  multi-year statistical studies."
+    puts "              Tatm0: The Tatm for the given frequency and MJD at the time of the best"
+    puts "                  possible opacity."
+    puts "              Tatm10, Tatm25, Tatm50, Tatm75, Tatm90: The Tatm for various percentile "
+    puts "                  weather conditions for the given frequency and MJD, based on "
+    puts "                  multi-year statistical studies."
+    puts "      -elev deg"
+    puts "          The elevation, in degrees, to use for Tsys, TotalTsys, Est and REST "
+    puts "          calculations.  Ignored for all other calculations.  Default is 30 deg."
+    puts "      -freqList list"
+    puts "          List of frequencies in GHz that can range from 6 to 116 GHz."
+    puts "          Ignored if -coeff is specified"
+    puts "      -startFreq, -stopFreq, incrFreq"
+    puts "          Alternatively, one can enter a start, stop frequency and a frequency "
+    puts "          increment, all in GHz.  These are ignored if freqList or -coef is specified.  "
+    puts "          Defaults are 6, 116, and 1 GHz"
+    puts "      -timeList list"
+    puts "          List of MJD's.  Default is the current time.  Must be between "
+    puts "          5 May 2004 and within two hours of the last entry in the archive,"
+    puts "          which is usually the current hour."
+    puts "      -startMJD, -stopMJD, incrMJD"
+    puts "          Alternatively, one can enter a start, stop time and a time increment,"
+    puts "          all specified as MJD's  These are ignored if timeList is specified."
+    puts "          Default is the current time and 0.04166666 (i.e., 1 hr)."
+    puts "      -dir path"
+    puts "          Optional path to the database files.  Normally, this is not needed since the"
+    puts "          default path usually points to the best dataset."
+    puts "      -debug"
+    puts "          Turns on debugging"
+    puts " "
+}
+
+#------------------------------------------------------------------------------
+# calculateValues
+#
+#   Takes a loist of coefficient values and evaluates it for the specified frequqncy.
+#   Knows how to go from frequency to the proper frequency band and returns -9999
+#   if desired freq is outside all possible bands
+#
+# Arguments:
+#       coeffValues     A list containing a sublist for each subband.  Each sublist
+#                       contains a list of coefficient followed by the chiSqr of the fit
+#                       that produced those coeffs.
+#       freq            Frequency in GHz
+#
+# Results:
+#       -9999 if frequency is not covered by any band, or the evaluation of the coeff for
+#       the desired freq.
+#
+proc calculateValues { coeffValues freq} {
+
+    global argvFound freqRanges
+
+    if $argvFound(debug) {
+        puts "calculateValues:\t[llength $coeffValues]\n\t$coeffValues"
+    }
+
+    # Determine which 'band' of coefficients need to be used
+    set r 0
+    foreach {fmin fmax} $freqRanges {
+        if $argvFound(debug) { 
+            puts "calculateValues:\t$r [lindex [lindex $coeffValues $r] end] $freq $fmin $fmax"
+        }
+
+        # Find the coeffs in the proper range and use only if they are valid
+        if {$freq >= $fmin && $freq <= $fmax && [lindex [lindex $coeffValues $r] end] > 0 } {
+            return [powers [lindex [lindex $coeffValues $r] 0] $freq ]
+        }
+        incr r
+    }
+    return -9999
+}
+
+#------------------------------------------------------------------------------
+# getCoeffs
+#
+#   Interpolates between two coefficient lists and returns an interpolated coeff list.
+#   If fracT < 0.01 or > 0.99, no interpolation is performed and the nearest value is used.
+#   If any of the sublists in the two lists contain undefined values, the returned sublist
+#   will also contain undefined values
+#
+# Arguments:
+#       previousValues  The first list
+#       nextValues      The 2nd list
+#       fracT           The fraction of a time step for the interpolation
+#
+# Results:
+#       The interpolated coefficient list.  
+#
+proc getCoeffs { previousValues nextValues fracT} {
+
+    global argvFound
+
+    set rslts [list ]
+
+    if {$fracT < 0.01} {
+        # No need to interpolate here, use first values
+        if $argvFound(debug) { puts getCoeffs:\tPrevious }
+        return [lrange $previousValues 1 end]
+    } elseif {$fracT > 0.99} {
+        # No need to interpolate here, use last values
+        if $argvFound(debug) { puts getCoeffs:\tNext }
+        return [lrange $nextValues 1 end]
+    } else {
+        # Here we need to interpolate.
+        if $argvFound(debug) { puts getCoeffs:\tInterp }
+        set rslts [list ]
+        for {set r 1} {$r <= 3} {incr r} {
+            foreach {y1 chisqr1} [lindex $previousValues $r] { break }
+            foreach {y2 chisqr2} [lindex $nextValues $r] { break }
+            if {$chisqr1 < 0} {
+                lappend rslts [lindex $previousValues $r]
+            } elseif {$chisqr2 < 0} {
+                lappend rslts [lindex $nextValues $r]
+            } else {
+                set coeffs [list ]
+                for {set idx 0} {$idx < [llength $y1]} {incr idx} {
+                    set val_1 [lindex $y1 $idx]
+                    set val_2 [lindex $y2 $idx]
+                    lappend coeffs [expr {$val_1 + $fracT*($val_2 - $val_1)}]
+                }
+                lappend rslts [list $coeffs [expr {$chisqr1 + $fracT*($chisqr2 - $chisqr1)}]]
+            }
+        }
+        return $rslts
+    }
+}
+
+#------------------------------------------------------------------------------
+# readCoeffFile
+#
+#   Looks for Coeff archive, etc under the specified directory.  Reads those file
+#   and returns in the Coeffs global array the coefficient lists for the specified
+#   list of MJD's.  A very efficient reader.
+#
+# Arguments:
+#       type        Whether to read the Tatm or Opacity coeff files
+#       forecastDir The directory under which the standard Coeff files will reside
+#       mjdList     The list of MJD's for which coefficeints are desired.
+#
+# Results:
+#       Results are placed in the global Coeffs($type,$mjd).  Values are interpolated if an MJD
+#       doesn't fall within 1% of a timestamp in the archives.  Undefined values will be returned
+#       for an MJD when a Coeff list could not be determined. 
+#
+proc readCoeffFile { type forecastDir mjdList } {
+
+    global argvFound Coeffs
+
+    # Under forecastDir should be the following directories and files in those directories
+    set fnameList  [lsort -dictionary \
+                      [glob -nocomplain [file join $forecastDir ArchiveCoeffs        Coeffs${type}FreqList_avrg_*.txt]]]
+    lappend fnameList [glob -nocomplain [file join $forecastDir ArchiveCoeffs        Coeffs${type}FreqList_avrg.txt]]
+    lappend fnameList [glob -nocomplain [file join $forecastDir Forecasts_LatestNAM  Coeffs${type}FreqList_avrg_*]]
+    lappend fnameList [glob -nocomplain [file join $forecastDir Forecasts_LatestGFS3 Coeffs${type}FreqList_avrg_*]]
+
+
+    # Variables:
+    #    MJD = the entry that has just been read in from the DB
+    #    values = coefficients for the three frequency ranges
+    #
+    #    desiredMJD = user requested time
+    #    MJD_idx = index of that time in the desired list of times
+    #    previousMJD = MJD of last entry read in the DB
+    #    nextMJD = MJD of the next entry.  We want the desiredMJD to be staddled by previous/nextMJD
+    #    fracT = the fraction of time that the desired MJD is between previous/next
+
+    # Start with the 1st desired time slot
+    set MJD_idx 0
+    set desiredMJD [lindex $mjdList $MJD_idx]
+    set now [tclTimeToMJD [clock seconds]]
+
+    foreach fname $fnameList {
+
+        # The desired time is more than 8 days in the futue.  There's no way we can calculate values
+        if {$desiredMJD > $now+8} {
+            break
+        }
+
+        if {![file exists $fname]} {
+            puts stderr "Cannot find the file $fname that holds the weather forecasts.  Continuuing..."
+            continue
+        } else {
+            # Read in the Archived coefficients if its timestamps span the desired MJD
+            set fileSplit [split $fname "_"]
+            if {[llength $fileSplit] == 4 && $desiredMJD > [lindex [file rootname $fileSplit] 3]} {
+                if $argvFound(debug) { puts "readCoeffFile:\tSkip $fname" }
+                continue
+            }
+            if $argvFound(debug) { puts "readCoeffFile:\tOK $fname" }
+            set fid [open $fname r]
+        }
+
+        set nread($fname) 0
+
+        while {[gets $fid inline] > 0} {
+            incr nread($fname)
+
+            set MJD [lindex $inline 0]
+
+            if {$MJD <= $desiredMJD} {
+                # Eventually this will be the time just before the user's desired time
+                set previousMJD $MJD
+                set previousLine $inline
+            } elseif {[info exists previousMJD]} {
+                # Desired time stamp is straddled by a previous and next MJD.
+                set nextMJD $MJD
+                set nextValues $inline
+                set previousValues $previousLine
+
+                # There can be multiple desiredMJD that are straddled by the same two entries in the DB
+                while {$desiredMJD < $nextMJD} {
+
+                    # Do the necessary calculations.  Don't calculate values if there's substantial 
+                    # (0.25d) missing data in the coeff file
+                    set delTS [expr {$nextMJD-$previousMJD}]
+                    set delMJD [expr {$desiredMJD-$previousMJD}]
+                    if $argvFound(debug) { puts "readCoeffFile:\tFor MJD = $desiredMJD, delTS, delMJD = $delTS $delMJD" }
+                    if {$delMJD <= 0.25} {
+                        set fracT [expr {$delMJD/$delTS}]
+                        set Coeffs($type,$desiredMJD) [getCoeffs $previousValues $nextValues $fracT]
+                        if $argvFound(debug) { 
+                            puts "readCoeffFile:\t[llength $Coeffs($type,$desiredMJD)] $Coeffs($type,$desiredMJD)"
+                        }
+                    }
+
+                    # Try the next desired time
+                    incr MJD_idx
+                    if {$MJD_idx >= [llength $mjdList]} {
+                        break
+                    }           
+                    set desiredMJD [lindex $mjdList $MJD_idx]
+                }
+            
+                set previousMJD $MJD
+                set previousLine $inline
+
+            } else {
+                # We have a user time stamp that is before the 1st entry in the DB.  
+                # Go through the user's list of times until we get one that is after the first timestamp
+                while {$desiredMJD < $MJD} {
+                    incr MJD_idx
+                    if {$MJD_idx >= [llength $mjdList]} {
+                       break
+                    }           
+                    set desiredMJD [lindex $mjdList $MJD_idx]
+                }
+            }
+
+            # No more user desired timeslots
+            if {$MJD > [lindex $mjdList end]} {
+                break
+            }
+        }
+
+        close $fid
+        if {$MJD > [lindex $mjdList end]} {
+            break
+        }
+    }
+
+    if $argvFound(debug) {
+        puts "readCoeffFile:"
+        parray nread
+    }
+}
+
+main $argv $argc

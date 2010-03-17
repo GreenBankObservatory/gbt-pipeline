@@ -5,8 +5,6 @@
 
 ;Functions MUST be compiled first!!!
 ; Ron's weather scripts
-;.compile /users/rmaddale/mypros/getTau.pro
-;.compile /users/rmaddale/mypros/dateToMjd.pro
 .compile getTau.pro
 ;Weather model when date is before 04 May 01
 .compile opacityO2.pro
@@ -20,7 +18,6 @@
 ; .compile tsysair.pro  ; currently not used
 .compile getRef.pro
 .compile setTSky.pro
-.compile aveDcs.pro
 .compile scaleRef.pro
 .compile scaleInts.pro
 .compile scaleIntsRef.pro
@@ -31,7 +28,6 @@
 ; calls other procedures.
 .compile calBandRef.pro
 ; add procedures to find lines
-.compile moleculefind.pro
 .compile moleculeinrange.pro
 .compile freqchan.pro
 .compile toaips.pro
