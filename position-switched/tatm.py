@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 """Estimates the atmospheric effective temperature
 
 Based on local ground temperature measurements.  These estimates

@@ -1,5 +1,19 @@
 #!/bin/bash
 
-# pass control to kfpa_pipeline.py
+if [[ "$PATH" != */home/sandboxes/kfpa_pipeline* ]]
+then
+    PATH=/home/sandboxes/kfpa_pipeline:"$PATH"
+fi
 
-python /home/sandboxes/kfpa_pipeline/kfpa_pipeline.py $*
+if [ -z "$PYTHONPATH" ]
+then
+    PYTHONPATH=/home/sandboxes/kfpa_pipeline
+else
+    lclpythonpath="$PYTHONPATH"
+    if [[ $lclpythonpath != */home/sandboxes/kfpa_pipeline* ]]
+    then
+        PYTHONPATH=/home/sandboxes/kfpa_pipeline:"$PYTHONPATH"
+    fi
+fi
+
+kfpa_pipeline.py $*

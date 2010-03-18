@@ -49,7 +49,7 @@ function getTau, mjd, freqMHz
        tempC = !g.s[0].tambient - 273.15
        humidity = !g.s[0].humidity
        dewPtC = tempC
-       spawn,'python /home/sandboxes/kfpa_pipeline/humidityToTDew.py ' + humidity +' '+ tempC
+       spawn,'humidityToTDew.py ' + humidity +' '+ tempC
        readcol,'dewpointtemp.txt',F='F',dewPtC,/SILENT
        file_delete,'dewpointtemp.txt'
        freqGHz = freqMHz*.001
@@ -75,7 +75,8 @@ function getTau, mjd, freqMHz
     sMjd = strjoin(sMjdVec,' ')
     sFreqVec = strtrim(string(freqMHz/1000.,format='(f12.6)'),2)
     sFreq = strjoin(sFreqVec,' ')
-    spawn, 'getForecastValues.tclsh -timeList ' + sMjd + ' -freqList ' + sFreq, result;       print, 'LiebeTau: p, T, DT, F, tau:',pressureMBar, tempC, dewPtC, freqGHz, tauZenith
+    spawn, '/users/rmaddale/bin/getForecastValues -timeList ' + sMjd + ' -freqList ' + sFreq, result;       print, 'LiebeTau: p, T, DT, F, tau:',pressureMBar, tempC, dewPtC, freqGHz, tauZenith
+    ;spawn, 'getForecastValues.tclsh -timeList ' + sMjd + ' -freqList ' + sFreq, result;       print, 'LiebeTau: p, T, DT, F, tau:',pressureMBar, tempC, dewPtC, freqGHz, tauZenith
 
     n = strpos(result,'=')
     ; n is potentially a vector, and all should be > 0

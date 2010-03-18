@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 """Compute the GBT efficiencies, etaA and etaB for a given frequency
 
    The model is based on a memo by Jim Condon, provided by

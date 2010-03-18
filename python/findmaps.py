@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 """Find the mapping procdures in an observation.
 
 This module has routines to identify blocks of mapping procedures in an

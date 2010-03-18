@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 """Procedure to convert at FITS date string to MJD
 
 """

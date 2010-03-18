@@ -36,7 +36,7 @@ nodisplay=fix(args[12])
 
 if (VERBOSE gt 2) then print,args
 
-cmd = 'python /home/sandboxes/kfpa_pipeline/check_for_sdfits_file.py ' + infile + ' ' + sdfitsdir + ' ' + $
+cmd = 'check_for_sdfits_file.py ' + infile + ' ' + sdfitsdir + ' ' + $
       string(beginscan) + ' ' + string(endscan) + ' ' + $
       string(refscan1) + ' ' + string(refscan2) + ' ' + string(VERBOSE)
 print,cmd

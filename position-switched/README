@@ -1,6 +1,8 @@
-This directory contains position-switched code for the Green Bank Telescope K-band Focal Plane Array (KFPA) data analysis and reduction pipeline.
+This directory contains position-switched code for the Green Bank Telescope
+K-band Focal Plane Array (KFPA) data analysis and reduction pipeline.
 
-The code is authored by Bob Garwood, Joe Masters and Glen Langston at the National Radio Astronomy Observatory (NRAO).
+The code is authored by Bob Garwood, Joe Masters and Glen Langston at the
+National Radio Astronomy Observatory (NRAO).
 
 Bob Garwood   -- bgarwood@nrao.edu
 Joe Masters   -- jmasters@nrao.edu
@@ -10,8 +12,11 @@ Project website:
 
 https://safe.nrao.edu/wiki/bin/view/Kbandfpa/WebHome
 
-At the moment, this directory includes one example use case:  mapping the spiral galaxy M81 in a position-switched observing mode.
+Code is written in IDL and Python, except for getForecastValues (tcl) and
+idlToSdfits (C).  The highest level script is kfpa_pipeline.
 
-All code is written in IDL.  The highest level script is m81Map.pro and scan numbers are hard-coded.  Due to the interaction with weather prediction scripts only available in Green Bank, the code can only be effectively run on a Green Bank network computer.  In addition, an IDL license is required.
+Due to the  interaction with weather prediction scripts
+only available in Green Bank, the code can only be effectively run on a
+Green Bank network computer.  In addition, an IDL license is required.
 
-Last modified:  11 January 2010
+Last modified:  18 March 2010

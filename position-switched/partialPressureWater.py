@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 """Module to compute the atmospheric opacity from a model
 
    This will be used when weather data computed by Ron Maddallena's

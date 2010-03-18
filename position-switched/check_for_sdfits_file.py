@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 """Check for the existance of the SDFITS input file.
 
 If the SDFITS input file exists, then use it.  Otherwise, recreate it from

@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 """ Module to estimate the opacity correction factor 
 
    fourVelocity takes an input start index, 

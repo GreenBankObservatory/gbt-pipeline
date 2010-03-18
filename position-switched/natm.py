@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 """Estimate the number of atmospheres along the line of site
    at an input elevation
 
