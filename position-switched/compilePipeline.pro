@@ -19,7 +19,6 @@
 .compile getRef.pro
 .compile setTSky.pro
 .compile scaleRef.pro
-.compile scaleInts.pro
 .compile scaleIntsRef.pro
 .compile nameDc.pro
 .compile saveDc.pro
