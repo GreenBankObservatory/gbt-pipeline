@@ -62,6 +62,12 @@ pro toaips, myDc, vSource, vSourceWidth, vSourceBegin, vSourceEnd, userParms
   freqchan, myDc, endFreqHz, endChan
   freqchan, myDc, sourceFreqHz, sourceChan
 
+  if beginChan gt endChan then begin
+      tmp = beginChan
+      beginChan = endChan
+      endChan = tmp
+   endif
+
 ; the channels kept must be at least twice the filter width
   if ((endChan - beginChan) lt 2*width) then begin $\
     beginChan = sourceChan - round(width) & $\
