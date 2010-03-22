@@ -54,7 +54,7 @@ pro scaleRef, dcRef, dcCal, dcScaleRef, dcScaleCal
 
    nSavGol = nChan/16
    savgolFilter = SAVGOL(nSavGol, nSavGol, 0, 5) 
-   *dcScaleRef.data_ptr = CONVOL(*dcScaleCal.data_ptr, savgolFilter, $\
+   *dcScaleRef.data_ptr = CONVOL(*dcScaleRef.data_ptr, savgolFilter, $\
                                  /EDGE_TRUNCATE)
    *dcScaleRef.data_ptr = *dcScaleRef.data_ptr * *dcScaleCal.data_ptr 
 
