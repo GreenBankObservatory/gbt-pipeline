@@ -29,7 +29,7 @@ def humidityToTDew(humidity,tempC):
 
 if __name__ == "__main__":
     outfilename = 'dewpointtemp.txt'
-    dwpt = humidityToTDew(sys.argv[1],sys.argv[2])
+    dwpt = humidityToTDew(float(sys.argv[1]),float(sys.argv[2]))
     print 'Dew point temperature:',dwpt,'(C)'
     print 'Writing value to',outfilename
     outfile = open(outfilename,'w')

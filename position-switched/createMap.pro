@@ -40,7 +40,8 @@ cmd = 'check_for_sdfits_file.py ' + infile + ' ' + sdfitsdir + ' ' + $
       string(beginscan) + ' ' + string(endscan) + ' ' + $
       string(refscan1) + ' ' + string(refscan2) + ' ' + string(VERBOSE)
 print,cmd
-spawn,cmd
+spawn,cmd,/SH
+readcol,'newinfile.txt',F='A',infile,/SILENT
 
 firstScan = fix(beginscan)
 lastScan  = fix(endscan)

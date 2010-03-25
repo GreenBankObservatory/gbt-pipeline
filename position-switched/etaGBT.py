@@ -37,7 +37,7 @@ def etaGBT(freqMHz):
 if __name__ == "__main__":
     # write Modified Julian Date to a file named 'mjd.txt'
     # then, in IDL open file with time and read value into a variable
-    etaA,etaB = etaGBT(sys.argv[1])
+    etaA,etaB = etaGBT(float(sys.argv[1]))
     outfile = open("eta.txt",'w')
     outfile.write(str(etaA)+','+str(etaB))
     outfile.close()

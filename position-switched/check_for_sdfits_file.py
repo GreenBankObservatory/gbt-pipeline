@@ -12,6 +12,7 @@ import os.path
 
 def check_for_sdfits_file( infile, sdfitsdir, beginscan, endscan,\
                            refscan1, refscan2, VERBOSE ):
+
     # if the SDFITS input file doesn't exist, generate it
     if (not os.path.isfile(infile) and os.path.isdir(sdfitsdir) and \
         beginscan < endscan):
@@ -31,7 +32,8 @@ def check_for_sdfits_file( infile, sdfitsdir, beginscan, endscan,\
             maxscan = endscan
 
         sdfitsstr = '/opt/local/bin/sdfits -fixbadlags -backends=acs' + \
-                    ' -scans=' + minscan + ':' + maxscan + ' ' + sdfitsdir
+                    ' -scans=' + str(minscan) + ':' + str(maxscan) + ' ' + \
+                    sdfitsdir
 
         if VERBOSE > 0:
             print sdfitsstr
@@ -40,15 +42,22 @@ def check_for_sdfits_file( infile, sdfitsdir, beginscan, endscan,\
 
         infile = os.path.basename(sdfitsdir) + ".raw.acs.fits"
 
-    # if the SDFITS input file exists, then use it to create the map
-    if os.path.isfile(infile):
-        if VERBOSE > 2:
-            print "infile OK"
-    else:
-        print "infile not OK"
+        # if the SDFITS input file exists, then use it to create the map
+        if os.path.isfile(infile):
+            if VERBOSE > 2:
+                print "infile OK"
+        else:
+            print "infile not OK"
+
+    return infile
 
 if __name__ == "__main__":
-    check_for_sdfits_file( sys.argv[1], sys.argv[2], sys.argv[3],\
-                           sys.argv[4], sys.argv[5], sys.argv[6],\
-                           sys.argv[7] )
+    outfilename = "newinfile.txt"
+    newinfile= check_for_sdfits_file( str(sys.argv[1]), str(sys.argv[2]),\
+                                 int(sys.argv[3]), int(sys.argv[4]),\
+                                 int(sys.argv[5]), int(sys.argv[6]),\
+                                 int(sys.argv[7]) )
+    outfile = open(outfilename,'w')
+    outfile.write(str(newinfile))
+    outfile.close()
     sys.exit(0)

@@ -35,7 +35,7 @@ def densityWater(pressureMBar, tempC, dewPtC):
 
 if __name__ == "__main__":
     outfilename = "waterdensity.txt"
-    dw = densityWater(sys.argv[1],sys.argv[2])
+    dw = densityWater(float(sys.argv[1]),float(sys.argv[2]),float(sys.argv[3]))
     print 'Water density:',dw,'(gm/m^3)'
     print 'Writing value to',outfilename
     outfile = open(outfilename,'w')

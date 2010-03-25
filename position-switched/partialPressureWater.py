@@ -43,7 +43,7 @@ def partialPressureWater(pressureMBar, dewPtC):
 
 if __name__ == "__main__":
     outfilename = "partialpressure.txt"
-    pp = partialPressureWater(sys.argv[1],sys.argv[2])
+    pp = partialPressureWater(float(sys.argv[1]),float(sys.argv[2]))
     print 'Partial water pressure:',pp,'(mBar)'
     print 'Writing value to',outfilename
     outfile = open(outfilename,'w')

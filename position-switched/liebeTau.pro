@@ -44,14 +44,14 @@ pro liebeTau, pressureMBar, tempC, dewPtC, freqGHz, tauZenith, doPrint
    sumFreq = waterFreqGHz + freqGHz
    freqSqr = freqGHz * freqGHz
    eta = 1.0
-    spawn,'partialPressureWater.py ' + pressureMBar +' '+ dewPtC
+    spawn,'partialPressureWater.py ' + pressureMBar +' '+ dewPtC,/SH
     readcol,'partialpressure.txt',F='F',eta,/SILENT
     file_delete,'partialpressure.txt'
     presDry = pressureMBar - eta
     tempK = tempC + 273.15
     theta = 300./tempK
     rho = 1.0
-    spawn,'densityWater.py '+ pressureMBar +' '+ tempC +' '+ dewPtC
+    spawn,'densityWater.py '+ pressureMBar +' '+ tempC +' '+ dewPtC,/SH
     readcol,'waterdensity.txt',F='F',rho,/SILENT
     file_delete,'waterdensity.txt'
 
