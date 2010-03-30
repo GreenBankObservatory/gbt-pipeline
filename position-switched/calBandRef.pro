@@ -83,19 +83,19 @@ pro calBandRef, allscans, refScans, iBand, iFeed, nPol, doWait
          scaleRef, dcBRef0, dcCal0, dcSBRef0, dcSCal0
          scaleRef, dcERef0, dcCal0, dcSERef0, dcSCal0
       ;now save the reference spectra
-         refname = 'bref'
-         reftype = 'BRef_'
-         saveDc, dcSBRef0, refname, reftype
-         print, 'Saved: ', refname
-         refname = 'eref'
-         reftype = 'ERef_'
-         saveDc, dcSERef0, refname, reftype
-         print, 'Saved: ', refname
-      ;next save the calibration spectra
-         refname = 'scal'
-         reftype = 'CRef_'
-         saveDc, dcSCal0, refname, reftype
-         print, 'Saved: ', refname
+;          refname = 'bref'
+;          reftype = 'BRef_'
+;          saveDc, dcSBRef0, refname, reftype
+;          print, 'Saved: ', refname
+;          refname = 'eref'
+;          reftype = 'ERef_'
+;          saveDc, dcSERef0, refname, reftype
+;          print, 'Saved: ', refname
+;       ;next save the calibration spectra
+;          refname = 'scal'
+;          reftype = 'CRef_'
+;          saveDc, dcSCal0, refname, reftype
+;          print, 'Saved: ', refname
       ; reference scaled cals are approxmately tRx
          if !g.has_display then begin
             sety, -1, 50.

@@ -20,8 +20,8 @@
 .compile setTSky.pro
 .compile scaleRef.pro
 .compile scaleIntsRef.pro
-.compile nameDc.pro
-.compile saveDc.pro
+; .compile nameDc.pro
+; .compile saveDc.pro
 .compile nameMap.pro
 ; calBandRef is the main calibration routine, which
 ; calls other procedures.
