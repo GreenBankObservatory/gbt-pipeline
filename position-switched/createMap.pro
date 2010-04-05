@@ -87,11 +87,8 @@ endif
 
 ; for each band (spectral window)
 wait = 0 ; optionally wait for user input to continue cal
-; toaips line: selects channels and writes the AIPS compatible data 
-for iFeed = 0, nFeed-1 do begin $\
-  for iBand = 0, nBand-1 do begin $\
-    gettp,refScans[0], int=0, ifnum=iBand & $\
-    calBandRef, allscans, refscans, iBand, iFeed, nPol, wait & $\
-    toaips,!g.s[0],vSource,vSourceWidth,vSourceBegin,vSourceEnd & endfor & endfor
+
+processDataRef, nFeed, nBand, refScans, allScans, wait, vsource, vSourceWidth, vSourceBegin, vSourceEnd
+
 
 exit

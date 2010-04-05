@@ -30,3 +30,5 @@
 .compile moleculeinrange.pro
 .compile freqchan.pro
 .compile toaips.pro
+; processDataRef is the outer procedure that serves data to calBandRef
+.compile processDataRef.pro

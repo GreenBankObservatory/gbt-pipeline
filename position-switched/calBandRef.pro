@@ -38,7 +38,12 @@ pro calBandRef, allscans, refScans, iBand, iFeed, nPol, doWait
       for iPol = 0, (nPol-1) do begin 
 
          ; pol, beginning reference
-         getRef, refscans[0], iPol, iBand, iFeed, dcBRef0, dcCal0, doShow
+         getRef, refscans[0], iPol, iBand, iFeed, dcBRef0, dcCal0, doShow, status=status
+         ; continue to next pol if returned status is not 1
+         if status ne 1 then begin
+             print,'No data for polarization : ', iPol, ' in Band ', iBand,' Feed ', iFeed
+             continue
+         endif
 
          ; prepare to create the output calibration file name
          mapName = !g.s[0].source
