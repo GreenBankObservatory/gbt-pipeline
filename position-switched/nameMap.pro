@@ -30,11 +30,15 @@ pro nameMap, myDc, fileName, scans, type
    doppler = 1.0+(myDc.source_velocity/299792458.)
    iFreq = round( doppler*myDc.reference_frequency * 1.E-6)
    sfreq = strtrim(string( iFreq,format='(f7.0)'),2)
+   ; strip off final "." - must be last character
+   sfreq = strmid(sfreq,0,strlen(sfreq)-1)
+   ; if number
+   ifNum = strtrim(string(myDc.if_number),2)
    ; source and scan numbers
    src=strtrim(string(myDc.source),2)
    iFeed=strtrim(string(myDc.feed,format='(I3)'),2)
    fileName=type + '_' + src + '_' + iFeed + '_' + scanStr $\
-     + sfreq + 'fits'
+     + sfreq + '_' + ifNum + '.fits'
 
    return
 end
