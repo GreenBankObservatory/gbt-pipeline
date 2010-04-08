@@ -51,11 +51,6 @@ pro getRef, scans, iPol, iBand, iFeed, dcRef, dcCal, doShow, status=status
      calOns = getchunk(scan=scans[iScan], cal="T", plnum=iPol, $\
                        ifnum=iBand, fdnum=iFeed)
      
-     if (doShow le 0 and !g.has_display) then freeze
-     
-     for i=0,n_elements(calOns)-1 do begin dcaccum, a, calOns[i] & $\
-       if (doShow and !g.has_display) then show, calOns[i] & endfor
-
      ; get average coordiate and system temps
      for i=0,n_elements(calOns)-1 do begin & $\
        tInt=calOns[i].exposure & tSum=tSum+tInt &$\

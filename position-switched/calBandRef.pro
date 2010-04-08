@@ -72,12 +72,6 @@ pro calBandRef, allscans, refScans, iBand, iFeed, nPol, doWait
       ; get references for the beginning of the map
          getRef, allscans, iPol, iBand, iFeed, dcRef0, dcCal0, doshow
 
-      ; show the before and after reference for both polarizations.
-         if !g.has_display then begin
-            show,dcBRef0
-            oshow,dcERef0
-            oshow,dcCal0
-         endif
 ;        create containers for scaled cal values and references
          data_copy, dcCal0, dcSCal0
          data_copy, dcBRef0, dcSBRef0
@@ -87,29 +81,6 @@ pro calBandRef, allscans, refScans, iBand, iFeed, nPol, doWait
 ; do the pre-computations to save later calculations
          scaleRef, dcBRef0, dcCal0, dcSBRef0, dcSCal0
          scaleRef, dcERef0, dcCal0, dcSERef0, dcSCal0
-      ;now save the reference spectra
-;          refname = 'bref'
-;          reftype = 'BRef_'
-;          saveDc, dcSBRef0, refname, reftype
-;          print, 'Saved: ', refname
-;          refname = 'eref'
-;          reftype = 'ERef_'
-;          saveDc, dcSERef0, refname, reftype
-;          print, 'Saved: ', refname
-;       ;next save the calibration spectra
-;          refname = 'scal'
-;          reftype = 'CRef_'
-;          saveDc, dcSCal0, refname, reftype
-;          print, 'Saved: ', refname
-      ; reference scaled cals are approxmately tRx
-         if !g.has_display then begin
-            sety, -1, 50.
-            show, dcSCal0
-         endif
-         if (doWait gt 0) then begin 
-            print,'Enter X to continue (Pol ',dcSCal0.polarization,') :'
-            read,x
-         endif
 
 ; clean up any old keep files and prepare to create new
          if (iPol eq 0) then begin
@@ -118,7 +89,7 @@ pro calBandRef, allscans, refScans, iBand, iFeed, nPol, doWait
          endif
 ; about to create the valuable product, keep it!
          doKeep = 1
-         if !g.has_display then sety,-1,8
+
    ; for all polarizations, process and keep the data
          scaleIntsRef, allscans, iPol, iBand, iFeed, dcSBRef0, dcSERef0, $\
            dcSCal0, doKeep 

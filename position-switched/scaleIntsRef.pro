@@ -191,8 +191,6 @@ pro scaleIntsRef, scans, iPol, iBand, iFeed, dcBRef, dcERef, $\
           keepArray[iInt] = spectrumToKeep ; this pointer gets deleted later
       endif
 
-      if !g.has_display and ((iInt eq 0) or (iInt eq nInt2)) then show,data[calOns[iInt]]
-
       ; report
       printf, wlun, scans[iScan], iInt, data[calOns[iInt]].utc, $\
          middleT, (*(data[calOns[iInt]]).data_ptr)[round(nChAn/2)], tSys,  $\

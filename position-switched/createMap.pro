@@ -70,10 +70,6 @@ nFeed = scanInfo.n_feeds
 nPol = scanInfo.n_polarizations
 nBand = scanInfo.n_ifs
 
-; this turns display on/off in most places (e.g. gettp)
-; either according to user's wishes or if there just is no display
-!g.has_display = not nodisplay and !g.has_display
-
 if (VERBOSE gt 2) then begin $\
    print,"vSource " + string(vSource) & $\
    print,"vSourceWidth " + string(vSourceWidth) & $\
