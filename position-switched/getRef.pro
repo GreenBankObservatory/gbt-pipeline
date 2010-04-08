@@ -6,7 +6,7 @@
 ; 09NOV11 GIL initial test of gainScanInt2
 ; 09NOV10 GIL use ratioScanInt2.pro 
 
-pro getRef, scans, iPol, iBand, iFeed, dcRef, dcCal, doShow
+pro getRef, scans, iPol, iBand, iFeed, dcRef, dcCal, doShow, status=status
 
    if (not keyword_set( scans)) then begin
       print, 'getRef: average integrations to calc. reference and cal on-off spectra'
@@ -19,20 +19,25 @@ pro getRef, scans, iPol, iBand, iFeed, dcRef, dcCal, doShow
       print, 'output dcRef reference spectrum, average of cal ON and CAL off values'
       print, 'output dcCal reference cal_on - cal_off spectrum'
       print, '      doShow optionally (doShow=1) show spectra accumulated'
+      print, '   status keyword is set to 1 on success and 0 on failure'
       print, ''
       print, 'getRef does not include the T-Sky correction, use scaleRef.pro'
       print, 'getRef performs no smoothing or RFI rejection'
       print, ''
       print, '----- Glen Langston, 2009 November 13; glangsto@nrao.edu'
       return
-   endif
+  endif
+
+   status = 0
 
    ; prepare to compute sums 
    tSum = 0.0 & elSum = 0.0 & azSum = 0.0 & lonSum = 0.0 & latSum = 0.0 
    tLatSum = 0.0 & tLonSum = 0.0
 
 ;   print, 'GetRef: s,p,b,f: ',scans[0], iPol, iBand, iFeed
-   gettp, scans[0], int=0, plnum=iPol, ifnum=iBand, fdnum=iFeed
+   gettp, scans[0], int=0, plnum=iPol, ifnum=iBand, fdnum=iFeed, status=status
+
+   if status ne 1 then return
 
    ; copy most parameters to outputs
    data_copy, !g.s[0], dcRef

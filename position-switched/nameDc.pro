@@ -20,14 +20,17 @@ pro nameDc, myDc, fileName, type
    ; construct integer frequency MHz   
    doppler = 1.0+(myDc.source_velocity/299792458.)
    iFreq = round( doppler*myDc.reference_frequency * 1.E-6)
+   ifNum = strtrim(string(myDc.if_number),2)
    sfreq = strtrim(string( iFreq,'(f7.0)'),2)
+   ; strip off trailing decimal - must be last character
+   sfreq = strmid(sfreq,0,strlen(sfreq)-1)
    ; source and scan numbers
    src=strtrim(string(myDc.source),2)
    sscn=strtrim(string(myDc.scan_number,format='(I6)'),2)
    pol=strtrim(myDc.polarization,2)
    iFeed=strtrim(string(myDc.feed,format='(I3)'),2)
    fileName=type + myDc.projid + '_' + src + '_' $\
-     + pol + '_' + iFeed + '_' + sscn + '_' + sfreq + 'dc'
+     + pol + '_' + iFeed + '_' + sscn + '_' + sfreq + '_' + ifNum + '.dc'
 
    return
 end
