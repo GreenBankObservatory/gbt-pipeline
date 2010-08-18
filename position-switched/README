@@ -12,11 +12,13 @@ Project website:
 
 https://safe.nrao.edu/wiki/bin/view/Kbandfpa/WebHome
 
-Code is written in IDL and Python, except for getForecastValues (tcl) and
-idlToSdfits (C).  The highest level script is kfpa_pipeline.
+Code is written in Python, except for getForecastValues (tcl) and
+idlToSdfits (C).  The highest level script is gbt_mapping_pipeline.
+
+SDFITS files are the required pipeline input.
 
 Due to the  interaction with weather prediction scripts
 only available in Green Bank, the code can only be effectively run on a
-Green Bank network computer.  In addition, an IDL license is required.
+Green Bank network computer.
 
-Last modified:  18 March 2010
+Last modified:  18 August 2010
