@@ -17,10 +17,16 @@ def check_for_sdfits_file( infile, sdfitsdir, beginscan, endscan,\
     if (not os.path.isfile(infile) and os.path.isdir(sdfitsdir) and \
         beginscan < endscan):
         if VERBOSE > 0:
-            print "SDFITS input file does not exist; generating it from",\
+            print "SDFITS input file does not exist; trying to generate it from",\
                   "sdfits-dir input parameter directory and user-provided",\
                   "begin and end scan numbers."
 
+        if not os.path.exists('/opt/local/bin/sdfits'):
+            print "ERROR: input sdfits file does not exist and we can not"
+            print "    regenerate it using the 'sdfits' filler program in"
+            print "    Green Bank. (/opt/local/bin/sdfits).  Exiting"
+            sys.exit(2)
+            
         if refscan1 < beginscan:
             minscan = refscan1
         else:

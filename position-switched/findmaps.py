@@ -164,3 +164,23 @@ if __name__ == "__main__":
     find_ralong_maps(sys.argv[1])
     find_declat_maps(sys.argv[1])
     sys.exit(0)
+    
+maps = np.where(np.diff(fd[1].data.field('OBSMODE').find('Map')!=-1))[0]+1
+maps = maps.tolist()
+
+if fd[1].data[0].field('OBSMODE').find('Map')!=-1:
+    maps.insert(0,0)
+
+if fd[1].data[-1].field('OBSMODE').find('Map')!=-1:
+    maps.append(len(fd[1].data))
+    
+if len(maps)%2:
+    print 'ERROR'
+    sys.exit(9)
+
+maps2 = np.array(maps).reshape(len(maps)/2,2)
+
+for xx in maps2:
+    sl = slice(xx[0],xx[1])
+    print 'map block from ',sl.start,'to',sl.stop
+
