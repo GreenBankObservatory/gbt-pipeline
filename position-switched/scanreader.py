@@ -18,7 +18,6 @@ class ScanReader:
         self.attr = {}
         self.attr['date'] = []
         self.attr['polarization'] = []
-        self.attr['samplers'] = []
         self.attr['elevation'] = []
         self.attr['ra'] = []
         self.attr['dec'] = []
@@ -38,14 +37,12 @@ class ScanReader:
         self.n_channels = set([])
         self.cals = set([])
 
-        self.sampler_map = {}
-
         self.ifs=set([])
 
         self.frequency_resolution = 0
         self.noise_diode = False
 
-    def map_name_vals(self,scan_number,fdata,startidx,verbose):
+    def map_name_vals(self,fdata,verbose):
         """Collect information for naming the output file
 
         Required information comes from the column values in the sdfits
@@ -53,9 +50,7 @@ class ScanReader:
         return after finding the first integration.
         
         Keyword arguments:
-        scan_number -- the GBTIDL-generated index file, for the
         fdata -- sdfits input table pointer
-        startidx -- row index to start search
         verbose -- verbosity level
         
         Returns:
@@ -63,212 +58,56 @@ class ScanReader:
         centerfreq -- the freqency at the center channel
         feed -- the feed number from "FEED" col. in the sdfits input
         """
-        
-        # read ROWSIZE rows at a time
-        # a rowsize of 30,000 was chosen because a spectrum of 4096 channels
-        # is approximately 32 kb with 64-bit float values for each channel,
-        # so 30,000*8,000b = 240,000,000 or 240 Mb, which will usually be
-        # available
-        ROWSIZE = 30000
 
-        if verbose > 3: print 'starting search from index',startidx
-        if len(fdata)-startidx < ROWSIZE:
-            lcldata = fdata[startidx:]
-        else:
-            endidx = startidx + ROWSIZE
-            if verbose > 3: print 'and stopping at index',endidx
-            lcldata = fdata[startidx:endidx]
-
-        for idx,row in enumerate(lcldata):
-            if row['SCAN']==scan_number:
-                obj = row['OBJECT']
-                feed = row['FEED']
-                centerfreq = row['CRVAL1']
-                break
+        obj = fdata.field('OBJECT')[0]
+        feed = fdata.field('FEED')[0]
+        centerfreq = fdata.field('CRVAL1')[0]
 
         return obj,centerfreq,feed
 
-    def scan_samplers(self,scan_number,fdata,startidx,verbose):
-        """Collect all samplers used in a given scan.
-
-        Keyword arguments:
-        scan_number -- the GBTIDL-generated index file, for the
-        fdata -- sdfits input table pointer
-        startidx -- row index to start search
-        verbose -- verbosity level
-        
-        Returns:
-        last row index read
-        """
-
-        finished_consecutive_rows_for_this_scan = False
-        found_sampler = False
-        
-        samplers = set([])
-        
-        # read ROWSIZE rows at a time
-        ROWSIZE = 30000
-        # a rowsize of 30,000 was chosen because a spectrum of 4096 channels
-        # is approximately 32 kb with 64-bit float values for each channel,
-        # so 30,000*8,000b = 240,000,000 or 240 Mb, which will usually be
-        # available
-
-        if len(fdata)-startidx < ROWSIZE:
-            lcldata = fdata[startidx:]
-            if verbose > 3: print 'searching to the end!'
-        else:
-            endidx = startidx + ROWSIZE
-            lcldata = fdata[startidx:endidx]
-            if verbose > 3: print 'endidx',endidx
-            
-        #print 'starting from',startidx,'scan',lcldata[0]['SCAN']
-        for idx,row in enumerate(lcldata):
-            if row['SCAN']==scan_number:
-                samplers.add(row['SAMPLER'])
-
-            elif row['SCAN']>scan_number:
-                # remember the last row read so we don't need to start at
-                # the beginning when reading the next scan
-                finished_consecutive_rows_for_this_scan = True
-                break
-                
-        # if there could be more data for the scan
-        if not finished_consecutive_rows_for_this_scan:
-            
-            # if we haven't reached the end of the file
-            if (startidx+idx<len(fdata)-1):
-
-                # haven't seen any rows with the scan number
-                if not len(self.samplers):
-                    # but more data ahead
-                    if startidx+idx < len(fdata):
-                        # so keep searching
-                        return self.scan_samplers(scan_number,fdata,startidx+idx,verbose)
-                        
-                    else: # made it all the way to the end without seeing the scan
-                        print 'No samplers found for scan',scan_number
-                        sys.exit(9)
-                        
-                # have seen the scan, but there might be more data
-                else:
-                    if (verbose>3): print 'idx,startidx,tot',idx,startidx,idx+startidx
-                    if not finished_consecutive_rows_for_this_scan and startidx+idx < len(fdata):
-                        if (verbose>3): print 'have some data and looking for more from idx',startidx+idx
-                        if (verbose>3): print startidx+idx,'of',len(fdata)
-                        return self.scan_samplers(scan_number,fdata,startidx+idx,verbose)
-                        
-        return samplers
-
-    def get_scan(self,sampler,scan_number,fdata,startidx,verbose):
+    def get_scan(self,scan_number,fdata,verbose):
         """Collect all primary needed information for a given scan.
 
         Keyword arguments:
-        scan_number -- the GBTIDL-generated index file, for the
+        scan_number -- 
         fdata -- sdfits input table pointer
-        startidx -- row index to start search
         verbose -- verbosity level
-        
-        Returns:
-        last row index read
+
         """
-
-        finished_consecutive_rows_for_this_scan = False
-        found_sampler = False
-        
-        # read ROWSIZE rows at a time
-        ROWSIZE = 30000
-        # a rowsize of 30,000 was chosen because a spectrum of 4096 channels
-        # is approximately 32 kb with 64-bit float values for each channel,
-        # so 30,000*8,000b = 240,000,000 or 240 Mb, which will usually be
-        # available
-
-        if len(fdata)-startidx < ROWSIZE:
-            lcldata = fdata[startidx:]
-            if verbose > 3: print 'searching to the end!'
-        else:
-            endidx = startidx + ROWSIZE
-            lcldata = fdata[startidx:endidx]
-            if verbose > 3: print 'endidx',endidx
-            
-        #print 'starting from',startidx,'scan',lcldata[0]['SCAN']
-        for idx,row in enumerate(lcldata):
-            if row['SCAN']==scan_number:
-                self.attr['row'].append(row)
-                self.attr['date'].append(row['DATE-OBS'])
-                self.attr['polarization'].append(row['CRVAL4'])
-                self.attr['elevation'].append(row['ELEVATIO'])
-                self.attr['crval1'].append(row['CRVAL1'])
-                self.attr['crpix1'].append(row['CRPIX1'])
-                self.attr['cdelt1'].append(row['CDELT1'])
-                self.attr['ra'].append(row['CRVAL2'])
-                self.attr['dec'].append(row['CRVAL3'])
-                if len(self.data):
-                    self.data = np.vstack((self.data,row['DATA']))
-                else:
-                    self.data = np.array(row['DATA'],ndmin=2)
-                self.attr['tcal'].append(row['TCAL'])
-                self.attr['samplers'].append(row['SAMPLER'])
-                self.attr['exposure'].append(row['EXPOSURE'])
-                self.attr['tambient'].append(row['TAMBIENT'])
-
-                # create mask for calONs and calOFFs
-                if 'T'==row['CAL']:
-                    self.attr['calmask'].append(True)
-                else:
-                    self.attr['calmask'].append(False)
-
-                # map a sampler to feed,pol and if(crval1,crpix1,cdelt1)
-                self.sampler_map[row['SAMPLER']]=(
-                    row['FEED'],row['CRVAL4'],
-                    (row['CRVAL1'],row['CRPIX1'],
-                    row['CDELT1']))
-
-                self.frequency_resolution = row['FREQRES']
-
-                # count number of feeds and cal states
-                self.feeds.add(row['FEED'])
-                self.cals.add(row['CAL'])
-
-            elif row['SCAN']>scan_number:
-                # remember the last row read so we don't need to start at
-                # the beginning when reading the next scan
-                finished_consecutive_rows_for_this_scan = True
-                break
+        #print type(fdata),len(fdata),scan_number
+        scanmask = fdata.field('SCAN')==scan_number
+        #print scanmask
+        lcldata = fdata[scanmask]
                 
-        # if there could be more data for the scan
-        if not finished_consecutive_rows_for_this_scan:
-            
-            # if we haven't reached the end of the file
-            if (startidx+idx<len(fdata)-1):
+        for idx,row in enumerate(lcldata):
+            self.attr['row'].append(row)
+            self.attr['date'].append(row['DATE-OBS'])
+            self.attr['polarization'].append(row['CRVAL4'])
+            self.attr['elevation'].append(row['ELEVATIO'])
+            self.attr['crval1'].append(row['CRVAL1'])
+            self.attr['crpix1'].append(row['CRPIX1'])
+            self.attr['cdelt1'].append(row['CDELT1'])
+            self.attr['ra'].append(row['CRVAL2'])
+            self.attr['dec'].append(row['CRVAL3'])
+            if len(self.data):
+                self.data = np.vstack((self.data,row['DATA']))
+            else:
+                self.data = np.array(row['DATA'],ndmin=2)
+            self.attr['tcal'].append(row['TCAL'])
+            self.attr['exposure'].append(row['EXPOSURE'])
+            self.attr['tambient'].append(row['TAMBIENT'])
 
-                # haven't seen any rows with the scan number
-                if not len(self.data):
-                    # but more data ahead
-                    if startidx+idx < len(fdata):
-                        # so keep searching
-                        return self.get_scan(sampler,scan_number,fdata,startidx+idx,verbose)
-                        
-                    else: # made it all the way to the end without seeing the scan
-                        print 'No data found for scan',scan_number
-                        sys.exit(9)
-                        
-                # have seen the scan, but there might be more data
-                else:
-                    if (verbose>3): print 'idx,startidx,tot',idx,startidx,idx+startidx
-                    if not finished_consecutive_rows_for_this_scan and startidx+idx < len(fdata):
-                        if (verbose>3): print 'have some data and looking for more from idx',startidx+idx
-                        if (verbose>3): print startidx+idx,'of',len(fdata)
-                        return self.get_scan(sampler,scan_number,fdata,startidx+idx,verbose)
+            # create mask for calONs and calOFFs
+            if 'T'==row['CAL']:
+                self.attr['calmask'].append(True)
+            else:
+                self.attr['calmask'].append(False)
 
-        # make sure the sampler is present
-        for ii,e in enumerate(self.sampler_map):
-            if e==sampler:
-                found_sampler = True
-                break
+            self.frequency_resolution = row['FREQRES']
 
-        # if it isn't complain and quit
-        if not found_sampler:
-            if verbose > 0: print "ERROR: sampler",sampler,"not found in scan"
+            # count number of feeds and cal states
+            self.feeds.add(row['FEED'])
+            self.cals.add(row['CAL'])
 
         # convert attr lists to numpy arrays
         for xx in self.attr: self.attr[xx]=np.array(self.attr[xx])
@@ -287,110 +126,83 @@ class ScanReader:
             print 'n_polarizations',len(set(self.attr['polarization']))
             print 'n_cals',len(self.cals)
             print 'n_channels',len(self.data[0])
-            print 'n_samplers',len(self.sampler_map)
 
-            # print all the sampler names
-            print 'sampler (feed, pol, (IF))'
-            for ii,e in enumerate(self.sampler_map):
-                print e,self.sampler_map[e]
-
-            # determine number of IFs
-            for ii,e in enumerate(self.sampler_map):
-                self.ifs.add(self.sampler_map[e][2])
-            print 'n_ifs',len(self.ifs)
-
-            # check to see if feed,pol,if maps to more than one sampler
-            for Aidx,Ae in enumerate(self.sampler_map):
-                for Bidx,Be in enumerate(self.sampler_map):
-                    if not(Ae==Be) and \
-                       self.sampler_map[Ae] == self.sampler_map[Be]:
-                        print 'Sampler',Ae,'== sampler',Be
-   
             print 'nrecords',len(self.data)
             print 'frequency_resolution',self.frequency_resolution,'Hz'
 
-        return startidx+idx
-
-    def calonoff_ave(self,sampler):
-        """Get average of Cal-on spectra and Cal-off for given sampler
+    def calonoff_ave(self):
+        """Get average of Cal-on spectra and Cal-off
 
         Keyword arguments:
-        sampler -- the sampler number
         
         Returns:
         The mean of the CAL ON and CAL OFF spectra.  The vector size is
         the same as the number of channels in each input spectrum.
         """
         
-        return (self.calon_ave(sampler)+self.caloff_ave(sampler))/2.
+        return (self.calon_ave()+self.caloff_ave())/2.
 
-    def calonoff_diff(self,sampler):
-        """Get CalON minus CalOFF for given sampler
+    def calonoff_diff(self):
+        """Get CalON minus CalOFF
 
         Keyword arguments:
-        sampler -- the sampler number
         
         Returns:
-        The CAL (ON-OFF) for the sampler.  The vector size is
+        The CAL (ON-OFF).  The vector size is
         the same as the number of channels in each input spectrum.
         """
         
-        return self.calon_ave(sampler) - self.caloff_ave(sampler)
+        return self.calon_ave() - self.caloff_ave()
 
-    def calon_ave(self,sampler):
-        """Get the exposure-weighted average of Cal-on spectra for given sampler
+    def calon_ave(self):
+        """Get the exposure-weighted average of Cal-on spectra for given
 
         Keyword arguments:
-        sampler -- the sampler number
 
         Returns:
         The exposure-weighted mean of the CALON spectra.  The vector size is
         the same as the number of channels in each input spectrum.
         """
         
-        # apply sampler filter
-        data = self.data[self.attr['samplers']==sampler]
-        exposure = self.attr['exposure'][self.attr['samplers']==sampler]
-        calmask = self.attr['calmask'][self.attr['samplers']==sampler]
+        data = self.data
+        exposure = self.attr['exposure']
+        calmask = self.attr['calmask']
 
         return np.ma.average(data[calmask],axis=0,weights=exposure[calmask])
 
-    def elevation_ave(self,sampler):
-        """Get an exposure-weighted average elevation for given sampler
+    def elevation_ave(self):
+        """Get an exposure-weighted average elevation
 
         Keyword arguments:
-        sampler -- the sampler number
 
         Returns:
         The exposure-weighted mean of elevation
         """
         
         # apply sampler filter
-        elevation = self.attr['elevation'][self.attr['samplers']==sampler]
-        exposure = self.attr['exposure'][self.attr['samplers']==sampler]
-        calmask = self.attr['calmask'][self.attr['samplers']==sampler]
+        elevation = self.attr['elevation']
+        exposure = self.attr['exposure']
+        calmask = self.attr['calmask']
 
         return np.ma.average(elevation[calmask],axis=0,weights=exposure[calmask])
 
-    def caloff_ave(self,sampler):
-        """Get the exposure-weighted average of Cal-off spectra for given sampler
+    def caloff_ave(self):
+        """Get the exposure-weighted average of Cal-off spectra
 
         Keyword arguments:
-        sampler -- the sampler number
         
         Returns:
         A exposure-weighted mean of the CALOFF spectra.  The vector size is
         the same as the number of channels in each input spectrum.
         """
         
-        # apply sampler filter
-        data = self.data[self.attr['samplers']==sampler]
-        exposure = self.attr['exposure'][self.attr['samplers']==sampler]
-        calmask = self.attr['calmask'][self.attr['samplers']==sampler]
+        data = self.data
+        exposure = self.attr['exposure']
+        calmask = self.attr['calmask']
         
         return np.ma.average(data[~calmask],axis=0,weights=exposure[~calmask])
 
-    def max_tcal(self,sampler,verbose=0):
+    def max_tcal(self,verbose=0):
         """Get max tcal value for all spectra for given sampler
 
         Keyword arguments:
@@ -402,10 +214,10 @@ class ScanReader:
         """
         
         # apply sampler filter
-        tcal = self.attr['tcal'][self.attr['samplers']==sampler]
+        tcal = self.attr['tcal']
         return tcal.max()
 
-    def mean_date(self,sampler,verbose=0):
+    def mean_date(self,verbose=0):
         """Get mean date (as mjd) for all spectra for given sampler
 
         Keyword arguments:
@@ -417,11 +229,11 @@ class ScanReader:
         """
         
         # apply sampler filter
-        dates = self.attr['date'][self.attr['samplers']==sampler]
+        dates = self.attr['date']
         mjds = np.array([ pipeutils.dateToMjd(xx) for xx in dates ])
         return mjds.mean()
 
-    def min_date(self,sampler,verbose=0):
+    def min_date(self,verbose=0):
         """Get mean date for all spectra for given sampler
 
         Keyword arguments:
@@ -434,15 +246,15 @@ class ScanReader:
         """
         
         # apply sampler filter
-        dates = self.attr['date'][self.attr['samplers']==sampler]
-        calmask = self.attr['calmask'][self.attr['samplers']==sampler]
+        dates = self.attr['date']
+        calmask = self.attr['calmask']
         
         if self.noise_diode:
             dates = dates[calmask]
 
         return pipeutils.dateToMjd(dates[0])
         
-    def freq_axis(self,sampler,verbose=0):
+    def freq_axis(self,verbose=0):
         """ frequency axis to return for plotting
 
         Keyword arguments:
@@ -454,10 +266,10 @@ class ScanReader:
         """
         
         # apply sampler filter
-        data = self.data[self.attr['samplers']==sampler]
-        crpix1 = self.attr['crpix1'][self.attr['samplers']==sampler].mean()
-        cdelt1 = self.attr['cdelt1'][self.attr['samplers']==sampler].mean()
-        crval1 = self.attr['crval1'][self.attr['samplers']==sampler].mean()
+        data = self.data
+        crpix1 = self.attr['crpix1'].mean()
+        cdelt1 = self.attr['cdelt1'].mean()
+        crval1 = self.attr['crval1'].mean()
 
         faxis = np.zeros(len(data[0]))
         for idx,e in enumerate(data[0]):
@@ -465,11 +277,10 @@ class ScanReader:
 
         return faxis
 
-    def average_tsys(self,sampler,verbose=0):
-        """Get the total power for a single scan and sampler (i.e. feed,pol,IF)
+    def average_tsys(self,verbose=0):
+        """Get the total power for a single scan (i.e. feed,pol,IF)
 
         Keyword arguments:
-        sampler -- the sampler number
         verbose -- verbosity level, default to 0
         
         Returns:
@@ -478,18 +289,18 @@ class ScanReader:
         """
 
         # apply sampler filter
-        data = self.data[self.attr['samplers']==sampler]
-        exposure = self.attr['exposure'][self.attr['samplers']==sampler]
-        tcal = self.attr['tcal'][self.attr['samplers']==sampler]
+        data = self.data
+        exposure = self.attr['exposure']
+        tcal = self.attr['tcal']
 
         chanlo = int(len(data)*.1)
         chanhi = int(len(data)*.9)
 
-        ref = self.calonoff_ave(sampler)
-        cal = self.calonoff_diff(sampler)
+        ref = self.calonoff_ave()
+        cal = self.calonoff_diff()
 
         ratios = ref[chanlo:chanhi] / cal[chanlo:chanhi]
-        mytsys = ratios.mean() * self.max_tcal(sampler)
+        mytsys = ratios.mean() * self.max_tcal()
 
         Tsys = mytsys
         if (verbose > 0):
@@ -498,7 +309,7 @@ class ScanReader:
 
         return Tsys
 
-    def _average_coordinates(self,sampler):
+    def _average_coordinates(self):
         """Get exposure-weighted average coordinates
 
         Keyword arguments:
@@ -507,17 +318,17 @@ class ScanReader:
         NB: not used yet
         """
         
-        calmask = self.attr['calmask'][self.attr['samplers']==sampler]
-        elevation = self.attr['elevation'][self.attr['samplers']==sampler]
-        azimuth = self.attr['azimuth'][self.attr['samplers']==sampler]
-        longitude_axis = self.attr['longitude_axis'][self.attr['samplers']==sampler]
-        latitude_axis = self.attr['latitude_axis'][self.attr['samplers']==sampler]
-        target_longitude = self.attr['target_longitude'][self.attr['samplers']==sampler]
-        target_latitude = self.attr['target_latitude'][self.attr['samplers']==sampler]
+        calmask = self.attr['calmask']
+        elevation = self.attr['elevation']
+        azimuth = self.attr['azimuth']
+        longitude_axis = self.attr['longitude_axis']
+        latitude_axis = self.attr['latitude_axis']
+        target_longitude = self.attr['target_longitude']
+        target_latitude = self.attr['target_latitude']
 
         tSum = exposure.sum()
         if self.noise_diode:
-            exposure = self.attr['exposure'][self.attr['samplers']==sampler][calmask]
+            exposure = self.attr['exposure'][calmask]
             el = (exposure * elevation[calmask]).sum() / tSum
             az = (exposure * azimuth[calmask]).sum() / tSum
             lon = (exposure * longitude_axis[calmask]).sum() / tSum
@@ -525,7 +336,7 @@ class ScanReader:
             tLon = (exposure * target_longitude[calmask]).sum() / tSum
             tLat = (exposure * target_latitude[calmask]).sum() / tSum
         else:
-            exposure = self.attr['exposure'][self.attr['samplers']==sampler]
+            exposure = self.attr['exposure']
             el = (exposure * elevation).sum() / tSum
             az = (exposure * azimuth).sum() / tSum
             lon = (exposure * longitude_axis).sum() / tSum
@@ -533,7 +344,7 @@ class ScanReader:
             tLon = (exposure * target_longitude).sum() / tSum
             tLat = (exposure * target_latitude).sum() / tSum
 
-    def no_calibration(self,sampler,verbose):
+    def no_calibration(self,verbose):
         """
 
         Keyword arguments:
@@ -547,15 +358,15 @@ class ScanReader:
         Raw CALON spectra, no calibration
         """
         
-        input_rows = self.attr['row'][self.attr['samplers']==sampler]
+        input_rows = self.attr['row']
         
         if self.noise_diode:
-            calmask = self.attr['calmask'][self.attr['samplers']==sampler]
+            calmask = self.attr['calmask']
             return input_rows[calmask]
         else:
             return input_rows
 
-    def calibrate_to(self,sampler,refs,\
+    def calibrate_to(self,refs,\
         ref_dates,ref_tsyss,k_per_count,forecastscript,opacity_coefficients,\
         ref_tskys,units,verbose):
         """
@@ -570,21 +381,21 @@ class ScanReader:
         Returns:
         Spectra, calibrated to antenna temperature.
         """
-        crpix1 = self.attr['crpix1'][self.attr['samplers']==sampler]
-        cdelt1 = self.attr['cdelt1'][self.attr['samplers']==sampler]
-        crval1 = self.attr['crval1'][self.attr['samplers']==sampler]
+        crpix1 = self.attr['crpix1']
+        cdelt1 = self.attr['cdelt1']
+        crval1 = self.attr['crval1']
         
-        input_rows = self.attr['row'][self.attr['samplers']==sampler]
-        data = self.data[self.attr['samplers']==sampler]
-        tcal = self.attr['tcal'][self.attr['samplers']==sampler]
-        dates = self.attr['date'][self.attr['samplers']==sampler]
-        elevations = self.attr['elevation'][self.attr['samplers']==sampler]
-        temps = self.attr['tambient'][self.attr['samplers']==sampler]
+        input_rows = self.attr['row']
+        data = self.data
+        tcal = self.attr['tcal']
+        dates = self.attr['date']
+        elevations = self.attr['elevation']
+        temps = self.attr['tambient']
         ambient_temp = temps.mean()
         
         # average signal CALON and CALOFF
         if self.noise_diode:
-            calmask = self.attr['calmask'][self.attr['samplers']==sampler]
+            calmask = self.attr['calmask']
             input_rows = input_rows[calmask]
             sig_counts = (data[calmask] + data[~calmask]) / 2.
             elevations = elevations[calmask]
@@ -596,7 +407,7 @@ class ScanReader:
             sig_counts = data
             mjds = np.array([ pipeutils.dateToMjd(xx) for xx in dates ])
 
-        #freq = self.freq_axis(sampler,verbose)
+        #freq = self.freq_axis(verbose)
 
         #glen's version
         refChan = crpix1-1
@@ -624,7 +435,7 @@ class ScanReader:
             
             # get sky temperature contribution to signal
             tsky_sig = np.array([pipeutils.tsky(ambient_temp,freq[idx],opacity) for idx,opacity in enumerate(opacities)])
-            allfreq = self.freq_axis(sampler)
+            allfreq = self.freq_axis()
             
             # tsky interpolation over frequency band (idl-like)
             all_tsky_sig = np.zeros(sig_counts.shape)
@@ -686,7 +497,7 @@ class ScanReader:
             # note to self: move to the top level so as to only call once?
 
             #etaMB = np.array([pipeutils.etaGBT(ff) for ff in freq]) # all frequencies
-            allfreq = self.freq_axis(sampler)
+            allfreq = self.freq_axis()
             midfreq = allfreq[len(allfreq)/2] #reference freq of first integration
             etaMB = pipeutils.etaGBT(midfreq) # idl-like version
 
@@ -713,7 +524,7 @@ class ScanReader:
 
         return input_rows
 
-    def average_reference(self,sampler,forecastscript,opacity_coefficients,verbose):
+    def average_reference(self,forecastscript,opacity_coefficients,verbose):
         """
 
         Keyword arguments:
@@ -727,22 +538,22 @@ class ScanReader:
         freq -- the frequency axis, to be used for plotting
         """
         
-        crpix1 = self.attr['crpix1'][self.attr['samplers']==sampler].mean()
-        cdelt1 = self.attr['cdelt1'][self.attr['samplers']==sampler].mean()
-        crval1 = self.attr['crval1'][self.attr['samplers']==sampler].mean()
-        data = self.data[self.attr['samplers']==sampler]
+        crpix1 = self.attr['crpix1'].mean()
+        cdelt1 = self.attr['cdelt1'].mean()
+        crval1 = self.attr['crval1'].mean()
+        data = self.data
         
-        max_tcal = self.max_tcal(sampler)
-        mean_tsys = self.average_tsys(sampler,verbose)
+        max_tcal = self.max_tcal()
+        mean_tsys = self.average_tsys(verbose)
         
-        spectrum = self.calonoff_ave(sampler)
-        date = self.min_date(sampler)
+        spectrum = self.calonoff_ave()
+        date = self.min_date()
 
-        elevations = self.attr['elevation'][self.attr['samplers']==sampler]
-        exposure = self.attr['exposure'][self.attr['samplers']==sampler]
+        elevations = self.attr['elevation']
+        exposure = self.attr['exposure']
 
-        dates = self.attr['date'][self.attr['samplers']==sampler]
-        calmask = self.attr['calmask'][self.attr['samplers']==sampler]
+        dates = self.attr['date']
+        calmask = self.attr['calmask']
         
         # idl-like version of frequency interpolation across band
         refChan = crpix1-1
@@ -760,17 +571,17 @@ class ScanReader:
         else:
             mjds = np.array([ pipeutils.dateToMjd(xx) for xx in dates ])
             
-        temps = self.attr['tambient'][self.attr['samplers']==sampler]
+        temps = self.attr['tambient']
         ambient_temp = temps.mean()
 
         # idl-like version uses a single avg elevation
         if 6<= freq.mean() <=50 or 70<= freq.mean() <=116:
-            opacities = pipeutils.tau(forecastscript,opacity_coefficients,[mjds.mean()],[self.elevation_ave(sampler)],freq,verbose)
+            opacities = pipeutils.tau(forecastscript,opacity_coefficients,[mjds.mean()],[self.elevation_ave()],freq,verbose)
             #opacities = pipeutils.tau(forecastscript,opacity_coefficients,mjds,elevations,freq)
         else:
             opacities = False
             
-        allfreq = self.freq_axis(sampler)
+        allfreq = self.freq_axis()
         
         if np.any(opacities):
             tskys = pipeutils.tsky(ambient_temp,freq,opacities)

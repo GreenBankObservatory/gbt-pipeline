@@ -12,6 +12,7 @@ import pipeutils
 import imaging
 import pipeutils
 from check_for_sdfits_file import *
+from index_it import *
 
 import sys
 import os
@@ -60,13 +61,19 @@ if not os.path.exists(opt.infile):
     print 'ERROR: input sdfits file not readable'
     print '    Please check input sdfits and run again'
     sys.exit(9)
-    
-infile = pyfits.open(opt.infile,memmap=1)
-if (opt.verbose > 1): print 'getting data object from input file'
-sdfitsdata = infile[1].data
 
-# opacities coefficients filename
 projname = opt.infile.split('.')[0]
+
+if (opt.verbose > 3): print 'getting mask index',projname+'.raw.acs.index'
+masks = index_it(indexfile=projname+'.raw.acs.index',fitsfile=opt.infile)
+if (opt.verbose > 3): print 'done'
+
+if opt.sampler:
+    samplerlist = opt.sampler.split(',')
+else:
+    samplerlist = masks.keys()
+    
+# opacities coefficients filename
 opacity_coefficients_filename = projname+'.coeffs.opacity.txt'
 if os.path.exists(opacity_coefficients_filename):
     if opt.verbose > 0: print 'Using coefficients from',opacity_coefficients_filename
@@ -77,60 +84,50 @@ else:
 aips_input_files = []
 
 if FULLCAL:
-    if opt.sampler:
-        samplerlist = opt.sampler.split(',')
-        
-    else:
-        #samplerlist = opt.sampler
-        # ------------------------------------------- search for samplers
-        
-        # use the first map scan
-        scan=allscans[0]
-        if opt.verbose > 0: print 'Looking for samplers used in scan:',scan
-        
-        sampler_checker = scanreader.ScanReader()
-        lastidx=0
-        samplerlist = sampler_checker.scan_samplers(scan,sdfitsdata,lastidx,opt.verbose)
-        print 'sampler list',list(samplerlist)
 
     for sampler in samplerlist:
+
+        samplermask = masks.pop(sampler)
+
+        if (opt.verbose > 1): print 'getting data object from input file'
+        if (opt.verbose > 3): print 'opening fits file'
+        infile = pyfits.open(opt.infile,memmap=1)
+        if (opt.verbose > 3): print 'done'
+        sdfitsdata = infile[1].data[samplermask]
+        if (opt.verbose > 3): print 'done'
 
         if opt.verbose > 0:
             print '-----------'
             print 'SAMPLER',sampler
             print '-----------'
 
-        lastidx=0
         freq=0
         refspec = []
         refdate = []
         ref_tsky = []
         ref_tsys = []
-       
+        
         # ------------------------------------------- get the first reference scan
         scan=refscans[0]
         if opt.verbose > 0: print 'Processing reference scan:',scan
         
         ref1 = scanreader.ScanReader()
-        lastidx = ref1.get_scan(sampler,scan,sdfitsdata,lastidx,opt.verbose)
 
-        # if the sampler was not found
-        if not lastidx:
-            continue
+        ref1.get_scan(scan,sdfitsdata,opt.verbose)
         
         ref1spec,ref1_max_tcal,ref1_mean_date,freq,tskys_ref1,ref1_tsys = \
-        ref1.average_reference(sampler,forecastscript,opacity_coeffs,opt.verbose)
+        ref1.average_reference(forecastscript,opacity_coeffs,opt.verbose)
         
         refdate.append(ref1_mean_date)
         ref_tsky.append(tskys_ref1)
-       
+        
         # determine scale factor used to compute Tsys of each integration
-        k_per_count = ref1_max_tcal / ref1.calonoff_diff(sampler) # dcSCal in scaleIntsRef
-        onave1 = ref1.calon_ave(sampler)
-        offave1 = ref1.caloff_ave(sampler)
-        dcRef1 = (ref1.calon_ave(sampler)+ref1.caloff_ave(sampler))/2.
+        k_per_count = ref1_max_tcal / ref1.calonoff_diff() # dcSCal in scaleIntsRef
+        onave1 = ref1.calon_ave()
+        offave1 = ref1.caloff_ave()
+        dcRef1 = (ref1.calon_ave()+ref1.caloff_ave())/2.
         refspec.append(dcRef1)
-        dcCal = (ref1.calon_ave(sampler)-ref1.caloff_ave(sampler))
+        dcCal = (ref1.calon_ave()-ref1.caloff_ave())
         chanlo = int(len(ref1spec)*.1)
         chanhi = int(len(ref1spec)*.9)
         ratios = dcRef1[chanlo:chanhi] / dcCal[chanlo:chanhi]
@@ -138,7 +135,7 @@ if FULLCAL:
         ref_tsys.append(tsysRef1)
         if opt.verbose > 3:
             print 'REF 1'
-            print 'dcCal (avg. calON-calOFF):',ref1.calonoff_diff(sampler).mean()
+            print 'dcCal (avg. calON-calOFF):',ref1.calonoff_diff().mean()
             print 'avg. K/count from ref1:',k_per_count.mean()
             print 'ON AVE [0][1000][nChan]',onave1[0],onave1[1000],onave1[-1]
             print 'OFF AVE [0][1000][nChan]',offave1[0],offave1[1000],offave1[-1]
@@ -148,7 +145,7 @@ if FULLCAL:
         # ------------------------------------------- name output file
         scan=allscans[0]
         mapscan = scanreader.ScanReader()
-        obj,centerfreq,feed = mapscan.map_name_vals(scan,sdfitsdata,0,opt.verbose)
+        obj,centerfreq,feed = mapscan.map_name_vals(sdfitsdata,opt.verbose)
         outfilename = 'Cal_' + obj + '_' + str(feed) + '_' + \
                         str(allscans[0]) + '_' + str(allscans[-1]) + '_' + \
                         str(centerfreq)[:6] + '_' + sampler + '.fits'
@@ -168,16 +165,16 @@ if FULLCAL:
             for scan in allscans:
                 print 'Processing map scan:',scan
                 mapscan = scanreader.ScanReader()
-                lastidx = mapscan.get_scan(sampler,scan,sdfitsdata,lastidx,opt.verbose)
+                mapscan.get_scan(scan,sdfitsdata,opt.verbose)
 
                 if len(calonAVEs):
-                    calonAVEs = np.ma.vstack((calonAVEs,mapscan.calon_ave(sampler)))
-                    caloffAVEs = np.ma.vstack((caloffAVEs,mapscan.caloff_ave(sampler)))
+                    calonAVEs = np.ma.vstack((calonAVEs,mapscan.calon_ave()))
+                    caloffAVEs = np.ma.vstack((caloffAVEs,mapscan.caloff_ave()))
                 else:
-                    calonAVEs = mapscan.calon_ave(sampler)
-                    caloffAVEs = mapscan.caloff_ave(sampler)
+                    calonAVEs = mapscan.calon_ave()
+                    caloffAVEs = mapscan.caloff_ave()
 
-                thisTCAL = mapscan.max_tcal(sampler)
+                thisTCAL = mapscan.max_tcal()
                 if thisTCAL > maxTCAL:
                     maxTCAL = thisTCAL
 
@@ -205,19 +202,19 @@ if FULLCAL:
             if opt.verbose > 0:  print 'Processing reference scan:',scan
             
             ref2 = scanreader.ScanReader()
-            lastidx = ref2.get_scan(sampler,scan,sdfitsdata,lastidx,opt.verbose)
+            ref2.get_scan(scan,sdfitsdata,opt.verbose)
             
             ref2spec,ref2_max_tcal,ref2_mean_date,freq,tskys_ref2,ref2_tsys = \
-                ref2.average_reference(sampler,forecastscript,opacity_coeffs,opt.verbose)
+                ref2.average_reference(forecastscript,opacity_coeffs,opt.verbose)
             refdate.append(ref2_mean_date)
             ref_tsky.append(tskys_ref2)
 
-            dcRef2 = (ref2.calon_ave(sampler)+ref2.caloff_ave(sampler))/2.
-            onave2 = ref2.calon_ave(sampler)
-            offave2 = ref2.caloff_ave(sampler)
+            dcRef2 = (ref2.calon_ave()+ref2.caloff_ave())/2.
+            onave2 = ref2.calon_ave()
+            offave2 = ref2.caloff_ave()
             
             refspec.append(dcRef2)
-            dcCal = (ref2.calon_ave(sampler)-ref2.caloff_ave(sampler))
+            dcCal = (ref2.calon_ave()-ref2.caloff_ave())
             chanlo = int(len(ref2spec)*.1)
             chanhi = int(len(ref2spec)*.9)
             ratios = dcRef2[chanlo:chanhi] / dcCal[chanlo:chanhi]
@@ -234,17 +231,15 @@ if FULLCAL:
         # --------------------------  calibrate all integrations to Tb
         # ----------------------------  if not possible, calibrate to Ta
 
-        lastidx=0
         calibrated_integrations = []
         for scan in allscans:
             print 'Calibrating scan:',scan
 
             mapscan = scanreader.ScanReader()
-            lastidx = mapscan.get_scan(sampler,scan,sdfitsdata,lastidx,opt.verbose)
+            mapscan.get_scan(scan,sdfitsdata,opt.verbose)
 
-            mapscan.mean_date(sampler)
-            cal_ints = mapscan.calibrate_to(sampler,\
-                refspec,refdate,ref_tsys,\
+            mapscan.mean_date()
+            cal_ints = mapscan.calibrate_to(refspec,refdate,ref_tsys,\
                 k_per_count,forecastscript,opacity_coeffs,ref_tsky,opt.units,
                 opt.verbose)
             
@@ -275,8 +270,13 @@ if FULLCAL:
         os.system(idlcmd)
 
         aips_input_files.append(aipsinname)
+        infile.close()
+        del sdfitsdata
 
+#print 'Stopping before imaging!'
+#sys.exit(9)
 if aips_input_files:
     im = imaging.Image()
     im.make_image(aips_input_files,freq.mean())
 
+#if __name__ == "__main__":

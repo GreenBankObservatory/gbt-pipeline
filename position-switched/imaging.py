@@ -28,7 +28,7 @@ class Image:
         
         gbtbeamsize = pipeutils.gbtbeamsize(freq) # arc seconds
 
-        for thisFile in myfiles:
+        for thisFile in infiles:
             print thisFile
             uvlod.datain='PWD:'+thisFile
             print uvlod.datain
