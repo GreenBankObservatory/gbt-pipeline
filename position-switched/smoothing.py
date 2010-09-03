@@ -1,10 +1,11 @@
 PLOT=False
 
 import sg_filter
-from scipy import signal
+#from scipy import signal
 import pylab
+import numpy as np
 
-def median(spectrum,kernel_size):
+def median(spec,window):
         """Median filter to remove narrow RFI
 
         Keywords:
@@ -15,7 +16,34 @@ def median(spectrum,kernel_size):
         A smoothed spectrum.
         """
         
-        return signal.medfilt(spectrum,kernel_size)
+    #def myfilt(spec,window):
+    # if window is not an odd number, add 1
+        if window % 2:
+            window = window + 1
+        
+        speclen = len(spec)
+        smoothed_spec = np.zeros(speclen)
+        start = 0
+        end = 0
+
+        while end < speclen:
+            end = start + window
+            print 'start',start
+            print 'end',end
+            print spec[start:end]
+                        
+            mywin = spec[start:end].copy()
+            mywin.sort()
+            
+            print 'median value',mywin[window/2]
+            
+            smoothed_spec[start+window/2] = mywin[window/2]
+            print 'median value set', smoothed_spec[start+window/2]
+            
+            start = start + 1
+            
+        return smoothed_spec
+    #return signal.medfilt(spectrum,kernel_size)
 
 def savgol(spectrum,num_points,degree_of_fitting):
         """Savitzky-Golay filter for smoothing spectrum
