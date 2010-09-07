@@ -58,4 +58,4 @@ export PYTHONPATH PYTHONSTARTUP
 # python -m cProfile -o profile.log gbt_mapping_pipeline.py $*
 # pdb gbt_mapping_pipeline.py $*
 
-python gbt_mapping_pipeline.py $*
+gbt_mapping_pipeline.py $*
