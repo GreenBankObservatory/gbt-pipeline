@@ -3,6 +3,7 @@
 if [[ "$PATH" != */home/sandboxes/gbt_mapping_pipeline* ]]
 then
     PATH=/home/sandboxes/gbt_mapping_pipeline:"$PATH"
+    PATH=/home/sandboxes/jmasters/local/bin:"$PATH"
 fi
 
 if [ -z "$PYTHONPATH" ]
