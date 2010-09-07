@@ -12,7 +12,7 @@ class CommandLine:
                         help="ending map scan number", metavar="SCAN")
         self.parser.add_option("-c", "--vsource-center", dest="vsourcecenter", default='0',
                         help="defines center channel to select (km/sec)", metavar="N")
-        self.parser.add_option("-u", "--units", dest="units", default='Ta',
+        self.parser.add_option("-u", "--units", dest="units", default='Ta*',
                         help="calibration units")                        
         self.parser.add_option("-w", "--vsource-width", dest="vsourcewidth", default='0',
                         help="defines median filter width (km/sec)", metavar="N")

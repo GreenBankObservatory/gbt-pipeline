@@ -2,6 +2,7 @@ import numpy as np
 import math
 import os
 import subprocess
+import sys
 
 def gd2jd(day,month,year,hour,minute,second):
     """Converts a gregorian date to julian date.
@@ -179,7 +180,7 @@ def interpolate_reference(refs,dates,tskys,tsyss, mjds):
 
     # dumb way
     # do each freq channel separately
-    tsky = False
+    tsky = []
     if np.any(tskys):
         for chan in range(len(tskys[0])):
             tsky_lo = tskys[0][chan]
@@ -370,17 +371,40 @@ def tau(forecastscript,opacity_coefficients,mjds,elevations,freq,verbose=0):
     opacities at every frequency for every time
     """
 
+    forecast_cmd = []
+    
+    which_cmd = 'which '+forecastscript
+
     # try to invoke Ron's script locally
-    if 0==os.system("'which "+forecastscript+"'"):
-        # if we succeed, use the script directly
-        forecast_cmd = forecastscript
-        
-    # if we fail, try to run with passwordless ssh key authentication remotely
-    elif 0==os.system("ssh trent.gb.nrao.edu 'which "+forecastscript+"'"):
-        forecast_cmd = 'ssh trent.gb.nrao.edu '+forecastscript
-   
+    try:
+        retcode = subprocess.call(which_cmd, shell=True)
+        if retcode < 0:
+            print >>sys.stderr, "Child was terminated by signal", -retcode
+        else:
+            # if we succeed, use the script directly
+            forecast_cmd = forecastscript
+            print >>sys.stderr, "Child returned", retcode
+    except OSError, e:
+        print >>sys.stderr, "Execution failed (getForecastValues):", e
+        # if we fail, try to run with passwordless ssh key authentication remotely
+        try:
+            retcode = subprocess.call(which_cmd, shell=True)
+            if retcode < 0:
+                print >>sys.stderr, "Child was terminated by signal", -retcode
+            else:
+                forecast_cmd = 'ssh trent.gb.nrao.edu '+forecastscript
+                print >>sys.stderr, "Child returned", retcode
+        except OSError, e:
+            print >>sys.stderr, "Execution failed (getForecastValues):", e
+            return False
+
     opacities = []
     
+    if not forecast_cmd:
+        print 'ERROR: could not find getForecastValues script'
+        print '    not correcting for weather!!!'
+        return False
+        
     if opacity_coefficients:
         
         for idx,mjd in enumerate(mjds):
@@ -419,7 +443,7 @@ def tau(forecastscript,opacity_coefficients,mjds,elevations,freq,verbose=0):
         p = subprocess.Popen(getTau_cmd.split(' '),shell=False,\
             stdout=subprocess.PIPE)
         result = p.communicate()
-        
+
         # tease the opacity values out of the stdout output
         opacities = np.array([float(xx.split('=')[-1]) for xx in result[0].split('\n')[:-1]])
         opacities = opacities.reshape((len(mjds),len(opacities)/len(mjds)))

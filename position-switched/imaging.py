@@ -3,6 +3,7 @@ from AIPS import AIPS
 from AIPSTask import AIPSTask, AIPSList
 from AIPSData import *
 from AIPSData import AIPSUVData, AIPSImage
+import subprocess
 
 import pipeutils
 
@@ -72,7 +73,14 @@ class Image:
             fittp.dataout='PWD:'+outimage
             fittp.go()
             
-            os.system('/home/jmasters/local/bin/ds9 '+outimage+'&')
+            try:
+                retcode = subprocess.call('ds9 '+outimage+'&', shell=True)
+                if retcode < 0:
+                    print >>sys.stderr, "Child was terminated by signal", -retcode
+                else:
+                    print >>sys.stderr, "Child returned", retcode
+            except OSError, e:
+                print >>sys.stderr, "Execution failed:", e            
             
             print 'Wrote',outimage
             

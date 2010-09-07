@@ -19,6 +19,7 @@ import os
 import pyfits
 import numpy as np
 import math
+import subprocess
 
 cl = commandline.CommandLine()
 (opt, args) = cl.read(sys)
@@ -84,7 +85,7 @@ else:
 aips_input_files = []
 
 if FULLCAL:
-
+    
     for sampler in samplerlist:
 
         samplermask = masks.pop(sampler)
@@ -93,6 +94,7 @@ if FULLCAL:
         if (opt.verbose > 3): print 'opening fits file'
         infile = pyfits.open(opt.infile,memmap=1)
         if (opt.verbose > 3): print 'done'
+        if (opt.verbose > 3): print 'appying mask'
         sdfitsdata = infile[1].data[samplermask]
         if (opt.verbose > 3): print 'done'
 
@@ -267,8 +269,16 @@ if FULLCAL:
         # run idlToSdfits, which converts calibrated sdfits into a format
         idlcmd = 'idlToSdfits -o ' + aipsinname + ' -a 3 -c 82:4014 -l ' + outfilename
         if opt.verbose > 0: print idlcmd
-        os.system(idlcmd)
-
+        
+        try:
+            retcode = subprocess.call(idlcmd, shell=True)
+            if retcode < 0:
+                print >>sys.stderr, "Child was terminated by signal", -retcode
+            else:
+                print >>sys.stderr, "Child returned", retcode
+        except OSError, e:
+            print >>sys.stderr, "Execution failed:", e
+            
         aips_input_files.append(aipsinname)
         infile.close()
         del sdfitsdata

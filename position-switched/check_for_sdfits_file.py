@@ -9,6 +9,7 @@ the project directory, if it is provided.
 
 import sys
 import os.path
+import subprocess
 
 def check_for_sdfits_file( infile, sdfitsdir, beginscan, endscan,\
                            refscan1, refscan2, VERBOSE ):
@@ -44,7 +45,14 @@ def check_for_sdfits_file( infile, sdfitsdir, beginscan, endscan,\
         if VERBOSE > 0:
             print sdfitsstr
 
-        os.system(sdfitsstr)
+        try:
+            retcode = subprocess.call(sdfitsstr, shell=True)
+            if retcode < 0:
+                print >>sys.stderr, "Child was terminated by signal", -retcode
+            else:
+                print >>sys.stderr, "Child returned", retcode
+        except OSError, e:
+            print >>sys.stderr, "Execution failed:", e
 
         infile = os.path.basename(sdfitsdir) + ".raw.acs.fits"
 

@@ -422,7 +422,7 @@ class ScanReader:
         freq = freq.transpose()
         
         # calculate weather-dependent opacities for each frequency, time and elevation
-        if 6<= freq.mean() <=50 or 70<= freq.mean() <=116:
+        if 6<= freq.mean()/1e9 <=50 or 70<= freq.mean()/1e9 <=116:
             opacities = pipeutils.tau(forecastscript,opacity_coefficients,mjds,elevations,freq)
         else:
             opacities = False
@@ -445,6 +445,10 @@ class ScanReader:
             
             if verbose > 3:
                 print 'TSKY SIG (interpolated)',all_tsky_sig[0][0],'to',all_tsky_sig[0][-1],'for first integration'
+        else:
+            if not units=='Ta':
+                print 'WARNING: Opacities not available, calibrating to units of Ta'
+                units = 'Ta'
         
         # interpolate (by time) reference spectrum and tskys
         if ( len(refs)>1 and \
@@ -575,7 +579,7 @@ class ScanReader:
         ambient_temp = temps.mean()
 
         # idl-like version uses a single avg elevation
-        if 6<= freq.mean() <=50 or 70<= freq.mean() <=116:
+        if 6<= freq.mean()/1e9 <=50 or 70<= freq.mean()/1e9 <=116:
             opacities = pipeutils.tau(forecastscript,opacity_coefficients,[mjds.mean()],[self.elevation_ave()],freq,verbose)
             #opacities = pipeutils.tau(forecastscript,opacity_coefficients,mjds,elevations,freq)
         else:
