@@ -9,7 +9,6 @@ import commandline
 import scanreader
 import smoothing
 import pipeutils
-import imaging
 import pipeutils
 from check_for_sdfits_file import *
 from index_it import *
@@ -267,26 +266,15 @@ if FULLCAL:
         aipsinname = os.path.splitext(outfilename)[0]+'.sdf'
         
         # run idlToSdfits, which converts calibrated sdfits into a format
-        idlcmd = 'idlToSdfits -o ' + aipsinname + ' -a 3 -c 82:4014 -l ' + outfilename
+        options = ' -c 82:4014 '
+        
+        if not opt.nodisplay:
+            options = options + '-l '
+            
+        idlcmd = 'idlToSdfits -o ' + aipsinname + options + outfilename
         if opt.verbose > 0: print idlcmd
         
-        try:
-            retcode = subprocess.call(idlcmd, shell=True)
-            if retcode < 0:
-                print >>sys.stderr, "Child was terminated by signal", -retcode
-            else:
-                print >>sys.stderr, "Child returned", retcode
-        except OSError, e:
-            print >>sys.stderr, "Execution failed:", e
-            
-        aips_input_files.append(aipsinname)
+        os.system(idlcmd)
+        
         infile.close()
         del sdfitsdata
-
-#print 'Stopping before imaging!'
-#sys.exit(9)
-if aips_input_files:
-    im = imaging.Image()
-    im.make_image(aips_input_files,freq.mean())
-
-#if __name__ == "__main__":

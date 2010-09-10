@@ -17,46 +17,7 @@ else
     fi
 fi
 
-AIPS_ROOT=/home/AIPS
-. $AIPS_ROOT/LOGIN.SH
-
-. $AIPS_VERSION/SYSTEM/UNIX/DADEVS.SH
-# Check whether AIPS is available.
-if test -z "$AIPS_ROOT"; then
-    echo "$0: cannot proceed, AIPS_ROOT not defined"
-    exit 1
-fi
-
-# Make AIPS data disks and printers available.
-if test -z "$DADEVS_QUIET"; then
-    DADEVS_QUIET=YES
-    export DADEVS_QUIET
-fi
-
-# Make sure Python can find the ParselTongue modules.
-if test -z "$PYTHONPATH"; then
-    PYTHONPATH=/home/sandboxes/jmasters/local/share/parseltongue/python
-else
-    PYTHONPATH=$PYTHONPATH:/home/sandboxes/jmasters/local/share/parseltongue/python
-fi
-
-# Make sure Python can find the Obit modules.
-if test -z "$OBIT_PYTHONPATH"; then
-    OBIT_PYTHONPATH=/home/sandboxes/jmasters/Obit/python
-else
-    OBIT_PYTHONPATH=$OBIT_PYTHONPATH:/home/sandboxes/jmasters/Obit/python
-fi
-if test -n "${OBIT_PYTHONPATH+set}"; then
-    PYTHONPATH=$PYTHONPATH:$OBIT_PYTHONPATH
-fi
-
-# Run Parseltongue.py for interactive sessions
-PYTHONSTARTUP=/home/sandboxes/jmasters/local/share/parseltongue/python/ParselTongue.py
-export PYTHONPATH PYTHONSTARTUP
-
-# debug version
-
-# python -m cProfile -o profile.log gbt_mapping_pipeline.py $*
-# pdb gbt_mapping_pipeline.py $*
+export PATH
+export PYTHONPATH
 
 gbt_mapping_pipeline.py $*

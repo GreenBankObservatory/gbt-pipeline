@@ -180,7 +180,7 @@ def interpolate_reference(refs,dates,tskys,tsyss, mjds):
 
     # dumb way
     # do each freq channel separately
-    tsky = []
+    tsky = False
     if np.any(tskys):
         for chan in range(len(tskys[0])):
             tsky_lo = tskys[0][chan]
@@ -371,40 +371,17 @@ def tau(forecastscript,opacity_coefficients,mjds,elevations,freq,verbose=0):
     opacities at every frequency for every time
     """
 
-    forecast_cmd = []
-    
-    which_cmd = 'which '+forecastscript
-
     # try to invoke Ron's script locally
-    try:
-        retcode = subprocess.call(which_cmd, shell=True)
-        if retcode < 0:
-            print >>sys.stderr, "Child was terminated by signal", -retcode
-        else:
-            # if we succeed, use the script directly
-            forecast_cmd = forecastscript
-            print >>sys.stderr, "Child returned", retcode
-    except OSError, e:
-        print >>sys.stderr, "Execution failed (getForecastValues):", e
-        # if we fail, try to run with passwordless ssh key authentication remotely
-        try:
-            retcode = subprocess.call(which_cmd, shell=True)
-            if retcode < 0:
-                print >>sys.stderr, "Child was terminated by signal", -retcode
-            else:
-                forecast_cmd = 'ssh trent.gb.nrao.edu '+forecastscript
-                print >>sys.stderr, "Child returned", retcode
-        except OSError, e:
-            print >>sys.stderr, "Execution failed (getForecastValues):", e
-            return False
+    if 0==os.system("'which "+forecastscript+"'"):
+        # if we succeed, use the script directly
+        forecast_cmd = forecastscript
+        
+    # if we fail, try to run with passwordless ssh key authentication remotely
+    elif 0==os.system("ssh trent.gb.nrao.edu 'which "+forecastscript+"'"):
+        forecast_cmd = 'ssh trent.gb.nrao.edu '+forecastscript
 
     opacities = []
     
-    if not forecast_cmd:
-        print 'ERROR: could not find getForecastValues script'
-        print '    not correcting for weather!!!'
-        return False
-        
     if opacity_coefficients:
         
         for idx,mjd in enumerate(mjds):

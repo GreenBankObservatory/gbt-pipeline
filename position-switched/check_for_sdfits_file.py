@@ -45,15 +45,8 @@ def check_for_sdfits_file( infile, sdfitsdir, beginscan, endscan,\
         if VERBOSE > 0:
             print sdfitsstr
 
-        try:
-            retcode = subprocess.call(sdfitsstr, shell=True)
-            if retcode < 0:
-                print >>sys.stderr, "Child was terminated by signal", -retcode
-            else:
-                print >>sys.stderr, "Child returned", retcode
-        except OSError, e:
-            print >>sys.stderr, "Execution failed:", e
-
+        os.system(sdfitsstr)
+        
         infile = os.path.basename(sdfitsdir) + ".raw.acs.fits"
 
         # if the SDFITS input file exists, then use it to create the map

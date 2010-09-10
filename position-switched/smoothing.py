@@ -1,8 +1,5 @@
-PLOT=False
-
 import sg_filter
 #from scipy import signal
-import pylab
 import numpy as np
 
 def median(spec,window):
@@ -89,17 +86,4 @@ def smooth_spectrum(spectrum,freq=False):
     degree_of_fitting = 4
     spectrum_sg = savgol(spectrum_noRFI,numpoints,degree_of_fitting) 
 
-    if PLOT and freq:
-        pylab.figure()
-        pylab.subplot(411)
-        pylab.title('beginning spectrum')
-        pylab.plot(freq,spectrum)
-        pylab.subplot(412)
-        pylab.title('no rfi')
-        pylab.plot(freq,spectrum_noRFI)
-        pylab.subplot(413)
-        pylab.title('savgol')
-        pylab.plot(freq,spectrum_sg)
-        pylab.show()
-        
     return spectrum_sg
