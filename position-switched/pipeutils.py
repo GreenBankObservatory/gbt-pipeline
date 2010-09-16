@@ -180,7 +180,7 @@ def interpolate_reference(refs,dates,tskys,tsyss, mjds):
 
     # dumb way
     # do each freq channel separately
-    tsky = False
+    tsky = []
     if np.any(tskys):
         for chan in range(len(tskys[0])):
             tsky_lo = tskys[0][chan]
@@ -209,7 +209,7 @@ def opacity_coefficients(opacity_coefficients_filename):
     Returns:
     a list of opacity coefficients for the time range of the dataset
     """
-    FILE = open(opacity_coefficients_filename)
+    FILE = open(opacity_coefficients_filename,'r')
 
     coeffs = []
     if FILE:
@@ -344,7 +344,6 @@ def corrected_opacity(zenith_opacities,elevation):
     
     """
     n_atmos = natm(elevation)
-
     corrected_opacities = [math.exp(xx/n_atmos) for xx in zenith_opacities]
 
     return corrected_opacities
@@ -364,22 +363,13 @@ def interpolated_zenith_opacity(coeffs, freqs):
     zenith_opacities = [ zenith_opacity(f) for f in freqs ]
     return np.array(zenith_opacities)
 
-def tau(forecastscript,opacity_coefficients,mjds,elevations,freq,verbose=0):
+def tau(opacity_coefficients,mjds,elevations,freq,verbose=0):
     """Compute opacities
     
     Returns:
     opacities at every frequency for every time
     """
-
-    # try to invoke Ron's script locally
-    if 0==os.system("'which "+forecastscript+"'"):
-        # if we succeed, use the script directly
-        forecast_cmd = forecastscript
-        
-    # if we fail, try to run with passwordless ssh key authentication remotely
-    elif 0==os.system("ssh trent.gb.nrao.edu 'which "+forecastscript+"'"):
-        forecast_cmd = 'ssh trent.gb.nrao.edu '+forecastscript
-
+    
     opacities = []
     
     if opacity_coefficients:
@@ -394,7 +384,7 @@ def tau(forecastscript,opacity_coefficients,mjds,elevations,freq,verbose=0):
                         coeffs = coeffs_line[1]
                 
                 zenith_opacities = interpolated_zenith_opacity(coeffs,freq)
-                opacities.append(corrected_opacity(zenith_opacities,elevation))
+                opacities.append(corrected_opacity(zenith_opacities[idx],elevation))
             
             else:
                 elevation = elevations[0]
@@ -403,48 +393,19 @@ def tau(forecastscript,opacity_coefficients,mjds,elevations,freq,verbose=0):
                 for coeffs_line in opacity_coefficients:
                     if mjd > coeffs_line[0]:
                         coeffs = coeffs_line[1]
-                
+
                 zenith_opacities = interpolated_zenith_opacity(coeffs,freq)
-                opacities.append(corrected_opacity([zenith_opacities],elevation))
+                opacities.append(corrected_opacity(zenith_opacities,elevation))
+        
+        opacities = np.array(opacities)
+        if opacities.ndim == opacities.size:
+            opacities = opacities[0]
             
         return np.array(opacities)
         
     else:
-        # reduce to 1st and last freq, then interpolate across band for each time
-        np.set_printoptions(threshold=np.nan)
-        getTau_cmd = forecast_cmd + ' -timeList '+str(mjds)[1:-1]+' -freqList '+str((freq/1e9).flatten())[1:-1]
-        getTau_cmd = getTau_cmd.replace('\n','')
-        if verbose > 1:  print getTau_cmd
-        
-        # result is output to stdout
-        p = subprocess.Popen(getTau_cmd.split(' '),shell=False,\
-            stdout=subprocess.PIPE)
-        result = p.communicate()
-
-        # tease the opacity values out of the stdout output
-        opacities = np.array([float(xx.split('=')[-1]) for xx in result[0].split('\n')[:-1]])
-        opacities = opacities.reshape((len(mjds),len(opacities)/len(mjds)))
-        if len(mjds)>1:
-            opacities = np.array([opacities[:,0],opacities[:,-1]]).transpose()
-            
-        opacities_reversed =  [xx[::-1] for xx in opacities]
-        
-        corrected_opacities=[]
-        if len(elevations)>1:
-            for idx,el in enumerate(elevations):
-                if len(corrected_opacities):
-                    corrected_opacities = np.vstack((corrected_opacities,corrected_opacity(opacities_reversed[idx],el)))
-                else:
-                    corrected_opacities = np.array(corrected_opacity(opacities_reversed[idx],el))
-        else:
-            el=elevations[0]
-            for idx,op in enumerate(opacities_reversed):
-                if len(corrected_opacities):
-                    corrected_opacities = np.vstack((corrected_opacities,corrected_opacity(op,el)))
-                else:
-                    corrected_opacities = np.array(corrected_opacity(op,el))
-            
-        return corrected_opacities
+    
+        return False
     
 def tsky(ambient_temp,freq,opacities):
     """Determine the sky temperature contribution at each frequency

@@ -367,7 +367,7 @@ class ScanReader:
             return input_rows
 
     def calibrate_to(self,refs,\
-        ref_dates,ref_tsyss,k_per_count,forecastscript,opacity_coefficients,\
+        ref_dates,ref_tsyss,k_per_count,opacity_coefficients,\
         ref_tskys,units,verbose):
         """
 
@@ -422,8 +422,8 @@ class ScanReader:
         freq = freq.transpose()
         
         # calculate weather-dependent opacities for each frequency, time and elevation
-        if 6<= freq.mean()/1e9 <=50 or 70<= freq.mean()/1e9 <=116:
-            opacities = pipeutils.tau(forecastscript,opacity_coefficients,mjds,elevations,freq)
+        if not units=='Ta' and (6<= freq.mean()/1e9 <=50 or 70<= freq.mean()/1e9 <=116):
+            opacities = pipeutils.tau(opacity_coefficients,mjds,elevations,freq/1e9)
         else:
             opacities = False
             
@@ -528,7 +528,7 @@ class ScanReader:
 
         return input_rows
 
-    def average_reference(self,forecastscript,opacity_coefficients,verbose):
+    def average_reference(self,units,opacity_coefficients,verbose):
         """
 
         Keyword arguments:
@@ -579,9 +579,8 @@ class ScanReader:
         ambient_temp = temps.mean()
 
         # idl-like version uses a single avg elevation
-        if 6<= freq.mean()/1e9 <=50 or 70<= freq.mean()/1e9 <=116:
-            opacities = pipeutils.tau(forecastscript,opacity_coefficients,[mjds.mean()],[self.elevation_ave()],freq,verbose)
-            #opacities = pipeutils.tau(forecastscript,opacity_coefficients,mjds,elevations,freq)
+        if not units=='Ta' and (6<= freq.mean()/1e9 <=50 or 70<= freq.mean()/1e9 <=116):
+            opacities = pipeutils.tau(opacity_coefficients,[mjds.mean()],[self.elevation_ave()],freq/1e9,verbose)
         else:
             opacities = False
             
