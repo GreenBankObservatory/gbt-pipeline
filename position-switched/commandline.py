@@ -34,8 +34,8 @@ class CommandLine:
                         help="sampler to process")
         self.parser.add_option("-v", "--verbose", dest="verbose", default='0',
                         help="set the verbosity level", metavar="N")
-        self.parser.add_option("--nodisplay", action='store_const', const='1',
-                        dest="nodisplay", default='0',
+        self.parser.add_option("--nodisplay", action='store_true',
+                        dest="nodisplay", default=False,
                         help="will not attempt to use the display")
 
     def read(self,sys):

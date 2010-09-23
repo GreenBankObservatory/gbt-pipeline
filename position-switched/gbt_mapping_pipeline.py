@@ -1,20 +1,17 @@
 #! /usr/bin/env python
-
 USE_MAP_SCAN_FOR_SCALE=True
-import commandline
-import scanreader
-import smoothing
-import pipeutils
-import pipeutils
-from check_for_sdfits_file import *
-from index_it import *
 
 import sys
 import os
 import pyfits
 import numpy as np
-import math
-import subprocess
+
+import commandline
+import scanreader
+import smoothing
+import pipeutils
+from check_for_sdfits_file import *
+from index_it import *
 
 cl = commandline.CommandLine()
 (opt, args) = cl.read(sys)
@@ -103,6 +100,19 @@ for sampler in samplerlist:
     ref_tsky = []
     ref_tsys = []
     
+    # ------------------------------------------- name output file
+    scan=allscans[0]
+    mapscan = scanreader.ScanReader()
+    obj,centerfreq,feed = mapscan.map_name_vals(sdfitsdata,opt.verbose)
+    outfilename = 'Cal_' + obj + '_' + str(feed) + '_' + \
+                    str(allscans[0]) + '_' + str(allscans[-1]) + '_' + \
+                    str(centerfreq)[:6] + '_' + sampler + '.fits'
+    if opt.verbose > 0: print 'outfile name',outfilename
+    if os.path.exists(outfilename):
+        print 'Outfile exits:',outfilename
+        print 'Please remove or rename outfile and try again'
+        sys.exit(1)
+
     # ------------------------------------------- get the first reference scan
     scan=refscans[0]
     if opt.verbose > 0: print 'Processing reference scan:',scan
@@ -138,26 +148,13 @@ for sampler in samplerlist:
         print 'dcRef1',dcRef1[0],dcRef1[1000],dcRef1[-1]
         print 'ref1 Tsys:',tsysRef1
     
-    # ------------------------------------------- name output file
-    scan=allscans[0]
-    mapscan = scanreader.ScanReader()
-    obj,centerfreq,feed = mapscan.map_name_vals(sdfitsdata,opt.verbose)
-    outfilename = 'Cal_' + obj + '_' + str(feed) + '_' + \
-                    str(allscans[0]) + '_' + str(allscans[-1]) + '_' + \
-                    str(centerfreq)[:6] + '_' + sampler + '.fits'
-    if opt.verbose > 0: print 'outfile name',outfilename
-    if os.path.exists(outfilename):
-        print 'Outfile exits:',outfilename
-        print 'Please remove or rename outfile and try again'
-        sys.exit(1)
-        
     # ------------------------------------------- gather all map CALON-CALOFFS to scale
     # -------------------------------------------  reference scan counts to kelvin
     if USE_MAP_SCAN_FOR_SCALE:
         calonAVEs=[]
         caloffAVEs=[]
         maxTCAL=0
-
+        
         for scan in allscans:
             print 'Processing map scan:',scan
             mapscan = scanreader.ScanReader()
@@ -228,11 +225,14 @@ for sampler in samplerlist:
     # ----------------------------  if not possible, calibrate to Ta
 
     calibrated_integrations = []
+    nchans = False # number of channels, used to filter of 2% from either edge
+    
     for scan in allscans:
         print 'Calibrating scan:',scan
 
         mapscan = scanreader.ScanReader()
         mapscan.get_scan(scan,sdfitsdata,opt.verbose)
+        nchans = len(mapscan.data[0])
 
         mapscan.mean_date()
         cal_ints = mapscan.calibrate_to(refspec,refdate,ref_tsys,\
@@ -261,9 +261,12 @@ for sampler in samplerlist:
     aipsinname = os.path.splitext(outfilename)[0]+'.sdf'
     
     # run idlToSdfits, which converts calibrated sdfits into a format
-    options = ' -c 82:4014 '
+    if nchans:
+        chan_min = int(nchans*.02) # start at 2% of nchan
+        chan_max = int(nchans*.98) # end at 98% of nchans
+        options = ' -c ' + str(chan_min) + ':' + str(chan_max) + ' '
     
-    if not opt.nodisplay:
+    if opt.nodisplay:
         options = options + '-l '
         
     idlcmd = 'idlToSdfits -o ' + aipsinname + options + outfilename
