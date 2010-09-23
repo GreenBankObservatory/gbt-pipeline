@@ -269,7 +269,7 @@ for sampler in samplerlist:
     if nchans:
         chan_min = int(nchans*.02) # start at 2% of nchan
         chan_max = int(nchans*.98) # end at 98% of nchans
-        options = options + ' -c ' + str(chan_min) + ':' + str(chan_max)
+        options = options + ' -c ' + str(chan_min) + ':' + str(chan_max) + ' '
     
     if opt.nodisplay:
         options = options + ' -l '
