@@ -261,13 +261,18 @@ for sampler in samplerlist:
     aipsinname = os.path.splitext(outfilename)[0]+'.sdf'
     
     # run idlToSdfits, which converts calibrated sdfits into a format
+    options = ''
+    
+    if bool(opt.average):
+        options = options + ' -a ' + str(opt.average)
+
     if nchans:
         chan_min = int(nchans*.02) # start at 2% of nchan
         chan_max = int(nchans*.98) # end at 98% of nchans
-        options = ' -c ' + str(chan_min) + ':' + str(chan_max) + ' '
+        options = options + ' -c ' + str(chan_min) + ':' + str(chan_max)
     
     if opt.nodisplay:
-        options = options + '-l '
+        options = options + ' -l '
         
     idlcmd = 'idlToSdfits -o ' + aipsinname + options + outfilename
     if opt.verbose > 0: print idlcmd

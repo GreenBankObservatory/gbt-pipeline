@@ -32,6 +32,8 @@ class CommandLine:
                         help="use all scans as reference?")
         self.parser.add_option("-s", "--sampler",dest="sampler", default=[],
                         help="sampler to process")
+        self.parser.add_option("-a", "--average",dest="average", default=0, type=int,
+                        help="averge the spectra over N channels (idlToSdfits)")
         self.parser.add_option("-v", "--verbose", dest="verbose", default='0',
                         help="set the verbosity level", metavar="N")
         self.parser.add_option("--nodisplay", action='store_true',
