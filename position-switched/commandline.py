@@ -34,6 +34,14 @@ class CommandLine:
                         help="comma-separated sampler(s) to process")
         self.parser.add_option("-a", "--average",dest="average", default=0, type=int,
                         help="averge the spectra over N channels (idlToSdfits)")
+        self.parser.add_option("--spillover-factor",dest="spillover", default=.99, type=float,
+                        help="rear spillover factor (eta-l)")
+        self.parser.add_option("--apperture-efficiency",dest="aperture_eff", default=.71, type=float,
+                        help="aperture efficiency for freq.=0 (eta-A)")
+        #self.parser.add_option("--mainbeam-efficiency",dest="mainbeam_eff", default=.97, type=float,
+                        #help="main beam efficiency for freq.=0  (eta-B)")
+        self.parser.add_option("--gain-coefficients",dest="gaincoeffs", default=[.91,.00434,-5.22e-5],
+                        help="comma-separated gain coefficients")
         self.parser.add_option("-v", "--verbose", dest="verbose", default='0',
                         help="set the verbosity level", metavar="N")
         self.parser.add_option("--nodisplay", action='store_true',

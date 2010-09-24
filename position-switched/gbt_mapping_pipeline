@@ -20,4 +20,6 @@ fi
 export PATH
 export PYTHONPATH
 
+echo gbt_mapping_pipeline $*
+
 gbt_mapping_pipeline.py $*

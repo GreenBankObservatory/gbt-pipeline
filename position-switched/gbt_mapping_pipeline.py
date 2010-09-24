@@ -25,18 +25,32 @@ infile = check_for_sdfits_file(opt.infile, opt.sdfitsdir, opt.beginscan,\
 firstScan = opt.beginscan
 lastScan  = opt.endscan
 
+if opt.gaincoeffs:
+    gaincoeffs = opt.gaincoeffs.split(',')
+    gaincoeffs = [ float(xx) for xx in gaincoeffs ]
+
 if (opt.verbose > 0):
-    print "Calibrating to units of",opt.units
-    print "Map scans",firstScan,'to',lastScan
-    if opt.vsourcecenter: print "vSource",opt.vsourcecenter
-    if opt.vsourcewidth: print "vSourceWidth",opt.vsourcewidth
-    if opt.vsourcebegin: print "vSourceBegin",opt.vsourcebegin
-    if opt.vsourceend: print "vSourceEnd",opt.vsourceend
-    if opt.sampler: print "sampler",opt.sampler
+    
+    print "---------------"
+    print "Command summary"
+    print "---------------"
+    print "Calibrating to units of.......",opt.units
+    print "Map scans.....................",firstScan,'to',lastScan
+    if opt.vsourcecenter: print "vSource.......................",opt.vsourcecenter
+    if opt.vsourcewidth:  print "vSourceWidth..................",opt.vsourcewidth
+    if opt.vsourcebegin:  print "vSourceBegin..................",opt.vsourcebegin
+    if opt.vsourceend:    print "vSourceEnd....................",opt.vsourceend
+    if opt.sampler:       print "sampler.......................",opt.sampler
+    if opt.spillover:     print "spillover factor (eta_l)......",opt.spillover
+    if opt.aperture_eff:  print "aperture efficiency (eta_A)...",opt.aperture_eff
+    #if opt.mainbeam_eff:  print "main beam efficiency (eta_B)..",opt.mainbeam_eff
+    if opt.gaincoeffs:    print "gain coefficiencts............",gaincoeffs
+
+fbeampol=1
 
 # setup scan numbers
 allscans = range(int(firstScan),int(lastScan)+1)
-if (opt.verbose > 0): print "All map scans",allscans
+if (opt.verbose > 0): print "Map scans",allscans
 
 # convert refscan strings to integers
 refscans = list(set([ int(x) for x in (opt.refscan1, opt.refscan2) ]))
@@ -46,8 +60,10 @@ if refscans[0] < 0:
 if refscans[1] < 0: refscans = [refscans[0]]
 
 if not opt.allscansref: refscans = allscans
-if opt.verbose > 0: print "Reference scan(s)",refscans
-
+if opt.verbose > 0:
+    print "Reference scan(s)",refscans
+    print "---------------\n"
+    
 # read in the input file
 if (opt.verbose > 0): print 'opening input sdfits file'
 if not os.path.exists(opt.infile):
@@ -122,7 +138,8 @@ for sampler in samplerlist:
     ref1.get_scan(scan,sdfitsdata,opt.verbose)
     
     ref1spec,ref1_max_tcal,ref1_mean_date,freq,tskys_ref1,ref1_tsys = \
-    ref1.average_reference(opt.units,opacity_coeffs,opt.verbose)
+        ref1.average_reference(opt.units,gaincoeffs,opt.spillover,\
+        opt.aperture_eff,fbeampol,opacity_coeffs,opt.verbose)
     
     refdate.append(ref1_mean_date)
     ref_tsky.append(tskys_ref1)
@@ -198,7 +215,8 @@ for sampler in samplerlist:
         ref2.get_scan(scan,sdfitsdata,opt.verbose)
         
         ref2spec,ref2_max_tcal,ref2_mean_date,freq,tskys_ref2,ref2_tsys = \
-            ref2.average_reference(opt.units,opacity_coeffs,opt.verbose)
+            ref2.average_reference(opt.units,gaincoeffs,opt.spillover,\
+            opt.aperture_eff,fbeampol,opacity_coeffs,opt.verbose)
         refdate.append(ref2_mean_date)
         ref_tsky.append(tskys_ref2)
 
@@ -236,8 +254,8 @@ for sampler in samplerlist:
 
         mapscan.mean_date()
         cal_ints = mapscan.calibrate_to(refspec,refdate,ref_tsys,\
-            k_per_count,opacity_coeffs,ref_tsky,opt.units,
-            opt.verbose)
+            k_per_count,opacity_coeffs,gaincoeffs,opt.spillover,\
+            opt.aperture_eff,fbeampol,ref_tsky,opt.units,opt.verbose)
         
         if len(calibrated_integrations):
             calibrated_integrations = np.concatenate((calibrated_integrations,cal_ints))

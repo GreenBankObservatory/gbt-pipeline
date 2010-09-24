@@ -363,13 +363,27 @@ def interpolated_zenith_opacity(coeffs, freqs):
     zenith_opacities = [ zenith_opacity(f) for f in freqs ]
     return np.array(zenith_opacities)
 
-def tau(opacity_coefficients,mjds,elevations,freq,verbose=0):
-    """Compute opacities
+def _gain(gain_coeff,elevation):
+    # comput gain based on elevation, eqn. 12 in PS specification
+    gain = 0
+    zz = 90. - elevation
+
+    for idx,coeff in enumerate(gain_coeff):
+        gain = gain + coeff * zz**idx
+        
+    return gain
+
+def ta_correction(gain_coeff,spillover,aperture_eff,\
+        fbeampol,opacity_coefficients,mjds,elevations,freq,verbose=0):
+    """Compute correction to Ta for determining Ta*
+    
+    Correction is for atmospheric attenuation, rear spillover, ohmic loss
+    and blockage efficiency.
     
     Returns:
-    opacities at every frequency for every time
+    Ta correction factor at every frequency for every time and elevation
     """
-    
+   
     opacities = []
     
     if opacity_coefficients:
@@ -377,7 +391,8 @@ def tau(opacity_coefficients,mjds,elevations,freq,verbose=0):
         for idx,mjd in enumerate(mjds):
             if len(elevations)>1:
                 elevation = elevations[idx]
-
+                gain = _gain(gain_coeff,elevation)
+                
                 # get the correct set of coefficients for this time
                 for coeffs_line in opacity_coefficients:
                     if mjd > coeffs_line[0]:
@@ -388,7 +403,8 @@ def tau(opacity_coefficients,mjds,elevations,freq,verbose=0):
             
             else:
                 elevation = elevations[0]
-
+                gain = _gain(gain_coeff,elevation)
+                
                 # get the correct set of coefficients for this time
                 for coeffs_line in opacity_coefficients:
                     if mjd > coeffs_line[0]:
@@ -401,7 +417,7 @@ def tau(opacity_coefficients,mjds,elevations,freq,verbose=0):
         if opacities.ndim == opacities.size:
             opacities = opacities[0]
             
-        return np.array(opacities)
+        return (fbeampol * np.array(opacities)) / (spillover * aperture_eff * gain)
         
     else:
     
