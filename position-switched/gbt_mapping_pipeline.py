@@ -249,6 +249,12 @@ for sampler in samplerlist:
     primary.header = infile[0].header
 
     sdfits = pyfits.new_table(infile[1].columns,nrows=len(calibrated_integrations),fill=1)
+    # add in virtual columns (keywords)
+    inCardList = infile[1].header.ascardlist()
+    for key in ["TELESCOP","CTYPE4","PROJID","BACKEND","SITELONG","SITELAT","SITEELEV"]:
+        card = inCardList[key]
+        sdfits.header.update(key,card.value,card.comment)
+    
     for idx,ee in enumerate(calibrated_integrations):
         sdfits.data[idx] = ee
 
