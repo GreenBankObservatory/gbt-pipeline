@@ -10,16 +10,16 @@ class CommandLine:
                         help="beginning map scan number", metavar="SCAN")
         self.parser.add_option("-e", "--end-scan", dest="endscan", default='0',
                         help="ending map scan number", metavar="SCAN")
-        self.parser.add_option("-c", "--vsource-center", dest="vsourcecenter", default='0',
-                        help="defines center channel to select (km/sec)", metavar="N")
+        #self.parser.add_option("-c", "--vsource-center", dest="vsourcecenter", default='0',
+                        #help="defines center channel to select (km/sec)", metavar="N")
         self.parser.add_option("-u", "--units", dest="units", default='Ta*',
                         help="calibration units")                        
-        self.parser.add_option("-w", "--vsource-width", dest="vsourcewidth", default='0',
-                        help="defines median filter width (km/sec)", metavar="N")
-        self.parser.add_option("--vsource-begin", dest="vsourcebegin", default='0',
-                        help="defines begin channel to select (km/sec)", metavar="N")
-        self.parser.add_option("--vsource-end", dest="vsourceend", default='0',
-                        help="defines end channel to select (km/sec)", metavar="N")
+        #self.parser.add_option("-w", "--vsource-width", dest="vsourcewidth", default='0',
+                        #help="defines median filter width (km/sec)", metavar="N")
+        #self.parser.add_option("--vsource-begin", dest="vsourcebegin", default='0',
+                        #help="defines begin channel to select (km/sec)", metavar="N")
+        #self.parser.add_option("--vsource-end", dest="vsourceend", default='0',
+                        #help="defines end channel to select (km/sec)", metavar="N")
         self.parser.add_option("-d", "--sdfits-dir", dest="sdfitsdir", default='0',
                         help="SDFITS input directory; used if infile option is not usable",
                         metavar="DIR")
@@ -40,7 +40,7 @@ class CommandLine:
                         help="aperture efficiency for freq.=0 (eta-A)")
         #self.parser.add_option("--mainbeam-efficiency",dest="mainbeam_eff", default=.97, type=float,
                         #help="main beam efficiency for freq.=0  (eta-B)")
-        self.parser.add_option("--gain-coefficients",dest="gaincoeffs", default=[.91,.00434,-5.22e-5],
+        self.parser.add_option("--gain-coefficients",dest="gaincoeffs", default=".91,.00434,-5.22e-5",
                         help="comma-separated gain coefficients")
         self.parser.add_option("-v", "--verbose", dest="verbose", default='0',
                         help="set the verbosity level", metavar="N")

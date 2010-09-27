@@ -78,7 +78,7 @@ class ScanReader:
         scanmask = fdata.field('SCAN')==scan_number
         #print scanmask
         lcldata = fdata[scanmask]
-                
+        
         for idx,row in enumerate(lcldata):
             self.attr['row'].append(row)
             self.attr['date'].append(row['DATE-OBS'])
@@ -501,10 +501,10 @@ class ScanReader:
             #   where etaA is aperture efficiency
             # note to self: move to the top level so as to only call once?
 
-            #etaMB = np.array([pipeutils.etaGBT(ff) for ff in freq]) # all frequencies
+            #etaMB = np.array([pipeutils.etaMB(ff) for ff in freq]) # all frequencies
             allfreq = self.freq_axis()
             midfreq = allfreq[len(allfreq)/2] #reference freq of first integration
-            etaMB = pipeutils.etaGBT(midfreq) # idl-like version
+            etaMB = pipeutils.etaMB(midfreq) # idl-like version
 
             # Braatz 2007 ("Calibration to Tmb and other units")
             Tmb = Ta_adjusted / etaMB

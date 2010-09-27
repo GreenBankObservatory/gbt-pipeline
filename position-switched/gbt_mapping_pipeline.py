@@ -36,10 +36,10 @@ if (opt.verbose > 0):
     print "---------------"
     print "Calibrating to units of.......",opt.units
     print "Map scans.....................",firstScan,'to',lastScan
-    if opt.vsourcecenter: print "vSource.......................",opt.vsourcecenter
-    if opt.vsourcewidth:  print "vSourceWidth..................",opt.vsourcewidth
-    if opt.vsourcebegin:  print "vSourceBegin..................",opt.vsourcebegin
-    if opt.vsourceend:    print "vSourceEnd....................",opt.vsourceend
+    #if opt.vsourcecenter: print "vSource.......................",opt.vsourcecenter
+    #if opt.vsourcewidth:  print "vSourceWidth..................",opt.vsourcewidth
+    #if opt.vsourcebegin:  print "vSourceBegin..................",opt.vsourcebegin
+    #if opt.vsourceend:    print "vSourceEnd....................",opt.vsourceend
     if opt.sampler:       print "sampler.......................",opt.sampler
     if opt.spillover:     print "spillover factor (eta_l)......",opt.spillover
     if opt.aperture_eff:  print "aperture efficiency (eta_A)...",opt.aperture_eff
@@ -77,10 +77,12 @@ if (opt.verbose > 3): print 'getting mask index',projname+'.raw.acs.index'
 masks = index_it(indexfile=projname+'.raw.acs.index',fitsfile=opt.infile)
 if (opt.verbose > 3): print 'done'
 
+samplerlist = []
 if opt.sampler:
     samplerlist = opt.sampler.split(',')
 else:
-    samplerlist = masks.keys()
+    for mask in masks:
+        samplerlist.append(mask.keys())
     
 # opacities coefficients filename
 opacity_coefficients_filename = '/users/rmaddale/Weather/ArchiveCoeffs/CoeffsOpacityFreqList_avrg.txt'
@@ -93,16 +95,27 @@ else:
 
 aips_input_files = []
 
-for sampler in samplerlist:
+if (opt.verbose > 1): print 'getting data object from input file'
+if (opt.verbose > 3): print 'opening fits file'
+infile = pyfits.open(opt.infile,memmap=1)
+if (opt.verbose > 3): print 'finding scans'
+block_found = False
+for blockid in range(1,len(infile)):
+    if allscans[-1] < infile[blockid].data[-1].field('SCAN'):
+        block_found = True
+        break
+if (opt.verbose > 3): print 'done'
 
-    samplermask = masks.pop(sampler)
+for sampler in samplerlist[blockid-1]:
 
-    if (opt.verbose > 1): print 'getting data object from input file'
-    if (opt.verbose > 3): print 'opening fits file'
-    infile = pyfits.open(opt.infile,memmap=1)
-    if (opt.verbose > 3): print 'done'
+    samplermask = masks[blockid-1].pop(sampler)
+
     if (opt.verbose > 3): print 'appying mask'
-    sdfitsdata = infile[1].data[samplermask]
+    if block_found:
+        sdfitsdata = infile[blockid].data[samplermask]
+    else:
+        print 'ERROR: map scans not found'
+        sys.exit(9)
     if (opt.verbose > 3): print 'done'
 
     if opt.verbose > 0:
@@ -303,5 +316,4 @@ for sampler in samplerlist:
     
     os.system(idlcmd)
     
-    infile.close()
     del sdfitsdata
