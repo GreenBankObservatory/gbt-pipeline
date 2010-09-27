@@ -83,7 +83,7 @@ if opt.sampler:
 else:
     for mask in masks:
         samplerlist.append(mask.keys())
-    
+   
 # opacities coefficients filename
 opacity_coefficients_filename = '/users/rmaddale/Weather/ArchiveCoeffs/CoeffsOpacityFreqList_avrg.txt'
 if os.path.exists(opacity_coefficients_filename):
@@ -106,6 +106,11 @@ for blockid in range(1,len(infile)):
         break
 if (opt.verbose > 3): print 'done'
 
+if (opt.verbose > 3): print 'sampler list', samplerlist
+
+if type(samplerlist[0])!=type([]):
+    samplerlist = [samplerlist]
+    
 for sampler in samplerlist[blockid-1]:
 
     samplermask = masks[blockid-1].pop(sampler)
