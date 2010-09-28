@@ -2,7 +2,7 @@ from optparse import OptionParser
 
 class CommandLine:
     def __init__(self):
-        self.usage = "usage: gbt_mapping_pipeline [options]"
+        self.usage = "usage: gbt_pipeline [options]"
         self.parser = OptionParser(usage=self.usage)
         self.parser.add_option("-i", "--infile", dest="infile", default='',
                         help="SDFITS file name containing map scans", metavar="FILE")

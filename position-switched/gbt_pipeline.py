@@ -45,6 +45,7 @@ if (opt.verbose > 0):
     if opt.aperture_eff:  print "aperture efficiency (eta_A)...",opt.aperture_eff
     #if opt.mainbeam_eff:  print "main beam efficiency (eta_B)..",opt.mainbeam_eff
     if opt.gaincoeffs:    print "gain coefficiencts............",gaincoeffs
+    if opt.verbose:       print "verbosity level...............",opt.verbose
 
 fbeampol=1
 
@@ -83,7 +84,7 @@ if opt.sampler:
 else:
     for mask in masks:
         samplerlist.append(mask.keys())
-   
+
 # opacities coefficients filename
 opacity_coefficients_filename = '/users/rmaddale/Weather/ArchiveCoeffs/CoeffsOpacityFreqList_avrg.txt'
 if os.path.exists(opacity_coefficients_filename):
@@ -112,22 +113,23 @@ if type(samplerlist[0])!=type([]):
     samplerlist = [samplerlist]
     
 for sampler in samplerlist[blockid-1]:
+    
+    if opt.verbose > 0:
+        print '-----------'
+        print 'SAMPLER',sampler
+        print '-----------'
 
     samplermask = masks[blockid-1].pop(sampler)
 
     if (opt.verbose > 3): print 'appying mask'
     if block_found:
         sdfitsdata = infile[blockid].data[samplermask]
+        del samplermask
     else:
         print 'ERROR: map scans not found'
         sys.exit(9)
     if (opt.verbose > 3): print 'done'
-
-    if opt.verbose > 0:
-        print '-----------'
-        print 'SAMPLER',sampler
-        print '-----------'
-
+    
     freq=0
     refspec = []
     refdate = []
@@ -280,11 +282,15 @@ for sampler in samplerlist[blockid-1]:
         else: # first scan
             calibrated_integrations = cal_ints
 
+    del sdfitsdata
+
     # ---------------------------------- write out calibrated fits file
+
     primary = pyfits.PrimaryHDU()
     primary.header = infile[0].header
+    
+    sdfits = pyfits.new_table(pyfits.ColDefs(infile[1].columns),nrows=len(calibrated_integrations),fill=1)
 
-    sdfits = pyfits.new_table(infile[1].columns,nrows=len(calibrated_integrations),fill=1)
     # add in virtual columns (keywords)
     inCardList = infile[1].header.ascardlist()
     for key in ["TELESCOP","CTYPE4","PROJID","BACKEND","SITELONG","SITELAT","SITEELEV"]:
@@ -298,6 +304,8 @@ for sampler in samplerlist[blockid-1]:
 
     hdulist = pyfits.HDUList([primary,sdfits])
     hdulist.writeto(outfilename,clobber=True)
+    hdulist.close()
+    del hdulist
     
     # set the idlToSdfits output file name
     aipsinname = os.path.splitext(outfilename)[0]+'.sdf'
@@ -320,5 +328,3 @@ for sampler in samplerlist[blockid-1]:
     if opt.verbose > 0: print idlcmd
     
     os.system(idlcmd)
-    
-    del sdfitsdata
