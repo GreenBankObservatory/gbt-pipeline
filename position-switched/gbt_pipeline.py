@@ -289,14 +289,14 @@ for sampler in samplerlist[blockid-1]:
     primary = pyfits.PrimaryHDU()
     primary.header = infile[0].header
     
-    sdfits = pyfits.new_table(pyfits.ColDefs(infile[1].columns),nrows=len(calibrated_integrations),fill=1)
+    sdfits = pyfits.new_table(pyfits.ColDefs(infile[blockid].columns),nrows=len(calibrated_integrations),fill=1)
 
     # add in virtual columns (keywords)
-    inCardList = infile[1].header.ascardlist()
+    inCardList = infile[blockid].header.ascardlist()
     for key in ["TELESCOP","CTYPE4","PROJID","BACKEND","SITELONG","SITELAT","SITEELEV"]:
         card = inCardList[key]
         sdfits.header.update(key,card.value,card.comment)
-    
+
     for idx,ee in enumerate(calibrated_integrations):
         sdfits.data[idx] = ee
 
