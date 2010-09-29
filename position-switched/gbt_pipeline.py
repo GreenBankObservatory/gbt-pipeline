@@ -72,7 +72,10 @@ if not os.path.exists(opt.infile):
     print '    Please check input sdfits and run again'
     sys.exit(9)
 
-projname = opt.infile.split('.')[0]
+projdir = "/".join(opt.infile.split('/')[:-1])
+projfile = opt.infile.split('/')[-1]
+projhead = projfile.split('.')[0]
+projname = projdir + "/" + projhead
 
 if (opt.verbose > 3): print 'getting mask index',projname+'.raw.acs.index'
 masks = index_it(indexfile=projname+'.raw.acs.index',fitsfile=opt.infile)
