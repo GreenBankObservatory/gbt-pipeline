@@ -1,0 +1,25 @@
+#!/bin/bash
+
+if [[ "$PATH" != */home/sandboxes/gbtpipeline* ]]
+then
+    PATH=/home/sandboxes/gbtpipeline:"$PATH"
+    PATH=/home/sandboxes/jmasters/local/bin:"$PATH"
+fi
+
+if [ -z "$PYTHONPATH" ]
+then
+    PYTHONPATH=/home/sandboxes/gbtpipeline
+else
+    lclpythonpath="$PYTHONPATH"
+    if [[ $lclpythonpath != */home/sandboxes/gbtpipeline* ]]
+    then
+        PYTHONPATH=/home/sandboxes/gbtpipeline:"$PYTHONPATH"
+    fi
+fi
+
+export PATH
+export PYTHONPATH
+
+echo gbtpipeline $*
+
+gbt_pipeline.py $*
