@@ -143,9 +143,9 @@ for sampler in samplerlist[blockid-1]:
     scan=allscans[0]
     mapscan = scanreader.ScanReader()
     obj,centerfreq,feed = mapscan.map_name_vals(sdfitsdata,opt.verbose)
-    outfilename = 'Cal_' + obj + '_' + str(feed) + '_' + \
-                    str(allscans[0]) + '_' + str(allscans[-1]) + '_' + \
-                    str(centerfreq)[:6] + '_' + sampler + '.fits'
+    outfilename = obj + '_' + str(feed) + '_' + \
+                  str(allscans[0]) + '_' + str(allscans[-1]) + '_' + \
+                  str(centerfreq)[:6] + '_' + sampler + '.fits'
     if opt.verbose > 0: print 'outfile name',outfilename
     if os.path.exists(outfilename):
         print 'Outfile exits:',outfilename
