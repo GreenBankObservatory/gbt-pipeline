@@ -2,7 +2,7 @@ from optparse import OptionParser
 
 class CommandLine:
     def __init__(self):
-        self.usage = "usage: gbt_pipeline [options]"
+        self.usage = "usage: gbtpipeline [options]"
         self.parser = OptionParser(usage=self.usage)
         self.parser.add_option("-i", "--infile", dest="infile", default='',
                         help="SDFITS file name containing map scans", metavar="FILE")
@@ -10,6 +10,8 @@ class CommandLine:
                         help="beginning map scan number", metavar="SCAN")
         self.parser.add_option("-e", "--end-scan", dest="endscan", default='0',
                         help="ending map scan number", metavar="SCAN")
+        self.parser.add_option("--allmaps", dest="allmaps", action='store_true',
+                        default=False, help="If set, attemp to process all maps in input file.")
         #self.parser.add_option("-c", "--vsource-center", dest="vsourcecenter", default='0',
                         #help="defines center channel to select (km/sec)", metavar="N")
         self.parser.add_option("-u", "--units", dest="units", default='Ta*',
@@ -31,22 +33,25 @@ class CommandLine:
                         const='1',dest="allscansref", default='0',
                         help="use all scans as reference?")
         self.parser.add_option("-s", "--sampler",dest="sampler", default=[],
-                        help="comma-separated sampler(s) to process")
+                        help="comma-separated sampler(s) to process", metavar="SAMPLER,SAMPLER")
         self.parser.add_option("-a", "--average",dest="average", default=0, type=int,
-                        help="averge the spectra over N channels (idlToSdfits)")
+                        help="averge the spectra over N channels (idlToSdfits)", metavar="N")
         self.parser.add_option("--spillover-factor",dest="spillover", default=.99, type=float,
-                        help="rear spillover factor (eta-l)")
+                        help="rear spillover factor (eta-l)", metavar="N")
         self.parser.add_option("--apperture-efficiency",dest="aperture_eff", default=.71, type=float,
-                        help="aperture efficiency for freq.=0 (eta-A)")
+                        help="aperture efficiency for freq.=0 (eta-A)", metavar="N")
         #self.parser.add_option("--mainbeam-efficiency",dest="mainbeam_eff", default=.97, type=float,
                         #help="main beam efficiency for freq.=0  (eta-B)")
         self.parser.add_option("--gain-coefficients",dest="gaincoeffs", default=".91,.00434,-5.22e-5",
-                        help="comma-separated gain coefficients")
+                        help="comma-separated gain coefficients", metavar="N")
         self.parser.add_option("-v", "--verbose", dest="verbose", default='0',
                         help="set the verbosity level", metavar="N")
         self.parser.add_option("--nodisplay", action='store_true',
                         dest="nodisplay", default=False,
                         help="will not attempt to use the display")
+        self.parser.add_option("--clobber", action='store_true',
+                        dest="clobber", default=False,
+                        help="Overwrites existing output files if set.")
 
     def read(self,sys):
         if len(sys.argv) < 2: sys.argv.append('-h')

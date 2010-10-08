@@ -219,7 +219,8 @@ def opacity_coefficients(opacity_coefficients_filename):
                 [float(xx) for xx in line.split('{{')[2].split('}')[0].split(' ')]))
                
     else:
-        print "Could not read coefficients for Tau in",opacity_coefficients_filename
+        if opt.verbose > 1:
+            print "WARNING: Could not read coefficients for Tau in",opacity_coefficients_filename
         return False
 
     return coeffs

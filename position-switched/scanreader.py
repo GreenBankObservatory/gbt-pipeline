@@ -303,7 +303,7 @@ class ScanReader:
         mytsys = ratios.mean() * self.max_tcal()
 
         Tsys = mytsys
-        if (verbose > 0):
+        if (verbose > 1):
             print 'Tsys', Tsys
             print 'Tcal', tcal.mean()
 
@@ -422,7 +422,7 @@ class ScanReader:
         freq = freq.transpose()
         
         # calculate weather-dependent opacities for each frequency, time and elevation
-        if not units=='Ta' and (6<= freq.mean()/1e9 <=50 or 70<= freq.mean()/1e9 <=116):
+        if not units=='ta' and (6<= freq.mean()/1e9 <=50 or 70<= freq.mean()/1e9 <=116):
             opacities = pipeutils.ta_correction(gain_coeff,spillover,aperture_eff,\
                         fbeampol,opacity_coefficients,mjds,elevations,freq/1e9)
         else:
@@ -447,9 +447,9 @@ class ScanReader:
             if verbose > 3:
                 print 'TSKY SIG (interpolated)',all_tsky_sig[0][0],'to',all_tsky_sig[0][-1],'for first integration'
         else:
-            if not units=='Ta':
+            if not units=='ta':
                 print 'WARNING: Opacities not available, calibrating to units of Ta'
-                units = 'Ta'
+                units = 'ta'
         
         # interpolate (by time) reference spectrum and tskys
         if ( len(refs)>1 and \
@@ -481,22 +481,22 @@ class ScanReader:
                 print '1st int REF [0],[1000],[nChan]',ref[0][0],ref[0][1000],ref[0][-1]
             print '1st int SIG [0],[1000],[nChan]',sig_counts[0][0],sig_counts[0][1000],sig_counts[0][-1]
             
-        if not np.any(opacities) and not units=='Ta':
-            if verbose > 0: print 'No opacities, calibrating to units of Ta'
-            units=='Ta'
+        if not np.any(opacities) and not units=='ta':
+            if verbose > 1: print 'No opacities, calibrating to units of Ta'
+            units=='ta'
             
-        if units=='TaTsky':
+        if units=='tatsky':
             # remove the elevation contribution to sky temperatures
             if np.any(all_tsky_sig) and np.any(tsky_ref):
                 Ta = Ta - (all_tsky_sig - tsky_ref)
                 Units = Ta
             
-        if units=='Ta*' or units=='Tmb' or units=='Tb*':
+        if units=='ta*' or units=='tmb' or units=='tb*':
             # Braatz 2007 (eqn. 3), modified with denominator == 1
             Ta_adjusted = Ta * all_opacities
             Units = Ta_adjusted
         
-        if units=='Tmb' or units=='Tb*':
+        if units=='tmb' or units=='tb*':
             # calculate main beam efficiency approx. = 1.32 * etaA
             #   where etaA is aperture efficiency
             # note to self: move to the top level so as to only call once?
@@ -510,7 +510,7 @@ class ScanReader:
             Tmb = Ta_adjusted / etaMB
             Units = Tmb
             
-        if not (units=='Ta' or units=='TaTsky' or units=='Ta*' or units=='Tmb' or units=='Tb*'):
+        if not (units=='ta' or units=='tatsky' or units=='ta*' or units=='tmb' or units=='tb*'):
             print 'Unable to calibrate to units of',units
             print '  calibrated to Ta'
 
@@ -581,7 +581,7 @@ class ScanReader:
         ambient_temp = temps.mean()
 
         # idl-like version uses a single avg elevation
-        if not units=='Ta' and (6<= freq.mean()/1e9 <=50 or 70<= freq.mean()/1e9 <=116):
+        if not units=='ta' and (6<= freq.mean()/1e9 <=50 or 70<= freq.mean()/1e9 <=116):
             opacities = pipeutils.ta_correction(gain_coeff,spillover,aperture_eff,\
                         fbeampol,opacity_coefficients,\
                         [mjds.mean()],[self.elevation_ave()],freq/1e9,verbose)

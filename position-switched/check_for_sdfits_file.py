@@ -54,7 +54,8 @@ def check_for_sdfits_file( infile, sdfitsdir, beginscan, endscan,\
             if VERBOSE > 2:
                 print "infile OK"
         else:
-            print "infile not OK"
+            if VERBOSE > 2:
+                print "infile not OK"
 
     return infile
 
