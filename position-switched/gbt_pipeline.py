@@ -91,10 +91,10 @@ else:
 # opacities coefficients filename
 opacity_coefficients_filename = '/users/rmaddale/Weather/ArchiveCoeffs/CoeffsOpacityFreqList_avrg.txt'
 if os.path.exists(opacity_coefficients_filename):
-    if opt.verbose > 0: print 'Using coefficients from',opacity_coefficients_filename
+    if opt.verbose > 2: print 'Using coefficients from',opacity_coefficients_filename
     opacity_coeffs = pipeutils.opacity_coefficients(opacity_coefficients_filename)
 else:
-    if opt.verbose > 0: print 'WARNING: No opacity coefficients file'
+    if opt.verbose > 1: print 'WARNING: No opacity coefficients file'
     opacity_coeffs = False
 
 aips_input_files = []
