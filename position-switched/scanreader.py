@@ -1,12 +1,13 @@
 import pylab
 import smoothing
 import pipeutils
+from pipeutils import *
 
 import numpy as np
 import math
 import sys
 
-class ScanReader:
+class ScanReader():
     """The primary class for reading sdfits input.
 
     In addition to reading all required information from the sdfits
@@ -41,6 +42,9 @@ class ScanReader:
 
         self.frequency_resolution = 0
         self.noise_diode = False
+        
+    def setLogger(self,logger):
+        self.logger = logger
 
     def map_name_vals(self,fdata,verbose):
         """Collect information for naming the output file
@@ -74,9 +78,9 @@ class ScanReader:
         verbose -- verbosity level
 
         """
-        #print type(fdata),len(fdata),scan_number
-        scanmask = fdata.field('SCAN')==scan_number
-        #print scanmask
+        doMessage(self.logger,msg.DBG,type(fdata),len(fdata),scan_number)
+        scanmask = fdata.field('SCAN')==int(scan_number)
+        #doMessage(self.logger,msg.DBG,scanmask)
         lcldata = fdata[scanmask]
         
         for idx,row in enumerate(lcldata):
@@ -89,7 +93,7 @@ class ScanReader:
             self.attr['cdelt1'].append(row['CDELT1'])
             self.attr['ra'].append(row['CRVAL2'])
             self.attr['dec'].append(row['CRVAL3'])
-            if len(self.data):
+      	    if len(self.data):
                 self.data = np.vstack((self.data,row['DATA']))
             else:
                 self.data = np.array(row['DATA'],ndmin=2)
@@ -121,14 +125,13 @@ class ScanReader:
         else:
             self.noise_diode = False
             
-        if verbose > 3:
-            print 'feeds',len(self.feeds)
-            print 'n_polarizations',len(set(self.attr['polarization']))
-            print 'n_cals',len(self.cals)
-            print 'n_channels',len(self.data[0])
+        doMessage(self.logger,msg.DBG,'feeds',len(self.feeds))
+        doMessage(self.logger,msg.DBG,'n_polarizations',len(set(self.attr['polarization'])))
+        doMessage(self.logger,msg.DBG,'n_cals',len(self.cals))
+        doMessage(self.logger,msg.DBG,'n_channels',len(self.data[0]))
 
-            print 'nrecords',len(self.data)
-            print 'frequency_resolution',self.frequency_resolution,'Hz'
+        doMessage(self.logger,msg.DBG,'nrecords',len(self.data))
+        doMessage(self.logger,msg.DBG,'frequency_resolution',self.frequency_resolution,'Hz')
 
     def calonoff_ave(self):
         """Get average of Cal-on spectra and Cal-off
@@ -303,9 +306,8 @@ class ScanReader:
         mytsys = ratios.mean() * self.max_tcal()
 
         Tsys = mytsys
-        if (verbose > 1):
-            print 'Tsys', Tsys
-            print 'Tcal', tcal.mean()
+        doMessage(self.logger,msg.DBG,'Tsys', Tsys)
+        doMessage(self.logger,msg.DBG,'Tcal', tcal.mean())
 
         return Tsys
 
@@ -444,11 +446,10 @@ class ScanReader:
             for idx in range(sig_counts.shape[1]):
                 all_tsky_sig[:,idx] = tsky_sig[:,0]+(idx*dT)
             
-            if verbose > 3:
-                print 'TSKY SIG (interpolated)',all_tsky_sig[0][0],'to',all_tsky_sig[0][-1],'for first integration'
+            doMessage(self.logger,msg.DBG,'TSKY SIG (interpolated)',all_tsky_sig[0][0],'to',all_tsky_sig[0][-1],'for first integration')
         else:
             if not units=='ta':
-                print 'WARNING: Opacities not available, calibrating to units of Ta'
+                doMessage(self.logger,msg.WARN,'WARNING: Opacities not available, calibrating to units of Ta')
                 units = 'ta'
         
         # interpolate (by time) reference spectrum and tskys
@@ -465,24 +466,23 @@ class ScanReader:
         Ta = tsys_ref * ((sig_counts-ref)/ref)
         Units = Ta
 
-        if verbose > 3: # debug output
-            print 'freqs',freq[0],'to',freq[-1]
-            if np.any(opacities):
-                print 'opacities',opacities.shape,opacities[0].mean()
-                print 'TSKY REF',tsky_ref[0][0],'to',tsky_ref[0][-1]
-                print 'Shapes Ta,all_tsky_sig,tsky_ref',Ta.shape,all_tsky_sig.shape,tsky_ref.shape
-            print 'refs',ref.shape
-            print 'tsys (mean)',tsys_ref.mean()
-            print tsys_ref.mean(),sig_counts.shape,ref.shape
-            print '1st int SIG aves[0],[1000],[nChan]',sig_counts[0][0],sig_counts[0][1000],sig_counts[0][-1]
-            if len(refs) > 1:
-                print 'B-REF [0],[1000],[nChan]',refs[0][0],refs[0][1000],refs[0][-1]
-                print 'E-REF [0],[1000],[nChan]',refs[1][0],refs[1][1000],refs[1][-1]
-                print '1st int REF [0],[1000],[nChan]',ref[0][0],ref[0][1000],ref[0][-1]
-            print '1st int SIG [0],[1000],[nChan]',sig_counts[0][0],sig_counts[0][1000],sig_counts[0][-1]
+        doMessage(self.logger,msg.DBG,'freqs',freq[0],'to',freq[-1])
+        if np.any(opacities):
+            doMessage(self.logger,msg.DBG,'opacities',opacities.shape,opacities[0].mean())
+            doMessage(self.logger,msg.DBG,'TSKY REF',tsky_ref[0][0],'to',tsky_ref[0][-1])
+            doMessage(self.logger,msg.DBG,'Shapes Ta,all_tsky_sig,tsky_ref',Ta.shape,all_tsky_sig.shape,tsky_ref.shape)
+        doMessage(self.logger,msg.DBG,'refs',ref.shape)
+        doMessage(self.logger,msg.DBG,'tsys (mean)',tsys_ref.mean())
+        doMessage(self.logger,msg.DBG,tsys_ref.mean(),sig_counts.shape,ref.shape)
+        doMessage(self.logger,msg.DBG,'1st int SIG aves[0],[1000],[nChan]',sig_counts[0][0],sig_counts[0][1000],sig_counts[0][-1])
+        if len(refs) > 1:
+            doMessage(self.logger,msg.DBG,'B-REF [0],[1000],[nChan]',refs[0][0],refs[0][1000],refs[0][-1])
+            doMessage(self.logger,msg.DBG,'E-REF [0],[1000],[nChan]',refs[1][0],refs[1][1000],refs[1][-1])
+            doMessage(self.logger,msg.DBG,'1st int REF [0],[1000],[nChan]',ref[0][0],ref[0][1000],ref[0][-1])
+        doMessage(self.logger,msg.DBG,'1st int SIG [0],[1000],[nChan]',sig_counts[0][0],sig_counts[0][1000],sig_counts[0][-1])
             
         if not np.any(opacities) and not units=='ta':
-            if verbose > 1: print 'No opacities, calibrating to units of Ta'
+            doMessage(self.logger,msg.WARN,'WARNING: No opacities, calibrating to units of Ta')
             units=='ta'
             
         if units=='tatsky':
@@ -511,8 +511,8 @@ class ScanReader:
             Units = Tmb
             
         if not (units=='ta' or units=='tatsky' or units=='ta*' or units=='tmb' or units=='tb*'):
-            print 'Unable to calibrate to units of',units
-            print '  calibrated to Ta'
+            doMessage(self.logger,msg.WARN,'Unable to calibrate to units of',units)
+            doMessage(self.logger,msg.WARN,'  calibrated to Ta')
 
         # compute system temperature for each integration
         #   using the scaling factor (Tcal/(calON-calOFF))

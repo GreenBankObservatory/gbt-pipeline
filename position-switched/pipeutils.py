@@ -14,7 +14,7 @@ class msg:
     DBG = 5
     
 def doMessage(logger,level,*args):
-    message = ' '.join(args)
+    message = ' '.join(map(str,(args)))
     if msg.CRIT == level:
         logger.critical(message)
     elif msg.ERR == level:

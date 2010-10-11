@@ -21,42 +21,43 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,
     logfilename = 'scans_'+str(allscans[0])+'_'+str(allscans[-1])+'.log'
     logger = pipeutils.configure_logfile(opt,logfilename,toconsole=False)
     
-    doMessage(logger,msg.DBG,'finding scans')
+    doMessage(logger,msg.INFO,'finding scans')
     
     block_found = False
     
     for blockid in range(1,len(infile)):
         if allscans[-1] <= infile[blockid].data[-1].field('SCAN'):
             block_found = True
+            doMessage(logger,msg.DBG,'scan',allscans[-1],'found in extension',blockid)
             break
     if not block_found:
-        print 'ERROR: map scans not found for scan',allscans[-1]
+    	doMessage(logger,msg.ERR,'ERROR: map scans not found for scan',allscans[-1])
         sys.exit(9)
 
-    if (opt.verbose > 3): print 'done'
+    doMessage(logger,msg.INFO,'done')
 
-    if (opt.verbose > 3): print 'sampler list', samplerlist
+    doMessage(logger,msg.INFO,'sampler list', samplerlist)
 
     if type(samplerlist[0])!=type([]):
         samplerlist = [samplerlist]
     
-    if opt.verbose > 3:
-        print scans,blockid,samplerlist[blockid-1]
+    doMessage(logger,msg.DBG,scans,blockid,samplerlist[blockid-1])
 
     for sampler in samplerlist[blockid-1]:
         
-        if opt.verbose > 1:
-            print '-----------'
-            print 'SAMPLER',sampler
-            print '-----------'
+        doMessage(logger,msg.INFO,'-----------')
+        doMessage(logger,msg.INFO,'SAMPLER',sampler)
+        doMessage(logger,msg.INFO,'-----------')
 
         samplermask = masks[blockid-1].pop(sampler)
 
-        if (opt.verbose > 3): print 'appying mask'
+        doMessage(logger,msg.INFO,'appying mask')
         if block_found:
+            doMessage(logger,msg.DBG,'to extension',blockid)
             sdfitsdata = infile[blockid].data[samplermask]
+            doMessage(logger,msg.DBG,'length of sampler-filtered data block is',len(sdfitsdata))
             del samplermask
-        if (opt.verbose > 3): print 'done'
+        doMessage(logger,msg.INFO,'done')
         
         freq=0
         refspec = []
@@ -67,6 +68,8 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,
         # ------------------------------------------- name output file
         scan=allscans[0]
         mapscan = scanreader.ScanReader()
+        mapscan.setLogger(logger)
+        
         obj,centerfreq,feed = mapscan.map_name_vals(sdfitsdata,opt.verbose)
         outfilename = obj + '_' + str(feed) + '_' + \
                       str(allscans[0]) + '_' + str(allscans[-1]) + '_' + \
@@ -82,18 +85,19 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,
         #warnings.simplefilter('once', UserWarning)
         warnings.filterwarnings('ignore', '.*converting a masked element to nan.*',)
 
-        if opt.verbose > 0: print 'outfile name',outfilename
+        doMessage(logger,msg.INFO,'outfile name',outfilename)
         if (False == opt.clobber) and os.path.exists(outfilename):
-            print 'Outfile exits:',outfilename
-            print 'Please remove or rename outfile(s) and try again'
+            doMessage(logger,msg.ERR,'Outfile exits:',outfilename)
+            doMessage(logger,msg.ERR,'Please remove or rename outfile(s) and try again')
             sys.exit(1)
 
         # ------------------------------------------- get the first reference scan
         scan=refscans[0]
-        if opt.verbose > 1: print 'Processing reference scan:',scan
+        doMessage(logger,msg.INFO,'Processing reference scan:',scan)
         
         ref1 = scanreader.ScanReader()
-
+        ref1.setLogger(logger)
+		
         ref1.get_scan(scan,sdfitsdata,opt.verbose)
         
         ref1spec,ref1_max_tcal,ref1_mean_date,freq,tskys_ref1,ref1_tsys = \
@@ -107,8 +111,8 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,
         try:
             k_per_count = ref1_max_tcal / ref1.calonoff_diff() # dcSCal in scaleIntsRef
         except FloatingPointError:
-            print ref1_max_tcal
-            print ref1.calonoff_diff()
+            doMessage(logger,msg.ERR,ref1_max_tcal)
+            doMessage(logger,msg.ERR,ref1.calonoff_diff())
             
         onave1 = ref1.calon_ave()
         offave1 = ref1.caloff_ave()
@@ -120,14 +124,13 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,
         ratios = dcRef1[chanlo:chanhi] / dcCal[chanlo:chanhi]
         tsysRef1 = ratios.mean()*ref1_max_tcal
         ref_tsys.append(tsysRef1)
-        if opt.verbose > 3:
-            print 'REF 1'
-            print 'dcCal (avg. calON-calOFF):',ref1.calonoff_diff().mean()
-            print 'avg. K/count from ref1:',k_per_count.mean()
-            print 'ON AVE [0][1000][nChan]',onave1[0],onave1[1000],onave1[-1]
-            print 'OFF AVE [0][1000][nChan]',offave1[0],offave1[1000],offave1[-1]
-            print 'dcRef1',dcRef1[0],dcRef1[1000],dcRef1[-1]
-            print 'ref1 Tsys:',tsysRef1
+        doMessage(logger,msg.DBG,'REF 1')
+        doMessage(logger,msg.DBG,'dcCal (avg. calON-calOFF):',ref1.calonoff_diff().mean())
+        doMessage(logger,msg.DBG,'avg. K/count from ref1:',k_per_count.mean())
+        doMessage(logger,msg.DBG,'ON AVE [0][1000][nChan]',onave1[0],onave1[1000],onave1[-1])
+        doMessage(logger,msg.DBG,'OFF AVE [0][1000][nChan]',offave1[0],offave1[1000],offave1[-1])
+        doMessage(logger,msg.DBG,'dcRef1',dcRef1[0],dcRef1[1000],dcRef1[-1])
+        doMessage(logger,msg.DBG,'ref1 Tsys:',tsysRef1)
         
         # ------------------------------------------- gather all map CALON-CALOFFS to scale
         # -------------------------------------------  reference scan counts to kelvin
@@ -137,8 +140,10 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,
             maxTCAL=0
             
             for scan in allscans:
-                if opt.verbose > 1: print 'Processing map scan:',scan
+                doMessage(logger,msg.INFO,'Processing map scan:',scan)
                 mapscan = scanreader.ScanReader()
+                mapscan.setLogger(logger)
+                
                 mapscan.get_scan(scan,sdfitsdata,opt.verbose)
 
                 if len(calonAVEs):
@@ -157,25 +162,25 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,
             
             sig_calONOFFdiff = sig_calONave - sig_calOFFave
 
-            if opt.verbose > 3:
-                print 'sig calON mean',sig_calONave.mean()
-                print 'sig calOFF mean',sig_calOFFave.mean()
-                print 'sig calON-OFF mean',sig_calONOFFdiff.mean()
+            doMessage(logger,msg.DBG,'sig calON mean',sig_calONave.mean())
+            doMessage(logger,msg.DBG,'sig calOFF mean',sig_calOFFave.mean())
+            doMessage(logger,msg.DBG,'sig calON-OFF mean',sig_calONOFFdiff.mean())
             
             map_scans_cal_smoothed = smoothing.smooth_spectrum(sig_calONOFFdiff,freq)
 
             # ---------------------------------------- set scaling factor, kelvins per count
             k_per_count = maxTCAL / sig_calONOFFdiff
         
-        if opt.verbose > 3:
-            print "K/count (mean)",k_per_count.mean()
+        doMessage(logger,msg.DBG,"K/count (mean)",k_per_count.mean())
         
         # ------------------------------------------- get the last reference scan
         if len(refscans)>1:
             scan=refscans[-1]
-            if opt.verbose > 1:  print 'Processing reference scan:',scan
+            doMessage(logger,msg.INFO,'Processing reference scan:',scan)
             
             ref2 = scanreader.ScanReader()
+            ref2.setLogger(logger)
+            
             ref2.get_scan(scan,sdfitsdata,opt.verbose)
             
             ref2spec,ref2_max_tcal,ref2_mean_date,freq,tskys_ref2,ref2_tsys = \
@@ -196,12 +201,11 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,
             tsysRef2 = ratios.mean()*ref2_max_tcal
             ref_tsys.append(tsysRef2)
             
-            if opt.verbose > 3:
-                print 'REF 2'
-                print 'ON AVE [0][1000][nChan]',onave2[0],onave2[1000],onave2[-1]
-                print 'OFF AVE [0][1000][nChan]',offave2[0],offave2[1000],offave2[-1]
-                print 'dcRef2',dcRef2[0],dcRef2[1000],dcRef2[-1]
-                print 'ref2 Tsys:',tsysRef2
+            doMessage(logger,msg.DBG,'REF 2')
+            doMessage(logger,msg.DBG,'ON AVE [0][1000][nChan]',onave2[0],onave2[1000],onave2[-1])
+            doMessage(logger,msg.DBG,'OFF AVE [0][1000][nChan]',offave2[0],offave2[1000],offave2[-1])
+            doMessage(logger,msg.DBG,'dcRef2',dcRef2[0],dcRef2[1000],dcRef2[-1])
+            doMessage(logger,msg.DBG,'ref2 Tsys:',tsysRef2)
 
         # --------------------------  calibrate all integrations to Tb
         # ----------------------------  if not possible, calibrate to Ta
@@ -210,9 +214,11 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,
         nchans = False # number of channels, used to filter of 2% from either edge
         
         for scan in allscans:
-            if opt.verbose > 1: print 'Calibrating scan:',scan
+            doMessage(logger,msg.INFO,'Calibrating scan:',scan)
 
             mapscan = scanreader.ScanReader()
+            mapscan.setLogger(logger)
+            
             mapscan.get_scan(scan,sdfitsdata,opt.verbose)
             nchans = len(mapscan.data[0])
 
@@ -269,6 +275,6 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,
             options = options + ' -l '
             
         idlcmd = 'idlToSdfits -o ' + aipsinname + options + outfilename
-        if opt.verbose > 1: print idlcmd
+        doMessage(logger,msg.INFO,idlcmd)
         
         os.system(idlcmd)

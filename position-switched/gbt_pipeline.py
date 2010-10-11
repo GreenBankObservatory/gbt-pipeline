@@ -47,8 +47,8 @@ doMessage(logger,msg.INFO,"---------------")
 doMessage(logger,msg.INFO,"Calibrating to units of.......",opt.units)
 if not opt.allmaps:
     doMessage(logger,msg.INFO,"Map scans.....................",firstScan,'to',lastScan)
-doMessage(logger,msg.INFO,"creating all maps.............",str(opt.allmaps))
-if opt.nodisplay:     doMessage(logger,msg.INFO,"no idlToSdfits display .......",str(opt.nodisplay))
+doMessage(logger,msg.INFO,"creating all maps.............",opt.allmaps)
+if opt.nodisplay:     doMessage(logger,msg.INFO,"no idlToSdfits display .......",opt.nodisplay)
 if opt.sampler:       doMessage(logger,msg.INFO,"sampler.......................",opt.sampler)
 if opt.spillover:     doMessage(logger,msg.INFO,"spillover factor (eta_l)......",str(opt.spillover))
 if opt.aperture_eff:  doMessage(logger,msg.INFO,"aperture efficiency (eta_A)...",str(opt.aperture_eff))
@@ -141,7 +141,7 @@ if opt.allmaps:
 
 else:
     
-    mymaps = [(refscan1,allscans,refscan2)]
+    mymaps = [(opt.refscan1,allscans,opt.refscan2)]
     
 process_ids = []
 
