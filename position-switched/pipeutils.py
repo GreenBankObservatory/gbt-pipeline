@@ -3,7 +3,65 @@ import math
 import os
 import subprocess
 import sys
+import logging
 
+# message levels
+class msg:
+    CRIT = 1
+    ERR = 2
+    WARN = 3
+    INFO = 4
+    DBG = 5
+    
+def doMessage(logger,level,*args):
+    message = ' '.join(args)
+    if msg.CRIT == level:
+        logger.critical(message)
+    elif msg.ERR == level:
+        logger.error(message)
+    elif msg.WARN == level:
+        logger.warning(message)
+    elif msg.INFO == level:
+        logger.info(message)
+    elif msg.DBG == level:
+        logger.debug(message)
+    else:
+        logger.critical(message)
+
+def configure_logfile(opt,logfilename,toconsole=True):
+    LEVELS = {5: logging.DEBUG, # errors + warnings + summary + debug
+              4: logging.INFO, # errors + warnings + summary
+              3: logging.WARNING, # errors + warnings
+              2: logging.ERROR, # errors only
+              1: logging.CRITICAL} # unused
+
+    level_name = opt.verbose
+    level = LEVELS.get(level_name, logging.DEBUG)
+
+    loggername = logfilename.split('.')[0]
+    logger = logging.getLogger(loggername)
+    logger.setLevel(level)
+    # create file handler which logs even debug messages
+    fh = logging.FileHandler(filename=logfilename,mode='w')
+    fh.setLevel(logging.DEBUG)
+
+    if toconsole:
+        # create console handler with a higher log level
+        ch = logging.StreamHandler()
+        ch.setLevel(level)
+        # create formatter and add it to the handlers
+        ch_formatter = logging.Formatter("%(message)s")
+        ch.setFormatter(ch_formatter)
+        # add the handlers to logger
+        logger.addHandler(ch)
+
+    fh_formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    fh.setFormatter(fh_formatter)
+    # add the handlers to logger
+    logger.addHandler(fh)
+
+    return logger
+    
 def gd2jd(day,month,year,hour,minute,second):
     """Converts a gregorian date to julian date.
 

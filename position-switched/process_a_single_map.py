@@ -8,16 +8,21 @@ import pyfits
 
 import scanreader
 import smoothing
+import pipeutils
+from pipeutils import *
 
 def process_a_single_map(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,opacity_coeffs):
     
-    if (opt.verbose > 3): print 'finding scans'
-
     allscans = scans[1]
     refscans = [scans[0]]
     if scans[2]:
         refscans.append(scans[2])
 
+    logfilename = 'scans_'+str(allscans[0])+'_'+str(allscans[-1])+'.log'
+    logger = pipeutils.configure_logfile(opt,logfilename,toconsole=False)
+    
+    doMessage(logger,msg.DBG,'finding scans')
+    
     block_found = False
     
     for blockid in range(1,len(infile)):
