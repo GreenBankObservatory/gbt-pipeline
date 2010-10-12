@@ -58,7 +58,7 @@ class prettyfloat(float):
 pretty_gaincoeffs = map(prettyfloat, gaincoeffs)
 if opt.gaincoeffs:    doMessage(logger,msg.INFO,"gain coefficiencts............",str(pretty_gaincoeffs))
 if opt.verbose:       doMessage(logger,msg.INFO,"verbosity level...............",str(opt.verbose))
-print 'verbosity level',opt.verbose
+
 doMessage(logger,msg.INFO,"overwrite existing output.....",str(opt.clobber))
 #if opt.mainbeam_eff:  doMessage(logger,msg.INFO,"main beam efficiency (eta_B)..",opt.mainbeam_eff)
 #if opt.vsourcecenter: doMessage(logger,msg.INFO,"vSource.......................",opt.vsourcecenter)

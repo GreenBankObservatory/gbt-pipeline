@@ -40,10 +40,16 @@ def configure_logfile(opt,logfilename,toconsole=True):
 
     loggername = logfilename.split('.')[0]
     logger = logging.getLogger(loggername)
+    
+    # logging level defaults to WARN, so we need to override it
     logger.setLevel(level)
+    
     # create file handler which logs even debug messages
     fh = logging.FileHandler(filename=logfilename,mode='w')
     fh.setLevel(logging.DEBUG)
+    fh_formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    fh.setFormatter(fh_formatter)
+    logger.addHandler(fh)
 
     if toconsole:
         # create console handler with a higher log level
@@ -54,12 +60,7 @@ def configure_logfile(opt,logfilename,toconsole=True):
         ch.setFormatter(ch_formatter)
         # add the handlers to logger
         logger.addHandler(ch)
-
-    fh_formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-    fh.setFormatter(fh_formatter)
-    # add the handlers to logger
-    logger.addHandler(fh)
-
+    
     return logger
     
 def gd2jd(day,month,year,hour,minute,second):
