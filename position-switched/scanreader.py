@@ -491,7 +491,7 @@ class ScanReader():
                 Ta = Ta - (all_tsky_sig - tsky_ref)
                 Units = Ta
             
-        if units=='ta*' or units=='tmb' or units=='tb*':
+        if units=='ta*' or units=='tmb' or units=='tb*' or units=='jy':
             # Braatz 2007 (eqn. 3), modified with denominator == 1
             Ta_adjusted = Ta * all_opacities
             Units = Ta_adjusted
@@ -509,8 +509,15 @@ class ScanReader():
             # Braatz 2007 ("Calibration to Tmb and other units")
             Tmb = Ta_adjusted / etaMB
             Units = Tmb
+        
+        if units=='jy':
+            allfreq = self.freq_axis()
+            midfreq = allfreq[len(allfreq)/2] #reference freq of first integration
+            etaA = pipeutils.etaA(midfreq)
+            Jy = Ta_adjusted / (2.85 * etaA)
+            Units = Jy
             
-        if not (units=='ta' or units=='tatsky' or units=='ta*' or units=='tmb' or units=='tb*'):
+        if not (units=='ta' or units=='tatsky' or units=='ta*' or units=='tmb' or units=='tb*' or units=='jy'):
             doMessage(self.logger,msg.WARN,'Unable to calibrate to units of',units)
             doMessage(self.logger,msg.WARN,'  calibrated to Ta')
 

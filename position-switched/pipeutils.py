@@ -164,6 +164,21 @@ def hz2wavelength(f):
     c = 299792458  # speed of light in m/s
     return (c/f)
 
+def etaA(freqHz):
+    """Determine etaA    
+    
+    Keyword attributes:
+    freqHz -- input frequency in Hz
+
+    Returns:
+    etaA -- output point source efficiency (range 0 to 1)
+    """
+    freqGHz = float(freqHz)/1e9
+    freqScale = 0.0163 * freqGHz
+    etaA = float(0.71) * math.exp(-freqScale**2)
+    
+    return etaA
+
 def etaMB(freqHz):
     """Determine source efficiency
 
@@ -178,11 +193,7 @@ def etaMB(freqHz):
     EtaA,MB model is from memo by Jim Condon, provided by Ron Maddalena
 
     """
-
-    freqGHz = float(freqHz)/1e9
-    freqScale = 0.0163 * freqGHz
-    etaA = float(0.71) * math.exp(-freqScale**2)
-    etaMB = float(1.37) * etaA
+    etaMB = float(1.37) * etaA(freqHz)
 
     return etaMB
     
