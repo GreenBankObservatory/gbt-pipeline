@@ -18,7 +18,7 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,
     if scans[2]:
         refscans.append(scans[2])
 
-    logfilename = 'scans_'+str(allscans[0])+'_'+str(allscans[-1])+'.log'
+    logfilename = 'scans_'+str(allscans[0])+'_'+str(allscans[-1])+'_'+timestamp()+'.log'
     logger = pipeutils.configure_logfile(opt,logfilename,toconsole=False)
     
     doMessage(logger,msg.INFO,'finding scans')
@@ -74,16 +74,11 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,
         outfilename = obj + '_' + str(feed) + '_' + \
                       str(allscans[0]) + '_' + str(allscans[-1]) + '_' + \
                       str(centerfreq)[:6] + '_' + sampler + '.fits'
-        logfile = open(outfilename.split('.')[:-1][0]+'.log', 'w')
-        class Log(object):
-            def write(self, msg):
-                logfile.write("LOG: "+msg)
-        log = Log()
-        saved_handler = np.seterrcall(log)
-        np.seterr(all='log')
         import warnings
-        #warnings.simplefilter('once', UserWarning)
-        warnings.filterwarnings('ignore', '.*converting a masked element to nan.*',)
+        def send_warnings_to_logger(message, category, filename, lineno, file=None):
+            doMessage(logger,msg.WARN,message)
+        warnings.showwarning = send_warnings_to_logger
+        warnings.filterwarnings('once', '.*converting a masked element to nan.*',)
 
         doMessage(logger,msg.INFO,'outfile name',outfilename)
         if (False == opt.clobber) and os.path.exists(outfilename):

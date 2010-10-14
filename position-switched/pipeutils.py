@@ -4,7 +4,12 @@ import os
 import subprocess
 import sys
 import logging
+import time
 
+def timestamp():
+    lt = time.localtime(time.time())
+    return "%02d.%02d.%04d_%02d:%02d:%02d" % (lt[2], lt[1], lt[0], lt[3], lt[4], lt[5])
+    
 # message levels
 class msg:
     CRIT = 1

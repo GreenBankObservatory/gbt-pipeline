@@ -31,7 +31,7 @@ if opt.gaincoeffs:
 
 
 # -------------------------------------------------------- configure logging
-logger = pipeutils.configure_logfile(opt,'pipeline.log')
+logger = pipeutils.configure_logfile(opt,'pipeline'+'_'+timestamp()+'.log')
 
 # force units to all lowercase to make later tests easier
 opt.units = opt.units.lower()
