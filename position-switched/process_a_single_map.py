@@ -36,14 +36,14 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,
 
     doMessage(logger,msg.INFO,'done')
 
-    doMessage(logger,msg.INFO,'sampler list', samplerlist)
+    if opt.allmaps:
+        doMessage(logger,msg.DBG,scans,blockid,samplerlist[blockid-1])
+        thismap_samplerlist = samplerlist[blockid-1]
+    else:
+        doMessage(logger,msg.DBG,scans,blockid,samplerlist)
+        thismap_samplerlist = samplerlist
 
-    if type(samplerlist[0])!=type([]):
-        samplerlist = [samplerlist]
-    
-    doMessage(logger,msg.DBG,scans,blockid,samplerlist[blockid-1])
-
-    for sampler in samplerlist[blockid-1]:
+    for sampler in thismap_samplerlist:
         
         doMessage(logger,msg.INFO,'-----------')
         doMessage(logger,msg.INFO,'SAMPLER',sampler)
@@ -269,7 +269,12 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,
         if opt.nodisplay:
             options = options + ' -l '
             
-        idlcmd = 'idlToSdfits -o ' + aipsinname + options + outfilename
+        if opt.verbose > 4:
+            options = options + ' -v 2 '
+        else:
+            options = options + ' -v 0 '
+
+        idlcmd = '/opt/local/bin/idlToSdfits -o ' + aipsinname + options + outfilename
         doMessage(logger,msg.INFO,idlcmd)
         
         os.system(idlcmd)
