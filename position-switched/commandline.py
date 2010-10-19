@@ -1,6 +1,9 @@
 from optparse import OptionParser
 
 class CommandLine:
+    """Interpret command line options
+    
+    """
     def __init__(self):
         self.usage = "usage: gbtpipeline [options]"
         self.parser = OptionParser(usage=self.usage)
@@ -54,5 +57,8 @@ class CommandLine:
                         help="Overwrites existing output files if set.")
 
     def read(self,sys):
+        """Read and parse the command line arguments
+        
+        """
         if len(sys.argv) < 2: sys.argv.append('-h')
         return self.parser.parse_args()

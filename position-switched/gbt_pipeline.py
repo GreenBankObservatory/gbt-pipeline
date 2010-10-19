@@ -5,13 +5,9 @@ import pyfits
 import multiprocessing
 
 import commandline
-
 import pipeutils
 from pipeutils import *
-from check_for_sdfits_file import *
-from index_it import *
 from process_a_single_map import *
-from summarize_it import *
 
 cl = commandline.CommandLine()
 (opt, args) = cl.read(sys)

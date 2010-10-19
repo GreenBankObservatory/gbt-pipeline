@@ -1,10 +1,12 @@
-import numpy as np
 import math
 import os
 import subprocess
 import sys
 import logging
 import time
+
+import pyfits
+import numpy as np
 
 def timestamp():
     lt = time.localtime(time.time())
@@ -131,6 +133,7 @@ def interpolate(vals,xx,yy):
     vals -- vector of x values to interpolate
     xx -- known x-axis values
     yy -- known y-axis values (must be same length as xx)
+    
     """
     
     decreasing_xx_axis=False
@@ -165,6 +168,7 @@ def hz2wavelength(f):
     
     Returns:
     wavelength in meters
+    
     """
     c = 299792458  # speed of light in m/s
     return (c/f)
@@ -177,6 +181,7 @@ def etaA(freqHz):
 
     Returns:
     etaA -- output point source efficiency (range 0 to 1)
+    
     """
     freqGHz = float(freqHz)/1e9
     freqScale = 0.0163 * freqGHz
@@ -210,6 +215,7 @@ def gbtbeamsize(hz):
     
     Returns:
     beam size in arc seconds
+    
     """
     wavelength = hz2wavelength(hz)
     diameter = 10000 # estimate of telescope diameter in cm
@@ -226,6 +232,7 @@ def interpolate_tsys(tsyss,dates,tt):
     
     Returns:
     vector of time interpolated system temperatures
+    
     """
 
     return np.interp(tt,dates,tsyss)
@@ -240,6 +247,7 @@ def interpolate_reference(refs,dates,tskys,tsyss, mjds):
     
     Returns:
     time interpolated spectrum, tsky vector of spectrum and tsys
+    
     """
     
     # we want a stack of interpolated spectra
@@ -283,6 +291,7 @@ def opacity_coefficients(opacity_coefficients_filename):
     
     Returns:
     a list of opacity coefficients for the time range of the dataset
+    
     """
     FILE = open(opacity_coefficients_filename,'r')
 
@@ -327,6 +336,7 @@ def natm(elDeg):
     A = math.sin(math.pi*elev/180.)
 
     natm model is provided by Ron Maddalena
+    
     """
 
     DEGREE = math.pi/180.
@@ -426,6 +436,7 @@ def corrected_opacity(zenith_opacities,elevation):
 
 def interpolated_zenith_opacity(coeffs, freqs):
     """
+    
     """
     # interpolate between the coefficients based on time for a given frequency
     def zenith_opacity(f):
@@ -458,6 +469,7 @@ def ta_correction(gain_coeff,spillover,aperture_eff,\
     
     Returns:
     Ta correction factor at every frequency for every time and elevation
+    
     """
    
     opacities = []
@@ -506,6 +518,7 @@ def tsky(ambient_temp,freq,opacities):
     ambient_temp --
     freq -- 
     opacities -- opacities for once time
+    
     """
     freq_lo = freq[0]
     freq_hi = freq[-1]
@@ -530,3 +543,214 @@ def masked_array(array):
     """
     return np.ma.masked_array(array,np.isnan(array))
     
+
+def check_for_sdfits_file( infile, sdfitsdir, beginscan, endscan,\
+                           refscan1, refscan2, VERBOSE ):
+    """Check for the existence of the SDFITS input file.
+    
+    If the SDFITS input file exists, then use it. Otherwise,
+    recreate it from the project directory, if it is provided.
+    
+    """
+    # if the SDFITS input file doesn't exist, generate it
+    if (not os.path.isfile(infile) and os.path.isdir(sdfitsdir) and \
+        beginscan < endscan):
+        if VERBOSE > 0:
+            print "SDFITS input file does not exist; trying to generate it from",\
+                  "sdfits-dir input parameter directory and user-provided",\
+                  "begin and end scan numbers."
+
+        if not os.path.exists('/opt/local/bin/sdfits'):
+            print "ERROR: input sdfits file does not exist and we can not"
+            print "    regenerate it using the 'sdfits' filler program in"
+            print "    Green Bank. (/opt/local/bin/sdfits).  Exiting"
+            sys.exit(2)
+            
+        if refscan1 < beginscan:
+            minscan = refscan1
+        else:
+            minscan = beginscan
+
+        if refscan2 > endscan:
+            maxscan = refscan2
+        else:
+            maxscan = endscan
+
+        sdfitsstr = '/opt/local/bin/sdfits -fixbadlags -backends=acs' + \
+                    ' -scans=' + str(minscan) + ':' + str(maxscan) + ' ' + \
+                    sdfitsdir
+
+        if VERBOSE > 0:
+            print sdfitsstr
+
+        os.system(sdfitsstr)
+        
+        infile = os.path.basename(sdfitsdir) + ".raw.acs.fits"
+
+        # if the SDFITS input file exists, then use it to create the map
+        if os.path.isfile(infile):
+            if VERBOSE > 2:
+                print "infile OK"
+        else:
+            if VERBOSE > 2:
+                print "infile not OK"
+
+    return infile
+
+def index_it(indexfile,fitsfile=None,table_length=0,samplers=[],verbose=0):
+    
+    myFile = open(indexfile,'rU')
+    if fitsfile:
+        fd = pyfits.open(fitsfile,memmap=1)
+        table_length = []
+        # one set of masks per FITS extension
+        # each set of masks has a mask for each sampler
+        mask = []
+        for blockid in range(1,len(fd)):
+            table_length.append(len(fd[blockid].data))
+            mask.append({})
+
+        fd.close()
+    else:
+        if not bool(table_length):
+            print 'ERROR: either fits file or table size must be provided'
+            return False
+
+    # skip over the index file header lines
+    while True:
+        row = myFile.readline().split()
+        if len(row)==40:
+            # we just found the column keywords, so read the next line
+            row = myFile.readline().split()
+            break
+
+    while row:
+        
+        sampler = row[20]
+        ii = int(row[4])
+        extension_idx = int(row[3])-1  # FITS extention index, same as blockid +1 (above)
+
+        # if samplers is empty, assume all samplers
+        # i.e. not samplers == all samplers
+        # if 1 or more sampler is specified, only use those for masks
+        if (not samplers) or (sampler in samplers):
+            
+            # add a mask for a new sampler
+            if not sampler in mask[extension_idx]:
+                mask[extension_idx][sampler] = np.zeros((table_length[extension_idx]),dtype='bool')
+
+            mask[extension_idx][sampler][ii] = True
+            
+        # read the next row
+        row = myFile.readline().split()
+
+    # print results
+    for idx,maskblock in enumerate(mask):
+        total = 0
+        if verbose: print '-------------------'
+        if verbose: print 'EXTENSION',idx+1
+        if verbose: print '-------------------'
+        for sampler in maskblock:
+            total = total + maskblock[sampler].tolist().count(True)
+            if verbose: print sampler,maskblock[sampler].tolist().count(True)
+        if verbose: print 'total',total
+        
+    myFile.close()
+    
+    return mask
+    
+def summarize_it(indexfile,debug=False):
+
+    myFile = open(indexfile,'rU')
+    
+    scans = {}
+    map_scans = {}
+
+    # skip over the index file header lines
+    while True:
+        row = myFile.readline().split()
+        if len(row)==40:
+            # we just found the column keywords, so read the next line
+            row = myFile.readline().split()
+            break
+
+    while row:
+        
+        obsid = row[7]
+        scan = int(row[10])
+
+        if not scan in scans:
+            scans[scan] = obsid
+            
+        # read the next row
+        row = myFile.readline().split()
+
+    myFile.close()
+
+    # print results
+    if debug:
+        print '------------------------- All scans'
+        for scan in scans:
+            print 'scan',scan,scans[scan]
+
+        print '------------------------- Relavant scans'
+
+    for scan in scans:
+        if scans[scan]=='Map' or scans[scan]=='Off':
+            map_scans[scan] = scans[scan]
+
+    mapkeys = map_scans.keys()
+    mapkeys.sort()
+
+    if debug:
+        for scan in mapkeys:
+            print 'scan',scan,map_scans[scan]
+
+    maps = [] # final list of maps
+    ref1 = False
+    ref2 = False
+    prev_ref2 = False
+    mapscans = [] # temporary list of map scans for a single map
+
+    if debug:
+        print 'mapkeys', mapkeys
+        
+    for idx,scan in enumerate(mapkeys):
+        
+        # look for the offs
+        if map_scans[scan]=='Off':
+            # if there is no ref1 or this is another ref1
+            if not ref1 or (ref1 and bool(mapscans)==False):
+                ref1 = scan
+            else:
+                ref2 = scan
+                prev_ref2 = ref2
+
+        elif map_scans[scan]=='Map':
+            if not ref1 and prev_ref2:
+                ref1 = prev_ref2
+        
+            mapscans.append(scan)
+        
+        if ref2 or bool(map_scans)==False:
+            maps.append((ref1,mapscans,ref2))
+            ref1 = False
+            ref2 = False
+            mapscans = []
+            
+        if idx==len(mapkeys)-1:
+            maps.append((ref1,mapscans,ref2))
+
+    if debug:
+        import pprint
+        pprint.pprint(maps)
+        
+        for idx,mm in enumerate(maps):
+            print "Map",idx
+            if mm[2]:
+                print "\tReference scans.....",mm[0],mm[2]
+            else:
+                print "\tReference scan......",mm[0]
+            print "\tMap scans...........",mm[1]
+
+    return maps
