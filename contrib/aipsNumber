@@ -1,0 +1,46 @@
+#!/bin/tcsh
+#Function to read pre-assigned aips numbers for Pipeline, or assign new
+#HISTORY
+#10OCT06 GIL initial version based on WuppiObs
+
+setenv you `whoami` 
+
+if ( "$1" == "" ) then
+  echo "aipsNumber <userid>: Return the Pipeline Id a given user id"
+  echo "usage   : aipsNumber <userid>"
+  echo " where  : <userid> is your user id"
+  echo " eg  aipsNumber glangsto returns 10000"
+  echo
+  echo "Looks like you are: '"$you"'"
+  echo
+  echo "Glen Langston 2010 October 6, glangsto@nrao.edu"
+  exit
+endif
+
+setenv you "$1"
+
+setenv pipehome /home/sandboxes/gbtpipeline
+setenv AIPSNUMBERS $pipehome/contrib/AIPSNUMBERS.TXT
+
+# read the last AIPS user number from end of file
+if (-f "$AIPSNUMBERS") then
+  set nextNumber=`tail -1 $AIPSNUMBERS`
+else
+  set nextNumber=20000
+  echo $you $nextNumber > $AIPSNUMBERS
+  echo $nextNumber >> $AIPSNUMBERS
+endif
+
+# File format is userid aips number, so get the number for this id
+setenv yourNumber `cat $AIPSNUMBERS | grep $you | awk '{ print $2 }'`
+
+if ("$yourNumber" == "") then 
+  setenv yourNumber $nextNumber
+  # save the scan number and let others update it
+  echo $you $nextNumber >> $AIPSNUMBERS
+  @ nextNumber = $nextNumber + 1
+  echo $nextNumber >> $AIPSNUMBERS
+  chmod 666 $AIPSNUMBERS
+endif
+echo $yourNumber
+

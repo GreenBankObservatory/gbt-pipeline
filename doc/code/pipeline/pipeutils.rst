@@ -1,0 +1,5 @@
+pipeutils
+=========
+
+.. automodule:: pipeutils
+   :members:

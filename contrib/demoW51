@@ -1,0 +1,57 @@
+#!/bin/csh
+#run the pipeline with arguments specified
+#HISTORY
+# 101013 GIL change default location of python code
+# 101006 GIL complete execution of pipeline 
+# 100929 GIL try all w51 data on gbtpipeline
+# 100829 GIL try to run on Adam Ginzbergs data
+# 100325 GIL revised for existing SDFITS file
+
+
+setenv pipehome /home/sandboxes/gbtpipeline
+setenv gbtpipeline $pipehome/gbtpipeline
+set you=`whoami`
+
+#Use AIPS with a public number
+setenv NUMBERS `$pipehome/contrib/aipsNumber $you`
+#Due to strange prompt issues, strip out last 5 digits only
+setenv AIPSNUM `echo $NUMBERS | awk '{print substr($0,length($0)-4,length($0))}'`
+echo '--------------------------------------------------'
+echo ' Your ('$you') pipeline AIPS number: '$AIPSNUM
+echo '--------------------------------------------------'
+
+#select NH3 (1,1) scans for this map
+$gbtpipeline -i /home/sdfits/TKFPA_29/TKFPA_29.raw.acs.fits -b 14 -e 24 \
+    --refscan1=13 --refscan2=26 --units='Tmb' -v 1 \
+    --nodisplay
+
+########################## Set your imaging script name here
+set image=imageW51.py
+
+if (! -f "$image") then
+  cp $pipehome/contrib/$image .
+endif
+
+set doImage=$pipehome/doImage
+#Now produce the cube, continuum and baselined images
+$doImage $image.py $AIPSNUM *.sdf
+
+#Sum channels to compute Line integratl
+if (! -f "sumLine.py") then
+  cp $pipehome/contrib/sumLine.py .
+endif
+
+#Sum line channels for W51 NH3 (1,1)
+#v=60 km/sec, line FULL width 20 km/sec
+$doImage sumLine.py $AIPSNUM W51-NH3-11 23694.506 60. 20.
+casaviewer *NH3-11.fits &     #Look at NH3 (1,1) line output
+
+#Next sum the NH3 (2,2) transition 
+$doImage sumLine.py $AIPSNUM W51-NH3-22 23722.6336 60. 20.
+casaviewer *NH3-22.fits &     #Compare NH3 (2,2)
+
+#Next sum the HC7N 21-20 transition 
+$doImage sumLine.py $AIPSNUM W51-HC7N21 23687.898 60. 10.
+casaviewer *HC7N21.fits &     #Compare HC7N 
+
+

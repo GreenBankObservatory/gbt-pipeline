@@ -1,0 +1,15 @@
+#AIPS NUMBERS for the KFPA pipeline
+glangsto 15000
+bgarwood 15001
+jmasters 15002
+dfrayer 15003
+tminter 15004
+jlockman 15005
+koneil 15006
+15007
+root 15007
+15008
+pmurphy 15008
+15009
+whoami 15009
+15010
