@@ -1,6 +1,6 @@
 scanreader
 ==========
 
-.. autoclass:: scanreader
+.. automodule:: scanreader
    :members:
    :undoc-members:
