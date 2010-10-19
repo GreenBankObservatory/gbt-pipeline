@@ -1,0 +1,170 @@
+\documentclass[11pt]{article}
+\begin{document}
+\title{KFPA IDL Prototype Pipeline Description}
+\author{Joe Masters}
+\date{April 21, 2010}
+\maketitle
+
+\begin{abstract}
+The purpose of this document is to describe the IDL KFPA Pipeline code provided by Glen Langston for the purpose of calibration and imaging multi-beam, K-band datasets from the Green Bank Telescope.
+
+In particular, this description applies to github commit \#a26a9777b9, which is installed in /home/sandboxes/kfpa\_pipeline (since 2010-04-14), but it also applies to the original pipeline code supplied by Glen.
+
+All descriptions below apply to a single spectral band (IF), feed and polarization.  The pipeline, however will process all bands, feeds and polarizations in an map.
+
+A map consists of a reference scan, followed by one or more mapping scans, followed by a second reference scan.
+\end{abstract}
+
+\section{Avegerage elevation and system temps for reference scans}
+
+For each reference scan we:
+
+\begin{enumerate}
+
+\item Average the CALON and CALOFF integrations as:
+
+\begin{equation}
+CAL_{ave} = (CALON_{ave} + CALOFF_{ave}) / 2
+\end{equation}
+
+where $CALON_{ave} = (\sum\limits_{i=0}^n i_{CALON}) / n$ and $CALOFF_{ave} = (\sum\limits_{i=0}^n i_{CALOFF}) / n$.
+
+\item Average the elevation for all CALON integrations.
+
+\item Compute the total exposure time for all CALON integrations.
+
+\item Compute $T_{sys}$ as:
+
+\begin{equation}
+T_{sys} = avg( CAL_{ave}[80] / (CAL_{diff})[80] ) * TCAL_{mean}
+\end{equation}
+
+where $[80]$ represents the center 80\% of the bandpass and $TCAL_{mean}$ is the average off all CALOFF TCAL values for the scan.
+
+\end{enumerate}
+
+\section{Average cals over all map scans}
+
+For the full block of map scans we difference the CALON and CALOFF integrations as:
+
+\begin{equation}
+CAL_{diff} = CALON_{ave} - CALOFF_{ave}
+\end{equation}
+
+\section{Compute zenith opacity tau ($\tau$)}
+
+Next we retrieve the archived $\tau$ prediction for date and frequency using Ron Maddalena's {\it getForecastValues} script, installed only in his home directory in Green Bank.
+
+\section{Smooth and remove $T_{sky}$ from refs and map $CAL_{diff}$}
+
+Smoothing of the averaged spectra and the averaged map block spectra are performed as follows:
+
+\begin{enumerate}
+
+\item Smoothing the averaged difference of CAL states ($CAL_{diff}$):
+
+\begin{enumerate}
+\item median smoothing applied to remove narrow band RFI, with a filter of size {\bf 5} channels.
+
+
+\begin{equation}\label{rfi}
+CAL_{ave\_median} = median(CAL_{ave},5)
+\end{equation}
+
+\item Savitzky-Golay smoothing is further applied.
+
+\begin{equation}\label{sg1}
+CAL_{ave\_savgol} = savgol(CAL_{ave\_median})
+\end{equation}
+
+\item Convert to units of K/Count:
+
+\begin{equation}\label{kcount}
+cal_{k/count} = TCAL_{mean} / (CAL_{diff})[80]
+\end{equation}
+
+\item Savitzky-Golay smoothing with different parameters is again applied to band edges.
+
+\begin{equation}\label{sg2}
+CAL^{*}_{ave\_savgol} = CAL_{ave\_savgol} * cal_{k/count}
+\end{equation}
+
+\item Boxcar smoothing is applied to the spectrum to reduce effects of joining previous two Sav-Gol filters.
+
+\end{enumerate}
+
+where $[80]$ represents the center 80\% of the bandpass and $TCAL_{mean}$ is the average off all CALOFF TCAL values for the scan.
+
+\item Smoothing the average of CAL states ($CAL_{ave}$):
+\begin{enumerate}
+
+\item median smoothing applied to average of reference spectrum integrations to remove narrow band RFI, with a filter of size {\bf 5} channels as in equation (\ref{rfi}).
+
+\item Savitzky-Golay smoothing is further applied as in equation (\ref{sg1}).
+
+\end{enumerate}
+
+\item Convert smoothed $CAL_{ave\_savgol}$ to K/count units as in equations (\ref{kcount}) and (\ref{sg2}).
+
+\item Determine sky temperature contribution to spectrum ($T_{sky}$).
+This is dependent upon the observed frequencies and date of observation.
+
+\item Subtract $T_{sky}$ contibution from $CAL_{ave\_savgol}$ and median smooth (cell size {\bf 11}).
+
+\begin{equation}
+CAL^{*}_{ave\_savgol} = median(CAL_{ave\_savgol} - T_{sky},11)
+\end{equation}
+
+
+\end{enumerate}
+
+\section{Apply gain correction to all map integrations}
+
+\begin{enumerate}
+
+\item Gather UTC times from reference scans to later be used for interpolation.
+
+\item For each scan and each integration:
+
+\begin{enumerate}
+
+\item Get the frequency range of each channel.
+
+\begin{equation}
+freq_{start} = CALON.observed_frequency + ( (0-refChan) * delChan ) * 1.E-6
+\end{equation}
+
+\begin{equation}
+freq_{end} = CALON.observed_frequency +  ( (nChan-refChan) * delChan ) * 1.E-6
+\end{equation}
+
+\item Get opacity tau ($\tau$)
+
+\item Determine sky temperature contribution to integration ($T_{sky}$).
+
+\item Correct for opacity per channel
+
+\item Average CALON and CALOFF (CALONOFF)
+
+\item Compute and interpolated reference from the two reference scans and also interpolate $T_{sys}$. ($ref_{interp.}$)
+
+\item Update inegration spectra.
+
+\begin{equation}
+CALON(\nu) = opacity(\nu)* ((CALONOFF * CAL_{diff}) - (T_{sky}(\nu) + ref_{interp.}))
+\end{equation}
+
+\item Update $T_{sys}$
+
+\begin{equation}
+CALON(\nu).tsys = CALON[80] + T_{sky}[mid] + CAL_{diff}.tsys
+\end{equation}
+
+\end{enumerate}
+
+\item Convert to AIPS friendly format (idlToSdfits) and image.
+
+\end{enumerate}
+
+\end{document}
+
