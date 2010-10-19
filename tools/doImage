@@ -39,4 +39,4 @@ PYTHONSTARTUP=/home/sandboxes/jmasters/local/share/parseltongue/python/ParselTon
 export PYTHONPATH PYTHONSTARTUP
 
 echo $PYTHONPATH
-python $*
+/opt/local/bin/python $*
