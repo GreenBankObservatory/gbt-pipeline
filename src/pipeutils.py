@@ -696,7 +696,7 @@ def summarize_it(indexfile,debug=False):
         print '------------------------- Relavant scans'
 
     for scan in scans:
-        if scans[scan]=='Map' or scans[scan]=='Off':
+        if scans[scan].upper()=='MAP' or scans[scan].upper()=='OFF':
             map_scans[scan] = scans[scan]
 
     mapkeys = map_scans.keys()
@@ -718,7 +718,7 @@ def summarize_it(indexfile,debug=False):
     for idx,scan in enumerate(mapkeys):
         
         # look for the offs
-        if map_scans[scan]=='Off':
+        if (map_scans[scan]).upper()=='OFF':
             # if there is no ref1 or this is another ref1
             if not ref1 or (ref1 and bool(mapscans)==False):
                 ref1 = scan
@@ -726,7 +726,7 @@ def summarize_it(indexfile,debug=False):
                 ref2 = scan
                 prev_ref2 = ref2
 
-        elif map_scans[scan]=='Map':
+        elif (map_scans[scan]).upper()=='MAP':
             if not ref1 and prev_ref2:
                 ref1 = prev_ref2
         
