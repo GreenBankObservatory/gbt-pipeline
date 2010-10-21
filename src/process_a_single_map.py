@@ -36,12 +36,20 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,
 
     doMessage(logger,msg.INFO,'done')
 
+    # --allmaps set
     if opt.allmaps:
         doMessage(logger,msg.DBG,scans,blockid,samplerlist[blockid-1])
         thismap_samplerlist = samplerlist[blockid-1]
-    else:
-        doMessage(logger,msg.DBG,scans,blockid,samplerlist)
+    # scans and samplers specified
+    elif opt.sampler:
+        doMessage(logger,msg.DBG,'scans',scans)
+        doMessage(logger,msg.DBG,'blockid',blockid)
         thismap_samplerlist = samplerlist
+        doMessage(logger,msg.DBG,'thismap_samplerlist',thismap_samplerlist)
+    # scan specified, samplers not specified
+    else:
+        thismap_samplerlist = samplerlist[blockid-1]
+        doMessage(logger,msg.DBG,'thismap_samplerlist',thismap_samplerlist)
 
     for sampler in thismap_samplerlist:
         
@@ -49,7 +57,18 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,
         doMessage(logger,msg.INFO,'SAMPLER',sampler)
         doMessage(logger,msg.INFO,'-----------')
 
-        samplermask = masks[blockid-1].pop(sampler)
+        try:
+            samplermask = masks[blockid-1].pop(sampler)
+        except(TypeError):
+            doMessage(logger,msg.ERR,'ERROR: TypeError when defining samplermask')
+            doMessage(logger,msg.DBG,'sampler',sampler)
+            doMessage(logger,msg.DBG,'blockid',blockid)
+            doMessage(logger,msg.DBG,'len(samplerlist)',len(samplerlist))
+            doMessage(logger,msg.DBG,'len(masks)',len(masks))
+            doMessage(logger,msg.DBG,'len(masks[0])',len(masks[0]))
+            doMessage(logger,msg.DBG,'type(masks)',type(masks))
+            doMessage(logger,msg.DBG,'type(masks[0])',type(masks[0]))
+            sys.exit(9)
 
         doMessage(logger,msg.INFO,'appying mask')
         if block_found:
