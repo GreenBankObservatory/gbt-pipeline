@@ -14,11 +14,23 @@ from pipeutils import *
 def process_a_single_map(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,opacity_coeffs):
     
     allscans = scans[1]
+    
+    if 0==len(allscans):
+        print 'ERROR: no map scans in this block'
+        print '       please check SCANID values'
+        return
+
     refscans = [scans[0]]
     if scans[2]:
         refscans.append(scans[2])
 
-    logfilename = 'scans_'+str(allscans[0])+'_'+str(allscans[-1])+'_'+timestamp()+'.log'
+    try:
+        logfilename = 'scans_'+str(allscans[0])+'_'+str(allscans[-1])+'_'+timestamp()+'.log'
+        
+    except(IndexError):
+        print allscans
+        sys.exit(9)
+        
     logger = pipeutils.configure_logfile(opt,logfilename,toconsole=False)
     
     doMessage(logger,msg.INFO,'finding scans')
@@ -31,7 +43,7 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,
             doMessage(logger,msg.DBG,'scan',allscans[-1],'found in extension',blockid)
             break
     if not block_found:
-    	doMessage(logger,msg.ERR,'ERROR: map scans not found for scan',allscans[-1])
+        doMessage(logger,msg.ERR,'ERROR: map scans not found for scan',allscans[-1])
         sys.exit(9)
 
     doMessage(logger,msg.INFO,'done')

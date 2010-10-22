@@ -732,15 +732,15 @@ def summarize_it(indexfile,debug=False):
         
             mapscans.append(scan)
         
-        if ref2 or bool(map_scans)==False:
+        # see if this scan is the last one in the relevant scan list
+        # or see if we have a ref2
+        #    if so, close out    
+        if ref2 or idx==len(mapkeys)-1:
             maps.append((ref1,mapscans,ref2))
             ref1 = False
             ref2 = False
             mapscans = []
             
-        if idx==len(mapkeys)-1:
-            maps.append((ref1,mapscans,ref2))
-
     if debug:
         import pprint
         pprint.pprint(maps)
