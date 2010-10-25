@@ -2,6 +2,7 @@ USE_MAP_SCAN_FOR_SCALE=True
 
 import os
 import sys
+import getpass
 
 import numpy as np
 import pyfits
@@ -309,3 +310,24 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,
         doMessage(logger,msg.INFO,idlcmd)
         
         os.system(idlcmd)
+
+    if opt.imaging:
+
+        aipsNumber = str(os.getuid())
+        doMessage(logger,msg.INFO,'aips number: ',aipsNumber)
+
+        imaging_script = '/home/gbtpipeline/release/contrib/imageDefault.py'
+        outsplit = outfilename.split('_')
+        target = outsplit[0]
+        scan_b = outsplit[2]
+        scan_e = outsplit[3]
+        freq = outsplit[4]
+        filenames = target + '*' + scan_b + '_' + scan_e + '_' + freq + '*.sdf'
+        doimg_cmd = ' '.join(('doImage',imaging_script,aipsNumber,filenames))
+        doMessage(logger,msg.INFO,doimg_cmd)
+
+        p = subprocess.Popen(doimg_cmd.split(),stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        aips_stdout,aips_stderr = p.communicate()
+
+        doMessage(logger,msg.DBG,aips_stdout)
+        doMessage(logger,msg.DBG,aips_stderr)

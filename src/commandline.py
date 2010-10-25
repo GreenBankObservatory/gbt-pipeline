@@ -14,7 +14,9 @@ class CommandLine:
         self.parser.add_option("-e", "--end-scan", dest="endscan", default='0',
                         help="ending map scan number", metavar="SCAN")
         self.parser.add_option("--allmaps", dest="allmaps", action='store_true',
-                        default=False, help="If set, attemp to process all maps in input file.")
+                        default=False, help="If set, attempt to process all maps in input file.")
+        self.parser.add_option("--imaging", dest="imaging", action='store_true',
+                        default=False, help="If set, attempt to create images.")
         #self.parser.add_option("-c", "--vsource-center", dest="vsourcecenter", default='0',
                         #help="defines center channel to select (km/sec)", metavar="N")
         self.parser.add_option("-u", "--units", dest="units", default='Ta*',

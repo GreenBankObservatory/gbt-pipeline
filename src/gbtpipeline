@@ -1,19 +1,22 @@
 #!/bin/bash
 
-if [[ "$PATH" != */home/sandboxes/gbtpipeline* ]]
+if [[ "$PATH" != */home/gbtpipeline/release* ]]
 then
-    PATH=/home/sandboxes/gbtpipeline:"$PATH"
     PATH=/home/sandboxes/jmasters/local/bin:"$PATH"
+    PATH=/home/gbtpipeline/release/tools:"$PATH"
+    PATH=/home/gbtpipeline/release:"$PATH"
 fi
 
 if [ -z "$PYTHONPATH" ]
 then
-    PYTHONPATH=/home/sandboxes/gbtpipeline
+    PYTHONPATH=/home/gbtpipeline/release/contrib
+    PYTHONPATH=/home/gbtpipeline/release:"$PYTHONPATH"
 else
     lclpythonpath="$PYTHONPATH"
-    if [[ $lclpythonpath != */home/sandboxes/gbtpipeline* ]]
+    if [[ $lclpythonpath != */home/gbtpipeline/release* ]]
     then
-        PYTHONPATH=/home/sandboxes/gbtpipeline:"$PYTHONPATH"
+        PYTHONPATH=/home/gbtpipeline/release/contrib:"$PYTHONPATH"
+        PYTHONPATH=/home/gbtpipeline/release:"$PYTHONPATH"
     fi
 fi
 

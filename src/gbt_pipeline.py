@@ -53,6 +53,8 @@ class prettyfloat(float):
         return "%0.2g" % self
 pretty_gaincoeffs = map(prettyfloat, gaincoeffs)
 if opt.gaincoeffs:    doMessage(logger,msg.INFO,"gain coefficiencts............",str(pretty_gaincoeffs))
+if opt.imaging:
+    doMessage(logger,msg.INFO, "do imaging        ............",opt.imaging)
 if opt.verbose:       doMessage(logger,msg.INFO,"verbosity level...............",str(opt.verbose))
 
 doMessage(logger,msg.INFO,"overwrite existing output.....",str(opt.clobber))
