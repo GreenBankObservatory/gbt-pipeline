@@ -1,4 +1,3 @@
-import pylab
 import smoothing
 import pipeutils
 from pipeutils import *
