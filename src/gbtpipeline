@@ -1,31 +1,10 @@
 #!/bin/bash
 
-me=`basename $0`
+fullpath=`readlink -f $0`
+me=`dirname $fullpath`
 
-if [ $me = "gbtpipeline" ]; then
-
-	if [[ "$PATH" != */home/gbtpipeline/release* ]]
-	then
-		PATH=/home/gbt7/norman/bin:"$PATH"
-		PATH=/home/gbtpipeline/release/tools:"$PATH"
-		PATH=/home/gbtpipeline/release:"$PATH"
-	fi
-	
-	if [ -z "$PYTHONPATH" ]
-	then
-		PYTHONPATH=/home/gbtpipeline/release/contrib
-		PYTHONPATH=/home/gbtpipeline/release:"$PYTHONPATH"
-	else
-		lclpythonpath="$PYTHONPATH"
-		if [[ $lclpythonpath != */home/gbtpipeline/release* ]]
-		then
-			PYTHONPATH=/home/gbtpipeline/release/contrib:"$PYTHONPATH"
-			PYTHONPATH=/home/gbtpipeline/release:"$PYTHONPATH"
-		fi
-	fi
-
-elif [ $me = "gbtpipeline-test" ]; then
-	echo "test" $me
+if [ $me = "/home/gbtpipeline/integration" ]; then
+	echo "!!!!!!!!!! TEST VERSION !!!!!!!!!!!!"
 
 	if [[ "$PATH" != */home/gbtpipeline/integration* ]]
 	then
@@ -48,12 +27,34 @@ elif [ $me = "gbtpipeline-test" ]; then
 	fi
 
 else
-	echo "unknown" $me
+
+	if [[ "$PATH" != */home/gbtpipeline/release* ]]
+	then
+		PATH=/home/gbt7/norman/bin:"$PATH"
+		PATH=/home/gbtpipeline/release/tools:"$PATH"
+		PATH=/home/gbtpipeline/release:"$PATH"
+	fi
+	
+	if [ -z "$PYTHONPATH" ]
+	then
+		PYTHONPATH=/home/gbtpipeline/release/contrib
+		PYTHONPATH=/home/gbtpipeline/release:"$PYTHONPATH"
+	else
+		lclpythonpath="$PYTHONPATH"
+		if [[ $lclpythonpath != */home/gbtpipeline/release* ]]
+		then
+			PYTHONPATH=/home/gbtpipeline/release/contrib:"$PYTHONPATH"
+			PYTHONPATH=/home/gbtpipeline/release:"$PYTHONPATH"
+		fi
+	fi
+
 fi
 
 export PATH
 export PYTHONPATH
 
-echo $me $*
+if [ $# -gt 0 ]; then
+    echo "gbtpipeline" $*
+fi
 
 gbt_pipeline.py $*
