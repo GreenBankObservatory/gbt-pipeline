@@ -1,0 +1,6 @@
+*.fits*
+Cal_*
+*.pyc
+*~
+*.sdf
+*.local
