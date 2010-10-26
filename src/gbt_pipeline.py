@@ -40,22 +40,22 @@ if not (opt.units in ACCEPTABLE_UNITS ):
 doMessage(logger,msg.INFO,"---------------")
 doMessage(logger,msg.INFO,"Command summary")
 doMessage(logger,msg.INFO,"---------------")
+doMessage(logger,msg.INFO,"Input file....................",opt.infile)
 doMessage(logger,msg.INFO,"Calibrating to units of.......",opt.units)
 if not opt.allmaps:
     doMessage(logger,msg.INFO,"Map scans.....................",firstScan,'to',lastScan)
 doMessage(logger,msg.INFO,"creating all maps.............",opt.allmaps)
-if opt.nodisplay:     doMessage(logger,msg.INFO,"no idlToSdfits display .......",opt.nodisplay)
-if opt.sampler:       doMessage(logger,msg.INFO,"sampler.......................",opt.sampler)
-if opt.spillover:     doMessage(logger,msg.INFO,"spillover factor (eta_l)......",str(opt.spillover))
-if opt.aperture_eff:  doMessage(logger,msg.INFO,"aperture efficiency (eta_A)...",str(opt.aperture_eff))
+doMessage(logger,msg.INFO,"no idlToSdfits display .......",opt.nodisplay)
+doMessage(logger,msg.INFO,"sampler.......................",opt.sampler)
+doMessage(logger,msg.INFO,"spillover factor (eta_l)......",str(opt.spillover))
+doMessage(logger,msg.INFO,"aperture efficiency (eta_A)...",str(opt.aperture_eff))
 class prettyfloat(float):
     def __repr__(self):
         return "%0.2g" % self
 pretty_gaincoeffs = map(prettyfloat, gaincoeffs)
-if opt.gaincoeffs:    doMessage(logger,msg.INFO,"gain coefficiencts............",str(pretty_gaincoeffs))
-if opt.imaging:
-    doMessage(logger,msg.INFO, "do imaging        ............",opt.imaging)
-if opt.verbose:       doMessage(logger,msg.INFO,"verbosity level...............",str(opt.verbose))
+doMessage(logger,msg.INFO,"gain coefficiencts............",str(pretty_gaincoeffs))
+doMessage(logger,msg.INFO,"turn imaging off..............",opt.imagingoff)
+doMessage(logger,msg.INFO,"verbosity level...............",str(opt.verbose))
 
 doMessage(logger,msg.INFO,"overwrite existing output.....",str(opt.clobber))
 #if opt.mainbeam_eff:  doMessage(logger,msg.INFO,"main beam efficiency (eta_B)..",opt.mainbeam_eff)

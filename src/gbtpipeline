@@ -6,7 +6,7 @@ if [ $me = "gbtpipeline" ]; then
 
 	if [[ "$PATH" != */home/gbtpipeline/release* ]]
 	then
-		PATH=/home/sandboxes/jmasters/local/bin:"$PATH"
+		PATH=/home/gbt7/norman/bin:"$PATH"
 		PATH=/home/gbtpipeline/release/tools:"$PATH"
 		PATH=/home/gbtpipeline/release:"$PATH"
 	fi
@@ -29,7 +29,7 @@ elif [ $me = "gbtpipeline-test" ]; then
 
 	if [[ "$PATH" != */home/gbtpipeline/integration* ]]
 	then
-		PATH=/home/sandboxes/jmasters/local/bin:"$PATH"
+		PATH=/home/gbt7/norman/bin:"$PATH"
 		PATH=/home/gbtpipeline/integration/tools:"$PATH"
 		PATH=/home/gbtpipeline/integration:"$PATH"
 	fi

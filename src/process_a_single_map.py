@@ -107,7 +107,7 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,
                       str(allscans[0]) + '_' + str(allscans[-1]) + '_' + \
                       str(centerfreq)[:6] + '_' + sampler + '.fits'
         import warnings
-        def send_warnings_to_logger(message, category, filename, lineno, file=None):
+        def send_warnings_to_logger(message, category, filename, lineno, file=None, line=None):
             doMessage(logger,msg.WARN,message)
         warnings.showwarning = send_warnings_to_logger
         warnings.filterwarnings('once', '.*converting a masked element to nan.*',)
@@ -311,7 +311,7 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,
         
         os.system(idlcmd)
 
-    if opt.imaging:
+    if not opt.imagingoff:
 
         aipsNumber = str(os.getuid())
         doMessage(logger,msg.INFO,'aips number: ',aipsNumber)
