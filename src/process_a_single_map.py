@@ -100,7 +100,7 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,
         mapscan = scanreader.ScanReader()
         mapscan.setLogger(logger)
         
-        obj,centerfreq,feed = mapscan.map_name_vals(sdfitsdata,opt.verbose)
+        obj,centerfreq,feed = mapscan.map_name_vals(scan,sdfitsdata,opt.verbose)
         outfilename = obj + '_' + str(feed) + '_' + \
                       str(allscans[0]) + '_' + str(allscans[-1]) + '_' + \
                       str(centerfreq)[:6] + '_' + sampler + '.fits'

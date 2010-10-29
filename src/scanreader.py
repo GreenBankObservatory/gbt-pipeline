@@ -45,14 +45,17 @@ class ScanReader():
     def setLogger(self,logger):
         self.logger = logger
 
-    def map_name_vals(self,fdata,verbose):
+    def map_name_vals(self,first_map_scan,fdata,verbose):
         """Collect information for naming the output file
 
         Required information comes from the column values in the sdfits
         input file.  It is only necessary to read a single row, so we
-        return after finding the first integration.
+        return after finding the first integration with a scan
+        number from the map.  For convenience, we use the first scan 
+        number from the map.
         
         Keyword arguments:
+        first_map_scan -- first scan number of the map
         fdata -- sdfits input table pointer
         verbose -- verbosity level
         
@@ -62,9 +65,12 @@ class ScanReader():
         feed -- the feed number from "FEED" col. in the sdfits input
         """
 
-        obj = fdata.field('OBJECT')[0]
-        feed = fdata.field('FEED')[0]
-        centerfreq = fdata.field('CRVAL1')[0]
+        scanmask = fdata.field('SCAN')==int(first_map_scan)
+        lcldata = fdata[scanmask]
+
+        obj = lcldata.field('OBJECT')[0]
+        feed = lcldata.field('FEED')[0]
+        centerfreq = lcldata.field('CRVAL1')[0]
 
         return obj,centerfreq,feed
 
