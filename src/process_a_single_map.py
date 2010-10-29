@@ -1,5 +1,3 @@
-USE_MAP_SCAN_FOR_SCALE=True
-
 import os
 import sys
 import getpass
@@ -161,7 +159,7 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,
         
         # ------------------------------------------- gather all map CALON-CALOFFS to scale
         # -------------------------------------------  reference scan counts to kelvin
-        if USE_MAP_SCAN_FOR_SCALE:
+        if opt.mapscansforscale:
             calonAVEs=[]
             caloffAVEs=[]
             maxTCAL=0

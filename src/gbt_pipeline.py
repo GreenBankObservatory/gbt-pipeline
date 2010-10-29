@@ -55,6 +55,7 @@ class prettyfloat(float):
 pretty_gaincoeffs = map(prettyfloat, gaincoeffs)
 doMessage(logger,msg.INFO,"gain coefficiencts............",str(pretty_gaincoeffs))
 doMessage(logger,msg.INFO,"disable mapping ..............",opt.imagingoff)
+doMessage(logger,msg.INFO,"map scans for scale ..........",opt.mapscansforscale)
 doMessage(logger,msg.INFO,"verbosity level...............",str(opt.verbose))
 
 doMessage(logger,msg.INFO,"overwrite existing output.....",str(opt.clobber))

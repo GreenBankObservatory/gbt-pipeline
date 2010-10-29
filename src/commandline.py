@@ -44,6 +44,9 @@ class CommandLine:
         self.parser.add_option("--clobber", action='store_true',
                         dest="clobber", default=False,
                         help="Overwrites existing output files if set.")
+        self.parser.add_option("--no-map-scans-for-scale", action='store_false',
+                        dest="mapscansforscale", default=True,
+                        help="When set, do not use the mapping scans to scale reference scans to K.")
         #self.parser.add_option("-c", "--vsource-center", dest="vsourcecenter", default='0',
                         #help="defines center channel to select (km/sec)", metavar="N")
         #self.parser.add_option("-w", "--vsource-width", dest="vsourcewidth", default='0',
