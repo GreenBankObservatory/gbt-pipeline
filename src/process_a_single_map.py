@@ -175,8 +175,10 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,
                     calonAVEs = np.ma.vstack((calonAVEs,mapscan.calon_ave()))
                     caloffAVEs = np.ma.vstack((caloffAVEs,mapscan.caloff_ave()))
                 else:
-                    calonAVEs = mapscan.calon_ave()
+                    calonAVEs  = mapscan.calon_ave()
                     caloffAVEs = mapscan.caloff_ave()
+                    calonAVEs  = calonAVEs.reshape((1,len(calonAVEs)))
+                    caloffAVEs = caloffAVEs.reshape((1,len(caloffAVEs)))
 
                 thisTCAL = mapscan.max_tcal()
                 if thisTCAL > maxTCAL:
