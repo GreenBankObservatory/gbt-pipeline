@@ -26,9 +26,6 @@ class CommandLine:
                         help="first reference scan", metavar="SCAN")
         self.parser.add_option("--refscan2", dest="refscan2", default='-1',
                         help="second reference scan", metavar="SCAN")
-        self.parser.add_option("--all-scans-as-ref", action='store_const',
-                        const='1',dest="allscansref", default='0',
-                        help="use all scans as reference?")
         self.parser.add_option("-s", "--sampler",dest="sampler", default=[],
                         help="comma-separated sampler(s) to process", metavar="SAMPLER,SAMPLER")
         self.parser.add_option("-a", "--average",dest="average", default=0, type=int,

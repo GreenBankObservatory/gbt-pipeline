@@ -45,8 +45,8 @@ doMessage(logger,msg.INFO,"Calibrating to units of.......",opt.units)
 if not opt.allmaps:
     doMessage(logger,msg.INFO,"Map scans.....................",firstScan,'to',lastScan)
 doMessage(logger,msg.INFO,"creating all maps.............",opt.allmaps)
-doMessage(logger,msg.INFO,"no idlToSdfits display .......",opt.nodisplay)
-doMessage(logger,msg.INFO,"sampler.......................",opt.sampler)
+doMessage(logger,msg.INFO,"disable idlToSdfits display ..",opt.nodisplay)
+doMessage(logger,msg.INFO,"sampler(s)....................",opt.sampler)
 doMessage(logger,msg.INFO,"spillover factor (eta_l)......",str(opt.spillover))
 doMessage(logger,msg.INFO,"aperture efficiency (eta_A)...",str(opt.aperture_eff))
 class prettyfloat(float):
@@ -54,7 +54,7 @@ class prettyfloat(float):
         return "%0.2g" % self
 pretty_gaincoeffs = map(prettyfloat, gaincoeffs)
 doMessage(logger,msg.INFO,"gain coefficiencts............",str(pretty_gaincoeffs))
-doMessage(logger,msg.INFO,"turn imaging off..............",opt.imagingoff)
+doMessage(logger,msg.INFO,"disable mapping ..............",opt.imagingoff)
 doMessage(logger,msg.INFO,"verbosity level...............",str(opt.verbose))
 
 doMessage(logger,msg.INFO,"overwrite existing output.....",str(opt.clobber))
@@ -78,7 +78,6 @@ if not opt.allmaps:
         sys.exit(1)
     if refscans[1] < 0: refscans = [refscans[0]]
 
-    if not opt.allscansref: refscans = allscans
     doMessage(logger,msg.INFO,"Reference scan(s)",refscans)
     doMessage(logger,msg.INFO,"---------------\n")
     
