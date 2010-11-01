@@ -1,12 +1,12 @@
-from optparse import OptionParser
+import argparse
 
 class CommandLine:
     """Interpret command line options
     
     """
     def __init__(self):
-        self.usage = "usage: gbtpipeline [options]"
-        self.parser = OptionParser(usage=self.usage)
+        self.parser = argparse.ArgumentParser(fromfile_prefix_chars='@',
+            description='Create maps from GBT observations.',)
         self.parser.add_option("-i", "--infile", dest="infile", default='',
                         help="SDFITS file name containing map scans", metavar="FILE")
         self.parser.add_option("-b", "--begin-scan", dest="beginscan", default='0',
@@ -47,20 +47,9 @@ class CommandLine:
         self.parser.add_option("--no-map-scans-for-scale", action='store_false',
                         dest="mapscansforscale", default=True,
                         help="When set, do not use the mapping scans to scale reference scans to K.")
-        #self.parser.add_option("-c", "--vsource-center", dest="vsourcecenter", default='0',
-                        #help="defines center channel to select (km/sec)", metavar="N")
-        #self.parser.add_option("-w", "--vsource-width", dest="vsourcewidth", default='0',
-                        #help="defines median filter width (km/sec)", metavar="N")
-        #self.parser.add_option("--vsource-begin", dest="vsourcebegin", default='0',
-                        #help="defines begin channel to select (km/sec)", metavar="N")
-        #self.parser.add_option("--vsource-end", dest="vsourceend", default='0',
-                        #help="defines end channel to select (km/sec)", metavar="N")
-        #self.parser.add_option("--mainbeam-efficiency",dest="mainbeam_eff", default=.97, type=float,
-                        #help="main beam efficiency for freq.=0  (eta-B)")
                         
     def read(self,sys):
         """Read and parse the command line arguments
         
         """
-        if len(sys.argv) < 2: sys.argv.append('-h')
         return self.parser.parse_args()
