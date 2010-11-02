@@ -10,7 +10,7 @@ from pipeutils import *
 from process_a_single_map import *
 
 cl = commandline.CommandLine()
-(opt, args) = cl.read(sys)
+opt = cl.read(sys)
 
 opt.verbose = int(opt.verbose)
 
