@@ -1,5 +1,8 @@
 # parsel-tongue script that performs only the default processing
 #HISTORY
+#10NOV03 GIL clean up comments before commit
+#10OCT28 GIL Strip out sampler name for output
+#10OCT20 GIL default average is 3 channels, add comments
 #10OCT08 GIL comment out all source specific lines
 #10OCT07 GIL remove Line specific processing; add comments
 #10OCT05 GIL slight name and comment changes
@@ -18,6 +21,16 @@ import sys
 import os
 import math
 
+argc = len(sys.argv)
+if argc < 3:
+    print ''
+    print 'imageDefault: Compute default images from calibrated spectra'
+    print 'usage: doImage imageDefault.py <aipsNumber> <spectra File 1> [<spectra File n>]'
+    print 'where <aipsNumber>     Your *PIPELINE* AIPS number (should always be the same)'
+    print '      <spectra File 1> One or more calibrated spectra files (*.sdf)'
+    print ''
+    quit()
+        
 AIPS.userno=int(sys.argv[1])    # retrieve AIPS pipeline user number
 myfiles = sys.argv[2:]          # make a list of input files
 mydisk=2                        # choose a good default work disk
@@ -34,14 +47,26 @@ avspc=AIPSTask('avspc')
 subim=AIPSTask('subim')
 sqash=AIPSTask('sqash')
 
+kount = 0                       # prepare to count input files
+
 for thisFile in myfiles:        # input all AIPS single dish FITS files
     print thisFile
     uvlod.datain='PWD:'+thisFile
     print uvlod.datain
     uvlod.outdisk=mydisk
     uvlod.go()
+    spectra = AIPSUVData(AIPSCat()[mydisk][-1].name, AIPSCat()[mydisk][-1].klass, mydisk, AIPSCat()[mydisk][-1].seq)
+    nuRef    = spectra.header.crval[2]
+    if kount == 0:              # all input frequencies must match first
+        firstNu = nuRef
+    # check that frequencies are within AIPS match range
+    if ((firstNu - nuRef) < -1.E4) or ((firstNu - nuRef) > 1.E4):
+        print 'Frequencies differ: ',nuRef,' != ',firstNu
+        spectra.zap()
+    else:
+        kount = kount+1
 
-if len(myfiles) > 1:            # if more than 1 file DBCON them
+if kount > 1:            # if more than 1 file DBCON them
 
     # always do first 2
     dbcon.indisk=mydisk
@@ -57,7 +82,7 @@ if len(myfiles) > 1:            # if more than 1 file DBCON them
     dbcon.go()
 
     # and keep adding in one
-    for i in range(2,len(myfiles)):
+    for i in range(2,kount):
         # end of cat is always most recent dbcon result
         dbcon.inname = AIPSCat()[mydisk][-1].name
         dbcon.inclass = AIPSCat()[mydisk][-1].klass
@@ -84,7 +109,8 @@ dNu      = spectra.header.cdelt[2]
 print "Ra,Dec:", raDeg, decDeg, "Image:", imxSize, imySize, cellsize, 
 #print spectra.header
 
-nAverage = 5
+# set number of channels to average
+nAverage = 3
 # now average channels to reduce the image plane data volumn
 avspc.indisk=mydisk
 avspc.outdisk=mydisk
@@ -110,7 +136,7 @@ sdgrd.inname=AIPSCat()[mydisk][-1].name
 sdgrd.inclass=AIPSCat()[mydisk][-1].klass
 sdgrd.inseq=AIPSCat()[mydisk][-1].seq
 sdgrd.optype='-GLS'
-sdgrd.xtype=-12
+sdgrd.xtype=-12         # use gaussian circular convolving function
 sdgrd.ytype=-12
 sdgrd.reweight[1] = 0
 sdgrd.reweight[2] = 0.025
@@ -138,11 +164,11 @@ print raDeg, decDeg, '->',sdgrd.aparm[1:6]
 #transfer cellsize 
 sdgrd.cellsize[1] = cellsize
 sdgrd.cellsize[2] = cellsize
-sdgrd.xparm[1] = 8*cellsize
+sdgrd.xparm[1] = 8*cellsize              # set convolving function sahpe
 sdgrd.xparm[2] = 2.5*cellsize
 sdgrd.xparm[3] = 2
-if imxSize < 30:
-    imxSize = 150
+if imxSize < 30:                         # AIPS minimum image size
+    imxSize = 150                        # choose a modest value
 if imySize < 30:
     imySize = 150
 sdgrd.imsize[1] = imxSize
@@ -177,7 +203,11 @@ fittp.indisk=mydisk
 fittp.inname=AIPSCat()[mydisk][-1].name
 fittp.inclass=AIPSCat()[mydisk][-1].klass
 fittp.inseq=AIPSCat()[mydisk][-1].seq
-outimage = os.path.splitext(myfiles[0])[0]+'_cube.fits'
+outName = os.path.splitext(myfiles[0])[0]
+iUnder = outName.rfind("_")     # remove sampler string from output name
+if iUnder > 0:                  # if _Sampler is found, remove
+    outName = outName[0:iUnder] 
+outimage = outName+'_cube.fits'
 if os.path.exists(outimage):
     os.remove(outimage)
     print 'Removed existing file to make room for new one :',outimage
@@ -203,7 +233,7 @@ fittp.indisk=mydisk
 fittp.inname=AIPSCat()[mydisk][-1].name
 fittp.inclass=AIPSCat()[mydisk][-1].klass
 fittp.inseq=AIPSCat()[mydisk][-1].seq
-outimage = os.path.splitext(myfiles[0])[0]+'_cont.fits'
+outimage = outName+'_cont.fits'
 if os.path.exists(outimage):
     os.remove(outimage)
     print 'Removed existing file to make room for new one :',outimage
@@ -258,7 +288,7 @@ fittp.indisk=mydisk
 fittp.inname=AIPSCat()[mydisk][-1].name
 fittp.inclass=AIPSCat()[mydisk][-1].klass
 fittp.inseq=AIPSCat()[mydisk][-1].seq
-outimage = os.path.splitext(myfiles[0])[0]+'_line.fits'
+outimage = outName+'_line.fits'
 if os.path.exists(outimage):
     os.remove(outimage)
     print 'Removed existing file to make room for new one :',outimage
