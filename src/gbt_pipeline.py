@@ -72,14 +72,20 @@ if not opt.allmaps:
     allscans = range(int(firstScan),int(lastScan)+1)
     doMessage(logger,msg.INFO,"Map scans",allscans)
 
-    # convert refscan strings to integers
-    refscans = list(set([ int(x) for x in (opt.refscan1, opt.refscan2) ]))
-    if refscans[0] < 0:
+    refscans = set([])
+    if opt.refscan1:
+        refscans.add(opt.refscan1)
+    if opt.refscan2:
+        if opt.refscan2 != opt.refscan1:
+            refscans.add(opt.refscan2)
+        else:
+            opt.refscan2 = False
+
+    if not any(refscans):
         doMessage(logger,msg.ERR,'No reference scan provided. Exiting.')
         sys.exit(1)
-    if refscans[1] < 0: refscans = [refscans[0]]
 
-    doMessage(logger,msg.INFO,"Reference scan(s)",refscans)
+    doMessage(logger,msg.INFO,"Reference scan(s)",list(refscans))
     doMessage(logger,msg.INFO,"---------------\n")
     
 # read in the input file

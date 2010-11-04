@@ -1,6 +1,8 @@
-*.fits*
+*.fits
 Cal_*
 *.pyc
 *~
 *.sdf
 *.local
+*.log
+*.par

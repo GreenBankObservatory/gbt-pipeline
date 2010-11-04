@@ -19,7 +19,8 @@ class CommandLine:
     """
     def __init__(self):
         self.parser = myparser(fromfile_prefix_chars='@',
-            description='Create maps from GBT observations.',)
+            description='Create maps from GBT observations.',
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter,)
         self.parser.add_argument("-i", "--infile", dest="infile", default='',
                         help="SDFITS file name containing map scans", metavar="FILE")
         self.parser.add_argument("-b", "--begin-scan", dest="beginscan", default='0',
@@ -32,15 +33,15 @@ class CommandLine:
                         default=False, help="If set, will not create images.")
         self.parser.add_argument("-u", "--units", dest="units", default='Ta*',
                         help="calibration units")                        
-        self.parser.add_argument("-d", "--sdfits-dir", dest="sdfitsdir", default='0',
+        self.parser.add_argument("-d", "--sdfits-dir", dest="sdfitsdir", default='',
                         help="SDFITS input directory; used if infile option is not usable",
                         metavar="DIR")
-        self.parser.add_argument("--refscan1", dest="refscan1", default='-1',
-                        help="first reference scan", metavar="SCAN")
-        self.parser.add_argument("--refscan2", dest="refscan2", default='-1',
-                        help="second reference scan", metavar="SCAN")
+        self.parser.add_argument("--refscan1", dest="refscan1", default=False,
+                        help="first reference scan", metavar="SCAN", type=int)
+        self.parser.add_argument("--refscan2", dest="refscan2", default=False,
+                        help="second reference scan", metavar="SCAN", type=int)
         self.parser.add_argument("-s", "--sampler",dest="sampler", default=[],
-                        help="comma-separated sampler(s) to process", metavar="SAMPLER,SAMPLER")
+                        help="comma-separated sampler(s) to process", metavar="S[,S]")
         self.parser.add_argument("-a", "--average",dest="average", default=0, type=int,
                         help="averge the spectra over N channels (idlToSdfits)", metavar="N")
         self.parser.add_argument("--spillover-factor",dest="spillover", default=.99, type=float,
@@ -50,7 +51,9 @@ class CommandLine:
         self.parser.add_argument("--gain-coefficients",dest="gaincoeffs", default=".91,.00434,-5.22e-5",
                         help="comma-separated gain coefficients", metavar="N")
         self.parser.add_argument("-v", "--verbose", dest="verbose", default='0',
-                        help="set the verbosity level", metavar="N")
+                        help="set the verbosity level-- 0:none, "
+                             "[1-2]:errors only, 3:+warnings, "
+                             "4:+user info, 5:+debug", metavar="N")
         self.parser.add_argument("--nodisplay", action='store_true',
                         dest="nodisplay", default=False,
                         help="will not attempt to use the display")
@@ -65,4 +68,17 @@ class CommandLine:
         """Read and parse the command line arguments
         
         """
+
+        # if no options are set, print help
+        if len(sys.argv) == 1:
+            sys.argv.append('-h')
+
+        # make sure parameter file is processed first
+        # so that all options on the command line
+        # have precedence
+        if any(['@' in xx[0] for xx in sys.argv]):
+            paridx = [xx[0] for xx in sys.argv].index('@')
+            parfile = sys.argv.pop(paridx)
+            sys.argv.insert(1,parfile)
+
         return self.parser.parse_args()
