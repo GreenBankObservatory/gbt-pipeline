@@ -50,10 +50,10 @@ class CommandLine:
                         help="aperture efficiency for freq.=0 (eta-A)", metavar="N")
         self.parser.add_argument("--gain-coefficients",dest="gaincoeffs", default=".91,.00434,-5.22e-5",
                         help="comma-separated gain coefficients", metavar="N")
-        self.parser.add_argument("-v", "--verbose", dest="verbose", default='0',
-                        help="set the verbosity level-- 0:none, "
-                             "[1-2]:errors only, 3:+warnings, "
-                             "4:+user info, 5:+debug", metavar="N")
+        self.parser.add_argument("-v", "--verbose", dest="verbose", default=0,
+                        help="set the verbosity level-- 0-1:none, "
+                             "2:errors only, 3:+warnings, "
+                             "4:+user info, 5:+debug", metavar="N", type=int)
         self.parser.add_argument("--nodisplay", action='store_true',
                         dest="nodisplay", default=False,
                         help="will not attempt to use the display")

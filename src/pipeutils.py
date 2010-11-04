@@ -40,10 +40,10 @@ def configure_logfile(opt,logfilename,toconsole=True):
               4: logging.INFO, # errors + warnings + summary
               3: logging.WARNING, # errors + warnings
               2: logging.ERROR, # errors only
-              1: logging.CRITICAL} # unused
+              1: logging.CRITICAL, # unused
+              0: logging.CRITICAL} # no output 
 
-    level_name = opt.verbose
-    level = LEVELS.get(level_name, logging.DEBUG)
+    level = LEVELS.get(opt.verbose, logging.DEBUG)
 
     loggername = logfilename.split('.')[0]
     logger = logging.getLogger(loggername)

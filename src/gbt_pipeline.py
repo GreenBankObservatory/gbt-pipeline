@@ -12,9 +12,7 @@ from process_a_single_map import *
 cl = commandline.CommandLine()
 opt = cl.read(sys)
 
-opt.verbose = int(opt.verbose)
-
-infile = check_for_sdfits_file(opt.infile, opt.sdfitsdir, opt.beginscan,\
+opt.infile = check_for_sdfits_file(opt.infile, opt.sdfitsdir, opt.beginscan,\
                                opt.endscan,opt.refscan1, opt.refscan2,\
                                opt.verbose)
 
