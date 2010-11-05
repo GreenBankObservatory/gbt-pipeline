@@ -27,7 +27,23 @@ if opt.gaincoeffs:
 # -------------------------------------------------------- configure logging
 logger = pipeutils.configure_logfile(opt,'pipeline'+'_'+timestamp()+'.log')
 
-# force units to all lowercase to make later tests easier
+# ------------------------------------------------- identify imaging script
+
+# look in integration and release contrib directories for
+# if no script is found, turn imaging off
+RELCONDIR = '/home/gbtpipeline/release/contrib'
+TESTCONDIR = '/home/gbtpipeline/integration/contrib'
+IMSCRIPT = '/' + 'imageDefault.py'
+
+if TESTCONDIR in sys.path and os.path.isfile(TESTCONDIR + IMSCRIPT):
+    opt.imageScript = TESTCONDIR + IMSCRIPT
+elif os.path.isfile(RELCONDIR + IMSCRIPT):
+    opt.imageScript = RELCONDIR + IMSCRIPT
+else:
+    doMessage(logger,msg.ERR,"ERROR: imaging script not found.")
+    opt.imagingoff = True
+
+# -------------------  force units to all lowercase to make later tests easier
 opt.units = opt.units.lower()
 ACCEPTABLE_UNITS = [ 'ta', 'ta*', 'tmb', 'tb*', 'jy' ]
 if not (opt.units in ACCEPTABLE_UNITS ):
@@ -57,11 +73,6 @@ doMessage(logger,msg.INFO,"map scans for scale ..........",opt.mapscansforscale)
 doMessage(logger,msg.INFO,"verbosity level...............",str(opt.verbose))
 
 doMessage(logger,msg.INFO,"overwrite existing output.....",str(opt.clobber))
-#if opt.mainbeam_eff:  doMessage(logger,msg.INFO,"main beam efficiency (eta_B)..",opt.mainbeam_eff)
-#if opt.vsourcecenter: doMessage(logger,msg.INFO,"vSource.......................",opt.vsourcecenter)
-#if opt.vsourcewidth:  doMessage(logger,msg.INFO,"vSourceWidth..................",opt.vsourcewidth)
-#if opt.vsourcebegin:  doMessage(logger,msg.INFO,"vSourceBegin..................",opt.vsourcebegin)
-#if opt.vsourceend:    doMessage(logger,msg.INFO,"vSourceEnd....................",opt.vsourceend)
 
 fbeampol=1
 
