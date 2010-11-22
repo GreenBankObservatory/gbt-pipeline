@@ -12,12 +12,12 @@ from process_a_single_map import *
 cl = commandline.CommandLine()
 opt = cl.read(sys)
 
-opt.infile = check_for_sdfits_file(opt.infile, opt.sdfitsdir, opt.beginscan,\
-                               opt.endscan,opt.refscan1, opt.refscan2,\
-                               opt.verbose)
+if not opt.allmaps:
+    opt.mapscans = parserange(opt.mapscans)
 
-firstScan = opt.beginscan
-lastScan  = opt.endscan
+opt.infile = check_for_sdfits_file(opt.infile, opt.sdfitsdir, opt.mapscans[0],\
+                               opt.mapscans[-1],opt.refscan1, opt.refscan2,\
+                               opt.verbose)
 
 if opt.gaincoeffs:
     gaincoeffs = opt.gaincoeffs.split(',')
@@ -58,7 +58,7 @@ doMessage(logger,msg.INFO,"---------------")
 doMessage(logger,msg.INFO,"Input file....................",opt.infile)
 doMessage(logger,msg.INFO,"Calibrating to units of.......",opt.units)
 if not opt.allmaps:
-    doMessage(logger,msg.INFO,"Map scans.....................",firstScan,'to',lastScan)
+    doMessage(logger,msg.INFO,"Map scans.....................",opt.mapscans[0],'to',opt.mapscans[-1])
 doMessage(logger,msg.INFO,"creating all maps.............",opt.allmaps)
 doMessage(logger,msg.INFO,"disable idlToSdfits display ..",opt.nodisplay)
 doMessage(logger,msg.INFO,"spillover factor (eta_l)......",str(opt.spillover))
@@ -85,7 +85,7 @@ fbeampol=1
 
 if not opt.allmaps:
     # setup scan numbers
-    allscans = range(int(firstScan),int(lastScan)+1)
+    allscans = [ int(item) for item in opt.mapscans ]
     doMessage(logger,msg.INFO,"Map scans",allscans)
 
     refscans = set([])

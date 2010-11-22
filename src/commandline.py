@@ -23,10 +23,8 @@ class CommandLine:
             formatter_class=argparse.ArgumentDefaultsHelpFormatter,)
         self.parser.add_argument("-i", "--infile", dest="infile", default='',
                         help="SDFITS file name containing map scans", metavar="FILE")
-        self.parser.add_argument("-b", "--begin-scan", dest="beginscan", default='0',
-                        help="beginning map scan number", metavar="SCAN")
-        self.parser.add_argument("-e", "--end-scan", dest="endscan", default='0',
-                        help="ending map scan number", metavar="SCAN")
+        self.parser.add_argument("-m", "--map-scans", dest="mapscans", default=[],
+                        help="range of scan numbers", metavar="N[,N]")
         self.parser.add_argument("--allmaps", dest="allmaps", action='store_true',
                         default=False, help="If set, attempt to process all maps in input file.")
         self.parser.add_argument("--imaging-off", dest="imagingoff", action='store_true',
