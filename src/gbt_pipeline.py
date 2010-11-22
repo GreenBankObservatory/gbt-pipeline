@@ -179,6 +179,9 @@ elif not opt.sampler:
             else:
                 # check the feed and pol specified at the commandline
                 #  before including a sampler in the list
+                if opt.feed:
+                    opt.feed = parserange(opt.feed)
+
                 if opt.feed and not opt.pol:
                     opt.pol = ('LL','RR')
                 elif opt.pol and not opt.feed:

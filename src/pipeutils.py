@@ -873,3 +873,57 @@ def sampler_summary(logger,samplermap):
     for sampler in samplermap_sorted:
         message = '%s\t%s\t%s\t%g' % (sampler[0],sampler[1][0],sampler[1][1],sampler[1][2])
         doMessage(logger,msg.INFO,message)
+
+def parserange(rangelist):
+
+    oklist = set([])
+    excludelist = set([])
+
+    rangelist = rangelist.replace(' ','')
+    rangelist = rangelist.split(',')
+
+    # item is single value or range
+    for item in rangelist:
+        item = item.split(':')
+
+        # change to ints
+        try:
+            int_item = [ int(ii) for ii in item ]
+        except(ValueError):
+            print repr(':'.join(item)),'not convertable to integer'
+            return False
+
+        if 1==len(int_item):
+            # single inclusive or exclusive item
+            if int_item[0] < 0:
+                excludelist.add(abs(int_item[0]))
+            else:
+                oklist.add(int_item[0])
+
+        elif 2==len(int_item):
+            # range
+            if int_item[0] < int_item[1]:
+                if int_item[0] < 0:
+                    print item[0],',',item[1],'must start with a non-negative number'
+                    return False
+
+                thisrange = range(int_item[0],int_item[1]+1)
+                for ii in thisrange:
+                    oklist.add(ii)
+            else:
+                print item[0],',',item[1],'needs to be in increasing order'
+                return False
+        else:
+            print item,'has more than 2 values'
+
+    for exitem in excludelist:
+        try:
+            oklist.remove(exitem)
+        except(KeyError):
+            oklist = [ str(item) for item in oklist ]
+            print 'ERROR: excluded item', exitem, 'does not exist in inclusive range'
+            return False
+
+    oklist = [ str(item) for item in oklist ]
+    print oklist
+    return sorted(list(oklist))
