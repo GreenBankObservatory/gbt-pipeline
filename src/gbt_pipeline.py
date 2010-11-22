@@ -35,13 +35,14 @@ RELCONDIR = '/home/gbtpipeline/release/contrib'
 TESTCONDIR = '/home/gbtpipeline/integration/contrib'
 IMSCRIPT = '/' + 'imageDefault.py'
 
-if TESTCONDIR in sys.path and os.path.isfile(TESTCONDIR + IMSCRIPT):
-    opt.imageScript = TESTCONDIR + IMSCRIPT
-elif os.path.isfile(RELCONDIR + IMSCRIPT):
-    opt.imageScript = RELCONDIR + IMSCRIPT
-else:
-    doMessage(logger,msg.ERR,"ERROR: imaging script not found.")
-    opt.imagingoff = True
+if not opt.imagingoff:
+    if TESTCONDIR in sys.path and os.path.isfile(TESTCONDIR + IMSCRIPT):
+        opt.imageScript = TESTCONDIR + IMSCRIPT
+    elif os.path.isfile(RELCONDIR + IMSCRIPT):
+        opt.imageScript = RELCONDIR + IMSCRIPT
+    else:
+        doMessage(logger,msg.ERR,"ERROR: imaging script not found.")
+        opt.imagingoff = True
 
 # -------------------  force units to all lowercase to make later tests easier
 opt.units = opt.units.lower()
@@ -60,7 +61,6 @@ if not opt.allmaps:
     doMessage(logger,msg.INFO,"Map scans.....................",firstScan,'to',lastScan)
 doMessage(logger,msg.INFO,"creating all maps.............",opt.allmaps)
 doMessage(logger,msg.INFO,"disable idlToSdfits display ..",opt.nodisplay)
-doMessage(logger,msg.INFO,"sampler(s)....................",opt.sampler)
 doMessage(logger,msg.INFO,"spillover factor (eta_l)......",str(opt.spillover))
 doMessage(logger,msg.INFO,"aperture efficiency (eta_A)...",str(opt.aperture_eff))
 class prettyfloat(float):
@@ -69,6 +69,13 @@ class prettyfloat(float):
 pretty_gaincoeffs = map(prettyfloat, gaincoeffs)
 doMessage(logger,msg.INFO,"gain coefficiencts............",str(pretty_gaincoeffs))
 doMessage(logger,msg.INFO,"disable mapping ..............",opt.imagingoff)
+doMessage(logger,msg.INFO,"map scans for scale ..........",opt.mapscansforscale)
+if opt.sampler:
+    doMessage(logger,msg.INFO,"sampler(s)....................",opt.sampler)
+if opt.feed:
+    doMessage(logger,msg.INFO,"feed(s) ......................",opt.feed)
+if opt.pol:
+    doMessage(logger,msg.INFO,"polarization .................",opt.pol)
 doMessage(logger,msg.INFO,"map scans for scale ..........",opt.mapscansforscale)
 doMessage(logger,msg.INFO,"verbosity level...............",str(opt.verbose))
 
@@ -146,25 +153,74 @@ infile = pyfits.open(opt.infile,memmap=1)
 # get number of cpus in system
 cpucount = multiprocessing.cpu_count()
 
+# we need to set allscans, refscan1 and refscan2 for each map
+#    and continue
+maps_and_samplers = list_samplers(indexfile)
+
 if opt.allmaps:
 
     # we need to set allscans, refscan1 and refscan2 for each map
     #    and continue
-    mymaps = summarize_it(indexfile)
+    mymaps = maps_and_samplers
 
-else:
+elif not opt.sampler:
     
-    mymaps = [(opt.refscan1,allscans,opt.refscan2)]
+    samplerlist = []
     
+    for mapblock in maps_and_samplers:
+
+        if opt.refscan1 == mapblock[0]:
+
+            samplermap = mapblock[3]
+
+            if not opt.feed and not opt.pol:
+                samplerlist = samplermap.keys()
+
+            else:
+                # check the feed and pol specified at the commandline
+                #  before including a sampler in the list
+                if opt.feed and not opt.pol:
+                    opt.pol = ('LL','RR')
+                elif opt.pol and not opt.feed:
+                    opt.feed = range(1,8)
+
+                for sampler in samplermap:
+                    feed = samplermap[sampler][0]
+                    pol = samplermap[sampler][1]
+                    if str(feed) in opt.feed and pol in opt.pol:
+                        samplerlist.append(sampler)
+
+            mymaps = [(opt.refscan1,allscans,opt.refscan2)]
+            break
+
+if not opt.allmaps:
+    sampler_summary(logger,samplermap)
+
+doMessage(logger,msg.INFO,'Processing',len(mymaps),'map(s):')
+for idx,mm in enumerate(mymaps):
+    doMessage(logger,msg.INFO,'Map',idx+1)
+    doMessage(logger,msg.INFO,'-----')
+    doMessage(logger,msg.INFO,'Reference scan.. ',mm[0])
+    doMessage(logger,msg.INFO,'map scans....... ',mm[1])
+    if mm[2]:
+        doMessage(logger,msg.INFO,'Reference scan.. ',mm[2])
+    if opt.allmaps:
+        sampler_summary(logger,mm[3])
+
+if not opt.allmaps:
+    doMessage(logger,msg.INFO,'Processing',len(samplerlist),'sampler(s):', samplerlist)
+
 process_ids = []
-
+lock = multiprocessing.Lock()
 for idx,scans in enumerate(mymaps):    
     # create a process for each map
     process_ids.append(multiprocessing.Process(target=process_a_single_map,
-        args=(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,opacity_coeffs,) ))
+        args=(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,opacity_coeffs,lock,) ))
 
 for idx,pp in enumerate(process_ids):
     pp.start()
 
 for idx,pp in enumerate(process_ids):
     pp.join()
+
+doMessage(logger,msg.INFO,'Pipeline finished.')

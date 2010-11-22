@@ -10,7 +10,7 @@ import smoothing
 import pipeutils
 from pipeutils import *
 
-def process_a_single_map(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,opacity_coeffs):
+def process_a_single_map(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,opacity_coeffs,lock):
     
     allscans = scans[1]
     
@@ -62,6 +62,13 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,
         thismap_samplerlist = samplerlist[blockid-1]
         doMessage(logger,msg.DBG,'thismap_samplerlist',thismap_samplerlist)
 
+    # if the sampler list is not actually a list, make sure to
+    #  change it to one.
+    #  code below expects a list of samplers, so we want to make sure that
+    #  does not break
+    if type([]) != type(thismap_samplerlist):
+        thismap_samplerlist = [thismap_samplerlist]
+
     for sampler in thismap_samplerlist:
         
         doMessage(logger,msg.INFO,'-----------')
@@ -79,6 +86,13 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,
             doMessage(logger,msg.DBG,'len(masks[0])',len(masks[0]))
             doMessage(logger,msg.DBG,'type(masks)',type(masks))
             doMessage(logger,msg.DBG,'type(masks[0])',type(masks[0]))
+            sys.exit(9)
+        except(KeyError):
+            doMessage(logger,msg.ERR,'ERROR: KeyError when defining samplermask')
+            doMessage(logger,msg.DBG,'type(sampler)',type(sampler))
+            doMessage(logger,msg.DBG,'sampler',sampler)
+            doMessage(logger,msg.DBG,'type(samplers)',type(thismap_samplerlist))
+            doMessage(logger,msg.DBG,'samplers',thismap_samplerlist)
             sys.exit(9)
 
         doMessage(logger,msg.INFO,'appying mask')
@@ -323,6 +337,7 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,
         freq = outsplit[4]
         filenames = target + '*' + scan_b + '_' + scan_e + '_' + freq + '*.sdf'
         doimg_cmd = ' '.join(('doImage',opt.imageScript,aipsNumber,filenames))
+        lock.acquire()
         doMessage(logger,msg.INFO,doimg_cmd)
 
         p = subprocess.Popen(doimg_cmd.split(),stdout=subprocess.PIPE,stderr=subprocess.PIPE)
@@ -330,3 +345,4 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,
 
         doMessage(logger,msg.DBG,aips_stdout)
         doMessage(logger,msg.DBG,aips_stderr)
+        lock.release()

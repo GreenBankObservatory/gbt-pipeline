@@ -754,3 +754,122 @@ def summarize_it(indexfile,debug=False):
             print "\tMap scans...........",mm[1]
 
     return maps
+
+def list_samplers(indexfile,debug=False):
+
+    myFile = open(indexfile,'rU')
+    
+    scans = {}
+    map_scans = {}
+
+    # skip over the index file header lines
+    while True:
+        row = myFile.readline().split()
+        if len(row)==40:
+            # we just found the column keywords, so read the next line
+            row = myFile.readline().split()
+            break
+
+    samplermap = {}
+    while row:
+
+        obsid = row[7]
+        scan = int(row[10])
+        sampler = row[20]
+        feed = int(row[14])
+        pol = row[11]
+        centerfreq = float(row[29])
+
+        if not scan in scans:
+            samplermap = {}
+
+        samplermap[sampler] = (feed,pol,centerfreq)
+        scans[scan] = (obsid,samplermap)
+
+        # read the next row
+        row = myFile.readline().split()
+
+    myFile.close()
+
+    # print results
+    if debug:
+        print '------------------------- All scans'
+        for scan in scans:
+            print 'scan',scan,scans[scan][0]
+
+        print '------------------------- Relavant scans'
+
+    for scan in scans:
+        if scans[scan][0].upper()=='MAP' or scans[scan][0].upper()=='OFF':
+            map_scans[scan] = scans[scan]
+
+    mapkeys = map_scans.keys()
+    mapkeys.sort()
+
+    if debug:
+        for scan in mapkeys:
+            print 'scan',scan,map_scans[scan][0]
+
+    maps = [] # final list of maps
+    ref1 = False
+    ref2 = False
+    prev_ref2 = False
+    mapscans = [] # temporary list of map scans for a single map
+
+    if debug:
+        print 'mapkeys', mapkeys
+
+    samplermap = {}
+    for idx,scan in enumerate(mapkeys):
+
+        # look for the offs
+        if (map_scans[scan][0]).upper()=='OFF':
+            # if there is no ref1 or this is another ref1
+            if not ref1 or (ref1 and bool(mapscans)==False):
+                ref1 = scan
+                samplermap = map_scans[scan][1]
+            else:
+                ref2 = scan
+                prev_ref2 = ref2
+
+        elif (map_scans[scan][0]).upper()=='MAP':
+            if not ref1 and prev_ref2:
+                ref1 = prev_ref2
+        
+            mapscans.append(scan)
+
+        # see if this scan is the last one in the relevant scan list
+        # or see if we have a ref2
+        #    if so, close out    
+        if ref2 or idx==len(mapkeys)-1:
+            maps.append((ref1,mapscans,ref2,samplermap))
+            ref1 = False
+            ref2 = False
+            mapscans = []
+            
+    if debug:
+        import pprint
+        pprint.pprint(maps)
+
+        for idx,mm in enumerate(maps):
+            print "Map",idx
+            if mm[2]:
+                print "\tReference scans.....",mm[0],mm[2]
+            else:
+                print "\tReference scan......",mm[0]
+            print "\tMap scans...........",mm[1]
+
+    return maps
+
+def sampler_summary(logger,samplermap):
+    """
+    """
+    
+    import operator
+    samplermap_sorted = sorted(samplermap.iteritems(), key=operator.itemgetter(1))
+    doMessage(logger,msg.INFO,'Map sampler summary:')
+    doMessage(logger,msg.INFO,'sampler\tfeed\tpol\tcenterfreq')
+    doMessage(logger,msg.INFO,'-------\t----\t---\t----------')
+    for sampler in samplermap_sorted:
+        message = '%s\t%s\t%s\t%g' % (sampler[0],sampler[1][0],sampler[1][1],sampler[1][2])
+        doMessage(logger,msg.INFO,message)

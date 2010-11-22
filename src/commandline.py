@@ -42,6 +42,10 @@ class CommandLine:
                         help="second reference scan", metavar="SCAN", type=int)
         self.parser.add_argument("-s", "--sampler",dest="sampler", default=[],
                         help="comma-separated sampler(s) to process", metavar="S[,S]")
+        self.parser.add_argument("-f", "--feed",dest="feed", default=[],
+                        help="comma-separated feed(s) to process", metavar="F[,F]")
+        self.parser.add_argument("-p", "--pol",dest="pol", default=[],
+                        help="comma-separated polarization(s) to process", metavar="P[,P]")
         self.parser.add_argument("-a", "--average",dest="average", default=0, type=int,
                         help="averge the spectra over N channels (idlToSdfits)", metavar="N")
         self.parser.add_argument("--spillover-factor",dest="spillover", default=.99, type=float,
