@@ -925,7 +925,6 @@ def parserange(rangelist):
             raise
 
     oklist = [ str(item) for item in oklist ]
-    print oklist
     return sorted(list(oklist))
 
 def is_inclusive_range(rangelist):
