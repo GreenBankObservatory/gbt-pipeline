@@ -10,7 +10,9 @@ import smoothing
 import pipeutils
 from pipeutils import *
 
-def process_a_single_map(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,opacity_coeffs,lock):
+def process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,opacity_coeffs,lock):
+    """
+    """
     
     allscans = scans[1]
     
@@ -140,7 +142,7 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,
         ref1.get_scan(scan,sdfitsdata,opt.verbose)
         
         ref1spec,ref1_max_tcal,ref1_mean_date,freq,tskys_ref1,ref1_tsys = \
-            ref1.average_reference(opt.units,gaincoeffs,opt.spillover,\
+            ref1.average_reference(opt.units,opt.gaincoeffs,opt.spillover,\
             opt.aperture_eff,fbeampol,opacity_coeffs,opt.verbose)
         
         refdate.append(ref1_mean_date)
@@ -225,7 +227,7 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,
             ref2.get_scan(scan,sdfitsdata,opt.verbose)
             
             ref2spec,ref2_max_tcal,ref2_mean_date,freq,tskys_ref2,ref2_tsys = \
-                ref2.average_reference(opt.units,gaincoeffs,opt.spillover,\
+                ref2.average_reference(opt.units,opt.gaincoeffs,opt.spillover,\
                 opt.aperture_eff,fbeampol,opacity_coeffs,opt.verbose)
             refdate.append(ref2_mean_date)
             ref_tsky.append(tskys_ref2)
@@ -265,7 +267,7 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,
 
             mapscan.mean_date()
             cal_ints = mapscan.calibrate_to(refspec,refdate,ref_tsys,\
-                k_per_count,opacity_coeffs,gaincoeffs,opt.spillover,\
+                k_per_count,opacity_coeffs,opt.gaincoeffs,opt.spillover,\
                 opt.aperture_eff,fbeampol,ref_tsky,opt.units,opt.verbose)
             
             if len(calibrated_integrations):

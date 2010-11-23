@@ -13,16 +13,15 @@ cl = commandline.CommandLine()
 opt = cl.read(sys)
 
 if not opt.allmaps:
-    opt.mapscans = parserange(opt.mapscans)
+    try:
+        opt.mapscans = parserange(opt.mapscans)
+    except:
+        print 'ERROR: could not parse range:',opt.mapscans
+        sys.exit(10)
 
 opt.infile = check_for_sdfits_file(opt.infile, opt.sdfitsdir, opt.mapscans[0],\
                                opt.mapscans[-1],opt.refscan1, opt.refscan2,\
                                opt.verbose)
-
-if opt.gaincoeffs:
-    gaincoeffs = opt.gaincoeffs.split(',')
-    gaincoeffs = [ float(xx) for xx in gaincoeffs ]
-
 
 # -------------------------------------------------------- configure logging
 logger = pipeutils.configure_logfile(opt,'pipeline'+'_'+timestamp()+'.log')
@@ -52,34 +51,7 @@ if not (opt.units in ACCEPTABLE_UNITS ):
     doMessage(logger,msg.ERR,'       Please use one of the following:',', '.join(ACCEPTABLE_UNITS))
     sys.exit(9)
 
-doMessage(logger,msg.INFO,"---------------")
-doMessage(logger,msg.INFO,"Command summary")
-doMessage(logger,msg.INFO,"---------------")
-doMessage(logger,msg.INFO,"Input file....................",opt.infile)
-doMessage(logger,msg.INFO,"Calibrating to units of.......",opt.units)
-if not opt.allmaps:
-    doMessage(logger,msg.INFO,"Map scans.....................",opt.mapscans[0],'to',opt.mapscans[-1])
-doMessage(logger,msg.INFO,"creating all maps.............",opt.allmaps)
-doMessage(logger,msg.INFO,"disable idlToSdfits display ..",opt.nodisplay)
-doMessage(logger,msg.INFO,"spillover factor (eta_l)......",str(opt.spillover))
-doMessage(logger,msg.INFO,"aperture efficiency (eta_A)...",str(opt.aperture_eff))
-class prettyfloat(float):
-    def __repr__(self):
-        return "%0.2g" % self
-pretty_gaincoeffs = map(prettyfloat, gaincoeffs)
-doMessage(logger,msg.INFO,"gain coefficiencts............",str(pretty_gaincoeffs))
-doMessage(logger,msg.INFO,"disable mapping ..............",opt.imagingoff)
-doMessage(logger,msg.INFO,"map scans for scale ..........",opt.mapscansforscale)
-if opt.sampler:
-    doMessage(logger,msg.INFO,"sampler(s)....................",opt.sampler)
-if opt.feed:
-    doMessage(logger,msg.INFO,"feed(s) ......................",opt.feed)
-if opt.pol:
-    doMessage(logger,msg.INFO,"polarization .................",opt.pol)
-doMessage(logger,msg.INFO,"map scans for scale ..........",opt.mapscansforscale)
-doMessage(logger,msg.INFO,"verbosity level...............",str(opt.verbose))
-
-doMessage(logger,msg.INFO,"overwrite existing output.....",str(opt.clobber))
+commandSummary(logger,opt)
 
 fbeampol=1
 
@@ -180,13 +152,34 @@ elif not opt.sampler:
                 # check the feed and pol specified at the commandline
                 #  before including a sampler in the list
                 if opt.feed:
-                    opt.feed = parserange(opt.feed)
+                    try:
+                        inclusive = is_inclusive_range(opt.feed)
+                    except:
+                        doMessage(logger,msg.INFO,'ERROR: can not parse range',opt.feed)
+                        sys.exit(11)
+                    # if there are only exclusive items listed
+                    #   add all feeds to the list so we have something to
+                    #   subtract from
+                    if not inclusive:
+                        feeds = []
+                        for sampler in samplermap:
+                            feeds.append(str(samplermap[sampler][0]))
+                        feeds = ',' + ','.join(feeds)
+                        opt.feed += feeds
+                    try:
+                        opt.feed = parserange(opt.feed)
+                    except:
+                        doMessage(logger,msg.ERR,'ERROR: could not parse range',opt.feed)
+                        sys.exit(11)
 
                 if opt.feed and not opt.pol:
-                    opt.pol = ('LL','RR')
+                    for sampler in samplermap:
+                        opt.pol.append(str(samplermap[sampler][1]))
                 elif opt.pol and not opt.feed:
-                    opt.feed = range(1,8)
+                    for sampler in samplermap:
+                        opt.feed.append(str(samplermap[sampler][0]))
 
+                # add only the samplers we will process
                 for sampler in samplermap:
                     feed = samplermap[sampler][0]
                     pol = samplermap[sampler][1]
@@ -218,7 +211,7 @@ lock = multiprocessing.Lock()
 for idx,scans in enumerate(mymaps):    
     # create a process for each map
     process_ids.append(multiprocessing.Process(target=process_a_single_map,
-        args=(scans,masks,opt,infile,samplerlist,gaincoeffs,fbeampol,opacity_coeffs,lock,) ))
+        args=(scans,masks,opt,infile,samplerlist,fbeampol,opacity_coeffs,lock,) ))
 
 for idx,pp in enumerate(process_ids):
     pp.start()

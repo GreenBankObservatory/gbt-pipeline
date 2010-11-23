@@ -891,7 +891,7 @@ def parserange(rangelist):
             int_item = [ int(ii) for ii in item ]
         except(ValueError):
             print repr(':'.join(item)),'not convertable to integer'
-            return False
+            raise
 
         if 1==len(int_item):
             # single inclusive or exclusive item
@@ -905,14 +905,14 @@ def parserange(rangelist):
             if int_item[0] < int_item[1]:
                 if int_item[0] < 0:
                     print item[0],',',item[1],'must start with a non-negative number'
-                    return False
+                    return []
 
                 thisrange = range(int_item[0],int_item[1]+1)
                 for ii in thisrange:
                     oklist.add(ii)
             else:
                 print item[0],',',item[1],'needs to be in increasing order'
-                return False
+                return []
         else:
             print item,'has more than 2 values'
 
@@ -922,8 +922,79 @@ def parserange(rangelist):
         except(KeyError):
             oklist = [ str(item) for item in oklist ]
             print 'ERROR: excluded item', exitem, 'does not exist in inclusive range'
-            return False
+            raise
 
     oklist = [ str(item) for item in oklist ]
     print oklist
     return sorted(list(oklist))
+
+def is_inclusive_range(rangelist):
+
+    rangelist = rangelist.replace(' ','')
+    rangelist = rangelist.split(',')
+
+    # item is single value or range
+    for item in rangelist:
+        item = item.split(':')
+
+        # change to ints
+        try:
+            int_item = [ int(ii) for ii in item ]
+        except(ValueError):
+            print repr(':'.join(item)),'not convertable to integer'
+            raise
+
+        # single inclusive or exclusive item
+        if 1==len(int_item) and int_item[0] >= 0:
+            return True
+
+        elif 2==len(int_item):
+            return True
+
+    return False
+
+
+def commandSummary(logger,opt):
+    """
+    """
+
+    class prettyfloat(float):
+        def __repr__(self):
+            return "%0.2g" % self
+
+    doMessage(logger,msg.INFO,"---------------")
+    doMessage(logger,msg.INFO,"Command summary")
+    doMessage(logger,msg.INFO,"---------------")
+    doMessage(logger,msg.INFO,"Input file....................",opt.infile)
+    doMessage(logger,msg.INFO,"Calibrating to units of.......",opt.units)
+    if not opt.allmaps:
+        doMessage(logger,msg.INFO,"Map scans.....................",opt.mapscans[0],'to',opt.mapscans[-1])
+    doMessage(logger,msg.INFO,"creating all maps.............",opt.allmaps)
+    doMessage(logger,msg.INFO,"disable idlToSdfits display ..",opt.nodisplay)
+    doMessage(logger,msg.INFO,"spillover factor (eta_l)......",str(opt.spillover))
+    doMessage(logger,msg.INFO,"aperture efficiency (eta_A)...",str(opt.aperture_eff))
+    
+    if opt.gaincoeffs:
+        gaincoeffs = opt.gaincoeffs.split(',')
+        opt.gaincoeffs = [ float(xx) for xx in gaincoeffs ]
+    pretty_gaincoeffs = map(prettyfloat, gaincoeffs)
+    doMessage(logger,msg.INFO,"gain coefficiencts............",str(pretty_gaincoeffs))
+    
+    doMessage(logger,msg.INFO,"disable mapping ..............",opt.imagingoff)
+    doMessage(logger,msg.INFO,"map scans for scale ..........",opt.mapscansforscale)
+    if opt.sampler:
+        doMessage(logger,msg.INFO,"sampler(s)....................",opt.sampler)
+    if opt.feed:
+        doMessage(logger,msg.INFO,"feed(s) ......................",opt.feed)
+    else:
+        doMessage(logger,msg.INFO,"feed(s) ...................... All")
+        
+    if opt.pol:
+        doMessage(logger,msg.INFO,"polarization .................",opt.pol)
+    else:
+        doMessage(logger,msg.INFO,"polarization ................. All")
+
+    doMessage(logger,msg.INFO,"map scans for scale ..........",opt.mapscansforscale)
+    doMessage(logger,msg.INFO,"verbosity level...............",str(opt.verbose))
+
+    doMessage(logger,msg.INFO,"overwrite existing output.....",str(opt.clobber))
