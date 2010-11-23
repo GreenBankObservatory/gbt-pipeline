@@ -20,7 +20,10 @@ class CommandLine:
     def __init__(self):
         self.parser = myparser(fromfile_prefix_chars='@',
             description='Create maps from GBT observations.',
-            formatter_class=argparse.ArgumentDefaultsHelpFormatter,)
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+            epilog="Use @filename.par as a command line parameter to\
+            use options from a file.  Any options set on the command\
+            line will override whatever is stored in the file.",)
         self.parser.add_argument("-i", "--infile", dest="infile", default='',
                         help="SDFITS file name containing map scans", metavar="FILE")
         self.parser.add_argument("-m", "--map-scans", dest="mapscans", default=[],
