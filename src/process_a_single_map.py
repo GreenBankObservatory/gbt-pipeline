@@ -32,9 +32,9 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,opacity_coe
         print allscans
         sys.exit(9)
         
-    logger = pipeutils.configure_logfile(opt,logfilename,toconsole=False)
-    
-    doMessage(logger,msg.INFO,'finding scans')
+    logger = pipeutils.configure_logfile(opt,logfilename)
+
+    doMessage(logger,msg.DBG,'finding scans')
     
     block_found = False
     
@@ -47,20 +47,15 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,opacity_coe
         doMessage(logger,msg.ERR,'ERROR: map scans not found for scan',allscans[-1])
         sys.exit(9)
 
-    doMessage(logger,msg.INFO,'done')
+    doMessage(logger,msg.DBG,'done')
 
     # --allmaps set
     if opt.allmaps:
         doMessage(logger,msg.DBG,scans,blockid,samplerlist[blockid-1])
         thismap_samplerlist = samplerlist[blockid-1]
-    # scans and samplers specified
-    elif opt.sampler:
+    else:
         doMessage(logger,msg.DBG,'scans',scans)
         doMessage(logger,msg.DBG,'blockid',blockid)
-        thismap_samplerlist = samplerlist
-        doMessage(logger,msg.DBG,'thismap_samplerlist',thismap_samplerlist)
-    # scan specified, samplers not specified
-    else:
         thismap_samplerlist = samplerlist
         doMessage(logger,msg.DBG,'thismap_samplerlist',thismap_samplerlist)
 
@@ -73,9 +68,9 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,opacity_coe
 
     for sampler in thismap_samplerlist:
         
-        doMessage(logger,msg.INFO,'-----------')
-        doMessage(logger,msg.INFO,'SAMPLER',sampler)
-        doMessage(logger,msg.INFO,'-----------')
+        doMessage(logger,msg.DBG,'-----------')
+        doMessage(logger,msg.DBG,'SAMPLER',sampler)
+        doMessage(logger,msg.DBG,'-----------')
 
         try:
             samplermask = masks[blockid-1].pop(sampler)
@@ -97,13 +92,13 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,opacity_coe
             doMessage(logger,msg.DBG,'samplers',thismap_samplerlist)
             sys.exit(9)
 
-        doMessage(logger,msg.INFO,'appying mask')
+        doMessage(logger,msg.DBG,'appying mask')
         if block_found:
             doMessage(logger,msg.DBG,'to extension',blockid)
             sdfitsdata = infile[blockid].data[samplermask]
             doMessage(logger,msg.DBG,'length of sampler-filtered data block is',len(sdfitsdata))
             del samplermask
-        doMessage(logger,msg.INFO,'done')
+        doMessage(logger,msg.DBG,'done')
 
         freq=0
         refspec = []
@@ -126,7 +121,7 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,opacity_coe
         warnings.showwarning = send_warnings_to_logger
         warnings.filterwarnings('once', '.*converting a masked element to nan.*',)
 
-        doMessage(logger,msg.INFO,'outfile name',outfilename)
+        doMessage(logger,msg.DBG,'outfile name',outfilename)
         if (False == opt.clobber) and os.path.exists(outfilename):
             doMessage(logger,msg.ERR,'Outfile exits:',outfilename)
             doMessage(logger,msg.ERR,'Please remove or rename outfile(s) and try again')
@@ -134,7 +129,7 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,opacity_coe
 
         # ------------------------------------------- get the first reference scan
         scan=refscans[0]
-        doMessage(logger,msg.INFO,'Processing reference scan:',scan)
+        doMessage(logger,msg.DBG,'Processing reference scan:',scan)
 
         ref1 = scanreader.ScanReader()
         ref1.setLogger(logger)
@@ -181,7 +176,7 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,opacity_coe
             maxTCAL=0
 
             for scan in allscans:
-                doMessage(logger,msg.INFO,'Processing map scan:',scan)
+                doMessage(logger,msg.DBG,'Processing map scan:',scan)
                 mapscan = scanreader.ScanReader()
                 mapscan.setLogger(logger)
 
@@ -219,7 +214,7 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,opacity_coe
         # ------------------------------------------- get the last reference scan
         if len(refscans)>1:
             scan=refscans[-1]
-            doMessage(logger,msg.INFO,'Processing reference scan:',scan)
+            doMessage(logger,msg.DBG,'Processing reference scan:',scan)
 
             ref2 = scanreader.ScanReader()
             ref2.setLogger(logger)
@@ -257,7 +252,7 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,opacity_coe
         nchans = False # number of channels, used to filter of 2% from either edge
 
         for scan in allscans:
-            doMessage(logger,msg.INFO,'Calibrating scan:',scan)
+            doMessage(logger,msg.DBG,'Calibrating scan:',scan)
 
             mapscan = scanreader.ScanReader()
             mapscan.setLogger(logger)
@@ -323,14 +318,14 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,opacity_coe
             options = options + ' -v 0 '
 
         idlcmd = '/opt/local/bin/idlToSdfits -o ' + aipsinname + options + outfilename
-        doMessage(logger,msg.INFO,idlcmd)
+        doMessage(logger,msg.DBG,idlcmd)
 
         os.system(idlcmd)
 
     if not opt.imagingoff:
 
         aipsNumber = str(os.getuid())
-        doMessage(logger,msg.INFO,'aips number: ',aipsNumber)
+        doMessage(logger,msg.DBG,'aips number: ',aipsNumber)
 
         outsplit = outfilename.split('_')
         target = outsplit[0]
@@ -340,7 +335,7 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,opacity_coe
         filenames = target + '*' + scan_b + '_' + scan_e + '_' + freq + '*.sdf'
         doimg_cmd = ' '.join(('doImage',opt.imageScript,aipsNumber,filenames))
         lock.acquire()
-        doMessage(logger,msg.INFO,doimg_cmd)
+        doMessage(logger,msg.DBG,doimg_cmd)
 
         p = subprocess.Popen(doimg_cmd.split(),stdout=subprocess.PIPE,stderr=subprocess.PIPE)
         aips_stdout,aips_stderr = p.communicate()

@@ -38,8 +38,6 @@ class CommandLine:
                         help="first reference scan", metavar="SCAN", type=int)
         self.parser.add_argument("--refscan2", dest="refscan2", default=False,
                         help="second reference scan", metavar="SCAN", type=int)
-        self.parser.add_argument("-s", "--sampler",dest="sampler", default=[],
-                        help="comma-separated sampler(s) to process", metavar="S[,S]")
         self.parser.add_argument("-f", "--feed",dest="feed", default=[],
                         help="comma-separated feed(s) to process", metavar="F[,F]")
         self.parser.add_argument("-p", "--pol",dest="pol", default=[],

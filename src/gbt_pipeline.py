@@ -83,25 +83,16 @@ if not os.path.exists(opt.infile):
     doMessage(logger,msg.ERR,'    Please check input sdfits and run again')
     sys.exit(9)
 
+# name index file
 projdir = "/".join(opt.infile.split('/')[:-1])
 projfile = opt.infile.split('/')[-1]
 projhead = projfile.split('.')[0]
 projname = projdir + "/" + projhead
+indexfile=projname+'.raw.acs.index'
 
 doMessage(logger,msg.DBG,'getting mask index',projname+'.raw.acs.index')
-
-indexfile=projname+'.raw.acs.index'
-fitsfile=opt.infile
-masks = index_it(indexfile,fitsfile)
-
+masks = index_it(indexfile,opt.infile)
 doMessage(logger,msg.DBG,'done')
-
-samplerlist = []
-if opt.sampler:
-    samplerlist = opt.sampler.split(',')
-else:
-    for mask in masks:
-        samplerlist.append(mask.keys())
 
 # opacities coefficients filename
 opacity_coefficients_filename = '/users/rmaddale/Weather/ArchiveCoeffs/CoeffsOpacityFreqList_avrg.txt'
@@ -129,16 +120,16 @@ cpucount = multiprocessing.cpu_count()
 #    and continue
 maps_and_samplers = list_samplers(indexfile)
 
+samplerlist = []
 if opt.allmaps:
 
     # we need to set allscans, refscan1 and refscan2 for each map
     #    and continue
     mymaps = maps_and_samplers
+    for mask in masks:
+        samplerlist.append(mask.keys())
 
-elif not opt.sampler:
-    
-    samplerlist = []
-    
+else:
     for mapblock in maps_and_samplers:
 
         if opt.refscan1 == mapblock[0]:

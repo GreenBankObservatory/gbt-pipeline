@@ -981,8 +981,6 @@ def commandSummary(logger,opt):
     
     doMessage(logger,msg.INFO,"disable mapping ..............",opt.imagingoff)
     doMessage(logger,msg.INFO,"map scans for scale ..........",opt.mapscansforscale)
-    if opt.sampler:
-        doMessage(logger,msg.INFO,"sampler(s)....................",opt.sampler)
     if opt.feed:
         doMessage(logger,msg.INFO,"feed(s) ......................",opt.feed)
     else:
