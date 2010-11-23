@@ -110,7 +110,7 @@ doMessage(logger,msg.DBG,'opening fits file')
 infile = pyfits.open(opt.infile,memmap=1)
 
 # if we are attempting to calibrate/image all maps in the input file
-# we need to call summarize_it to get the maps and fire off a pipe for each one
+# we need to call list_samplers to get the maps and fire off a pipe for each one
 #    probably using multiprocess
 
 # get number of cpus in system
