@@ -25,6 +25,8 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,opacity_coe
     if scans[2]:
         refscans.append(scans[2])
 
+    samplermap = scans[3]
+
     try:
         logfilename = 'scans_'+str(allscans[0])+'_'+str(allscans[-1])+'_'+timestamp()+'.log'
         
@@ -260,10 +262,22 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,opacity_coe
             mapscan.get_scan(scan,sdfitsdata,opt.verbose)
             nchans = len(mapscan.data[0])
 
-            mapscan.mean_date()
+            # set relative gain factors for each beam/pol
+            #  if they are supplied
+            if opt.gain_left and samplermap[sampler][1]=='LL':
+                doMessage(logger,msg.DBG,'Multiplying by gain factor',
+                    float(opt.gain_left[samplermap[sampler][0]-1]))
+                gain_factor = float(opt.gain_left[samplermap[sampler][0]-1])
+            elif opt.gain_right and samplermap[sampler][1]=='RR':
+                doMessage(logger,msg.DBG,'Multiplying by gain factor',
+                    float(opt.gain_right[samplermap[sampler][0]-1]))
+                gain_factor = float(opt.gain_right[samplermap[sampler][0]-1])
+            else:
+                gain_factor = float(1)
+
             cal_ints = mapscan.calibrate_to(refspec,refdate,ref_tsys,\
                 k_per_count,opacity_coeffs,opt.gaincoeffs,opt.spillover,\
-                opt.aperture_eff,fbeampol,ref_tsky,opt.units,opt.verbose)
+                opt.aperture_eff,fbeampol,ref_tsky,opt.units,gain_factor,opt.verbose)
 
             if len(calibrated_integrations):
                 calibrated_integrations = np.concatenate((calibrated_integrations,cal_ints))

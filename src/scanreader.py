@@ -375,7 +375,7 @@ class ScanReader():
 
     def calibrate_to(self,refs,ref_dates,ref_tsyss,\
         k_per_count,opacity_coefficients,gain_coeff,spillover,aperture_eff,\
-        fbeampol,ref_tskys,units,verbose):
+        fbeampol,ref_tskys,units,gain_factor,verbose):
         """
 
         Keyword arguments:
@@ -534,6 +534,10 @@ class ScanReader():
         chanhi = int(len(data[0])*.9)
         tsys = k_per_count * sig_counts
         tsys = tsys[:,chanlo:chanhi].mean(1)
+
+        # apply a relative gain factor, if not 1
+        if float(1) != gain_factor:
+            Units = Units * gain_factor
 
         for idx,row in enumerate(input_rows):
             row.setfield('DATA',Units[idx])

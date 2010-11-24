@@ -66,7 +66,11 @@ class CommandLine:
         self.parser.add_argument("--no-map-scans-for-scale", action='store_false',
                         dest="mapscansforscale", default=True,
                         help="When set, do not use the mapping scans to scale reference scans to K.")
-                        
+        self.parser.add_argument("--gain-factors-left",dest="gain_left", default=[],
+                        help="comma-separated gain factors for each left-polarized feed", metavar="G[,G]")
+        self.parser.add_argument("--gain-factors-right",dest="gain_right", default=[],
+                        help="comma-separated gain factors for each right-polarized feed", metavar="G[,G]")
+
     def read(self,sys):
         """Read and parse the command line arguments
         
@@ -84,4 +88,14 @@ class CommandLine:
             parfile = sys.argv.pop(paridx)
             sys.argv.insert(1,parfile)
 
-        return self.parser.parse_args()
+        opt = self.parser.parse_args()
+
+        # transform some parameters to proper types
+        if opt.gain_right:
+            opt.gain_right = opt.gain_right.replace(' ','')
+            opt.gain_right = opt.gain_right.split(',')
+        if opt.gain_left:
+            opt.gain_left = opt.gain_left.replace(' ','')
+            opt.gain_left = opt.gain_left.split(',')
+
+        return opt

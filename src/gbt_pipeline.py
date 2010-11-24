@@ -177,7 +177,7 @@ else:
                     if str(feed) in opt.feed and pol in opt.pol:
                         samplerlist.append(sampler)
 
-            mymaps = [(opt.refscan1,allscans,opt.refscan2)]
+            mymaps = [(opt.refscan1,allscans,opt.refscan2,samplermap)]
             break
 
 if not opt.allmaps:
@@ -199,7 +199,8 @@ if not opt.allmaps:
 
 process_ids = []
 lock = multiprocessing.Lock()
-for idx,scans in enumerate(mymaps):    
+
+for idx,scans in enumerate(mymaps):
     # create a process for each map
     process_ids.append(multiprocessing.Process(target=process_a_single_map,
         args=(scans,masks,opt,infile,samplerlist,fbeampol,opacity_coeffs,lock,) ))
