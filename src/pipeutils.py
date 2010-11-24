@@ -49,7 +49,7 @@ def configure_logfile(opt,logfilename,toconsole=True):
     logger = logging.getLogger(loggername)
     
     # logging level defaults to WARN, so we need to override it
-    logger.setLevel(level)
+    logger.setLevel(logging.DEBUG)
     
     # create file handler which logs even debug messages
     fh = logging.FileHandler(filename=logfilename,mode='w')
