@@ -873,16 +873,22 @@ def commandSummary(logger,opt):
     if not opt.allmaps:
         doMessage(logger,msg.INFO,"Map scans.....................",opt.mapscans[0],'to',opt.mapscans[-1])
     doMessage(logger,msg.INFO,"creating all maps.............",opt.allmaps)
-    doMessage(logger,msg.INFO,"disable idlToSdfits display ..",opt.nodisplay)
+    doMessage(logger,msg.INFO,"display idlToSdfits plots ....",opt.display_idlToSdfits)
     doMessage(logger,msg.INFO,"spillover factor (eta_l)......",str(opt.spillover))
     doMessage(logger,msg.INFO,"aperture efficiency (eta_A)...",str(opt.aperture_eff))
     
     if opt.gaincoeffs:
-        gaincoeffs = opt.gaincoeffs.split(',')
-        opt.gaincoeffs = [ float(xx) for xx in gaincoeffs ]
-    pretty_gaincoeffs = map(prettyfloat, gaincoeffs)
+        pretty_gaincoeffs = map(prettyfloat, opt.gaincoeffs)
     doMessage(logger,msg.INFO,"gain coefficiencts............",str(pretty_gaincoeffs))
     
+    if opt.gain_left:
+        pretty_gains_left = map(prettyfloat, opt.gain_left)
+    doMessage(logger,msg.INFO,"relative gain factors (LL) ...",str(pretty_gains_left))
+
+    if opt.gain_right:
+        pretty_gains_right = map(prettyfloat, opt.gain_right)
+    doMessage(logger,msg.INFO,"relative gain factors (RR) ...",str(pretty_gains_right))
+
     doMessage(logger,msg.INFO,"disable mapping ..............",opt.imagingoff)
     doMessage(logger,msg.INFO,"map scans for scale ..........",opt.mapscansforscale)
     if opt.feed:
@@ -899,3 +905,8 @@ def commandSummary(logger,opt):
     doMessage(logger,msg.INFO,"verbosity level...............",str(opt.verbose))
 
     doMessage(logger,msg.INFO,"overwrite existing output.....",str(opt.clobber))
+
+def string_to_floats(string_list):
+    string_list = string_list.replace(' ','')
+    string_list = string_list.split(',')
+    return [ float(item) for item in string_list ]

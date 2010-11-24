@@ -266,12 +266,12 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,opacity_coe
             #  if they are supplied
             if opt.gain_left and samplermap[sampler][1]=='LL':
                 doMessage(logger,msg.DBG,'Multiplying by gain factor',
-                    float(opt.gain_left[samplermap[sampler][0]-1]))
-                gain_factor = float(opt.gain_left[samplermap[sampler][0]-1])
+                    opt.gain_left[samplermap[sampler][0]-1])
+                gain_factor = opt.gain_left[samplermap[sampler][0]-1]
             elif opt.gain_right and samplermap[sampler][1]=='RR':
                 doMessage(logger,msg.DBG,'Multiplying by gain factor',
-                    float(opt.gain_right[samplermap[sampler][0]-1]))
-                gain_factor = float(opt.gain_right[samplermap[sampler][0]-1])
+                    opt.gain_right[samplermap[sampler][0]-1])
+                gain_factor = opt.gain_right[samplermap[sampler][0]-1]
             else:
                 gain_factor = float(1)
 
@@ -323,7 +323,7 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,opacity_coe
             chan_max = int(nchans*.98) # end at 98% of nchans
             options = options + ' -c ' + str(chan_min) + ':' + str(chan_max) + ' '
 
-        if opt.nodisplay:
+        if not opt.display_idlToSdfits:
             options = options + ' -l '
 
         if opt.verbose > 4:

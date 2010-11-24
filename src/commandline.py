@@ -1,4 +1,5 @@
 import argparse
+import pipeutils
 
 class myparser(argparse.ArgumentParser):
     def convert_arg_line_to_args(self, arg_line):
@@ -57,9 +58,9 @@ class CommandLine:
                         help="set the verbosity level-- 0-1:none, "
                              "2:errors only, 3:+warnings, "
                              "4:+user info, 5:+debug", metavar="N", type=int)
-        self.parser.add_argument("--nodisplay", action='store_true',
-                        dest="nodisplay", default=False,
-                        help="will not attempt to use the display")
+        self.parser.add_argument("--display-idlToSdfits", action='store_true',
+                        dest="display_idlToSdfits", default=False,
+                        help="will attempt to display idlToSdfits plots")
         self.parser.add_argument("--clobber", action='store_true',
                         dest="clobber", default=False,
                         help="Overwrites existing output files if set.")
@@ -91,11 +92,11 @@ class CommandLine:
         opt = self.parser.parse_args()
 
         # transform some parameters to proper types
-        if opt.gain_right:
-            opt.gain_right = opt.gain_right.replace(' ','')
-            opt.gain_right = opt.gain_right.split(',')
         if opt.gain_left:
-            opt.gain_left = opt.gain_left.replace(' ','')
-            opt.gain_left = opt.gain_left.split(',')
+            opt.gain_left = pipeutils.string_to_floats(opt.gain_left)
+        if opt.gain_right:
+            opt.gain_right = pipeutils.string_to_floats(opt.gain_right)
+        if opt.gaincoeffs:
+            opt.gaincoeffs = pipeutils.string_to_floats(opt.gaincoeffs)
 
         return opt
