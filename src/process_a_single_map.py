@@ -238,7 +238,7 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,opacity_coe
             chanlo = int(len(ref2spec)*.1)
             chanhi = int(len(ref2spec)*.9)
             ratios = dcRef2[chanlo:chanhi] / dcCal[chanlo:chanhi]
-            tsysRef2 = ratios.mean()*ref2_max_tcal
+            tsysRef2 = ratios.mean()*ref2_max_tcal  # eqn. (4)
             ref_tsys.append(tsysRef2)
 
             doMessage(logger,msg.DBG,'REF 2')

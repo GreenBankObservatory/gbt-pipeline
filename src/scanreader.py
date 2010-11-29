@@ -355,10 +355,6 @@ class ScanReader():
         """
 
         Keyword arguments:
-        sampler -- the sampler number
-        mean_tsys -- 
-        refspec -- reference spectrum
-        k_per_count -- kelvin per count scaling factor
         verbose -- verbosity level, default to 0
         
         Returns:
@@ -485,17 +481,17 @@ class ScanReader():
             doMessage(self.logger,msg.DBG,'E-REF [0],[1000],[nChan]',refs[1][0],refs[1][1000],refs[1][-1])
             doMessage(self.logger,msg.DBG,'1st int REF [0],[1000],[nChan]',ref[0][0],ref[0][1000],ref[0][-1])
         doMessage(self.logger,msg.DBG,'1st int SIG [0],[1000],[nChan]',sig_counts[0][0],sig_counts[0][1000],sig_counts[0][-1])
-            
+
         if not np.any(opacities) and not units=='ta':
             doMessage(self.logger,msg.WARN,'WARNING: No opacities, calibrating to units of Ta')
             units=='ta'
-            
+
         if units=='tatsky':
             # remove the elevation contribution to sky temperatures
             if np.any(all_tsky_sig) and np.any(tsky_ref):
                 Ta = Ta - (all_tsky_sig - tsky_ref)
                 Units = Ta
-            
+
         if units=='ta*' or units=='tmb' or units=='tb*' or units=='jy':
             # Braatz 2007 (eqn. 3), modified with denominator == 1
             Ta_adjusted = Ta * all_opacities
