@@ -879,15 +879,15 @@ def commandSummary(logger,opt):
     
     if opt.gaincoeffs:
         pretty_gaincoeffs = map(prettyfloat, opt.gaincoeffs)
-    doMessage(logger,msg.INFO,"gain coefficiencts............",str(pretty_gaincoeffs))
+        doMessage(logger,msg.INFO,"gain coefficiencts............",str(pretty_gaincoeffs))
     
     if opt.gain_left:
         pretty_gains_left = map(prettyfloat, opt.gain_left)
-    doMessage(logger,msg.INFO,"relative gain factors (LL) ...",str(pretty_gains_left))
+        doMessage(logger,msg.INFO,"relative gain factors (LL) ...",str(pretty_gains_left))
 
     if opt.gain_right:
         pretty_gains_right = map(prettyfloat, opt.gain_right)
-    doMessage(logger,msg.INFO,"relative gain factors (RR) ...",str(pretty_gains_right))
+        doMessage(logger,msg.INFO,"relative gain factors (RR) ...",str(pretty_gains_right))
 
     doMessage(logger,msg.INFO,"disable mapping ..............",opt.imagingoff)
     doMessage(logger,msg.INFO,"map scans for scale ..........",opt.mapscansforscale)
