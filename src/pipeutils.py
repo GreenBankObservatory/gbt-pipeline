@@ -806,17 +806,21 @@ def parserange(rangelist):
 
         elif 2==len(int_item):
             # range
-            if int_item[0] < int_item[1]:
+            if int_item[0] <= int_item[1]:
                 if int_item[0] < 0:
                     print item[0],',',item[1],'must start with a non-negative number'
                     return []
 
-                thisrange = range(int_item[0],int_item[1]+1)
+                if int_item[0]==int_item[1]:
+                    thisrange = [int_item[0]]
+                else:
+                    thisrange = range(int_item[0],int_item[1]+1)
+
                 for ii in thisrange:
                     oklist.add(ii)
             else:
                 print item[0],',',item[1],'needs to be in increasing order'
-                return []
+                raise
         else:
             print item,'has more than 2 values'
 
@@ -901,7 +905,6 @@ def commandSummary(logger,opt):
     else:
         doMessage(logger,msg.INFO,"polarization ................. All")
 
-    doMessage(logger,msg.INFO,"map scans for scale ..........",opt.mapscansforscale)
     doMessage(logger,msg.INFO,"verbosity level...............",str(opt.verbose))
 
     doMessage(logger,msg.INFO,"overwrite existing output.....",str(opt.clobber))

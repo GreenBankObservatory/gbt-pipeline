@@ -132,7 +132,11 @@ if opt.allmaps:
 else:
     for mapblock in maps_and_samplers:
 
-        if opt.refscan1 == mapblock[0]:
+        # See if the first of the map scans is in the
+        #  list of map scans for this block of map scans
+        # The reason for this is to find the correct set of
+        #  samplers before filtering
+        if int(opt.mapscans[0]) in mapblock[1]:
 
             samplermap = mapblock[3]
 

@@ -64,9 +64,9 @@ class CommandLine:
         self.parser.add_argument("--clobber", action='store_true',
                         dest="clobber", default=False,
                         help="Overwrites existing output files if set.")
-        self.parser.add_argument("--no-map-scans-for-scale", action='store_false',
-                        dest="mapscansforscale", default=True,
-                        help="When set, do not use the mapping scans to scale reference scans to K.")
+        self.parser.add_argument("--map-scans-for-scale", action='store_true',
+                        dest="mapscansforscale", default=False,
+                        help="When set, use the mapping scans to scale map Tsys's to K.")
         self.parser.add_argument("--gain-factors-left",dest="gain_left", default=[],
                         help="comma-separated gain factors for each left-polarized feed", metavar="G[,G]")
         self.parser.add_argument("--gain-factors-right",dest="gain_right", default=[],
