@@ -460,7 +460,7 @@ def _gain(gain_coeff,elevation):
         
     return gain
 
-def ta_correction(gain_coeff,spillover,aperture_eff,\
+def ta_correction(logger,gain_coeff,spillover,aperture_eff,\
         fbeampol,opacity_coefficients,mjds,elevations,freq,verbose=0):
     """Compute correction to Ta for determining Ta*
     
@@ -475,24 +475,24 @@ def ta_correction(gain_coeff,spillover,aperture_eff,\
     opacities = []
     
     if opacity_coefficients:
-        
+
         for idx,mjd in enumerate(mjds):
             if len(elevations)>1:
                 elevation = elevations[idx]
                 gain = _gain(gain_coeff,elevation)
-                
+
                 # get the correct set of coefficients for this time
                 for coeffs_line in opacity_coefficients:
                     if mjd > coeffs_line[0]:
                         coeffs = coeffs_line[1]
-                
+
                 zenith_opacities = interpolated_zenith_opacity(coeffs,freq)
                 opacities.append(corrected_opacity(zenith_opacities[idx],elevation))
-            
+
             else:
                 elevation = elevations[0]
                 gain = _gain(gain_coeff,elevation)
-                
+
                 # get the correct set of coefficients for this time
                 for coeffs_line in opacity_coefficients:
                     if mjd > coeffs_line[0]:
@@ -500,13 +500,18 @@ def ta_correction(gain_coeff,spillover,aperture_eff,\
 
                 zenith_opacities = interpolated_zenith_opacity(coeffs,freq)
                 opacities.append(corrected_opacity(zenith_opacities,elevation))
-        
+
         opacities = np.array(opacities)
         if opacities.ndim == opacities.size:
             opacities = opacities[0]
-            
-        return (fbeampol * np.array(opacities)) / (spillover * aperture_eff * gain)
+
+        BB = .0132 # Ruze equation parameter
+        aperture_eff = aperture_eff * math.e**-((BB * freq)**2)
+        doMessage(logger,msg.DBG,"aperture efficiency",aperture_eff.mean())
         
+        # return right part of equation 13
+        return (fbeampol * np.array(opacities)) / (spillover * aperture_eff * gain)
+
     else:
     
         return False
