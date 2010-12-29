@@ -173,7 +173,7 @@ def hz2wavelength(f):
     c = 299792458  # speed of light in m/s
     return (c/f)
 
-def etaA(freqHz):
+def etaA(etaA0,freqHz):
     """Determine etaA    
     
     Keyword attributes:
@@ -183,13 +183,14 @@ def etaA(freqHz):
     etaA -- output point source efficiency (range 0 to 1)
     
     """
+
+    BB = .0132 # Ruze equation parameter
     freqGHz = float(freqHz)/1e9
-    freqScale = 0.0163 * freqGHz
-    etaA = float(0.71) * math.exp(-freqScale**2)
+    etaA = etaA0 * math.e**-((BB * freqGHz)**2)
     
     return etaA
 
-def etaMB(freqHz):
+def etaMB(etaA0,freqHz):
     """Determine source efficiency
 
     Keyword attributes:
@@ -203,7 +204,7 @@ def etaMB(freqHz):
     EtaA,MB model is from memo by Jim Condon, provided by Ron Maddalena
 
     """
-    etaMB = float(1.37) * etaA(freqHz)
+    etaMB = float(1.37) * etaA(etaA0,freqHz)
 
     return etaMB
     
@@ -460,7 +461,7 @@ def _gain(gain_coeff,elevation):
         
     return gain
 
-def ta_correction(logger,gain_coeff,spillover,aperture_eff,\
+def ta_correction(gain_coeff,spillover,\
         fbeampol,opacity_coefficients,mjds,elevations,freq,verbose=0):
     """Compute correction to Ta for determining Ta*
     
@@ -505,12 +506,8 @@ def ta_correction(logger,gain_coeff,spillover,aperture_eff,\
         if opacities.ndim == opacities.size:
             opacities = opacities[0]
 
-        BB = .0132 # Ruze equation parameter
-        aperture_eff = aperture_eff * math.e**-((BB * freq)**2)
-        doMessage(logger,msg.DBG,"aperture efficiency",aperture_eff.mean())
-        
         # return right part of equation 13
-        return (fbeampol * np.array(opacities)) / (spillover * aperture_eff * gain)
+        return (fbeampol * np.array(opacities)) / (spillover * gain)
 
     else:
     
@@ -884,7 +881,7 @@ def commandSummary(logger,opt):
     doMessage(logger,msg.INFO,"creating all maps.............",opt.allmaps)
     doMessage(logger,msg.INFO,"display idlToSdfits plots ....",opt.display_idlToSdfits)
     doMessage(logger,msg.INFO,"spillover factor (eta_l)......",str(opt.spillover))
-    doMessage(logger,msg.INFO,"aperture efficiency (eta_A)...",str(opt.aperture_eff))
+    doMessage(logger,msg.INFO,"aperture efficiency (eta_A0)..",str(opt.aperture_eff))
     
     if opt.gaincoeffs:
         pretty_gaincoeffs = map(prettyfloat, opt.gaincoeffs)

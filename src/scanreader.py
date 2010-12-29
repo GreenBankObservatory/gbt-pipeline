@@ -426,7 +426,7 @@ class ScanReader():
         
         # calculate weather-dependent opacities for each frequency, time and elevation
         if not units=='ta' and (6<= freq.mean()/1e9 <=50 or 70<= freq.mean()/1e9 <=116):
-            opacities = pipeutils.ta_correction(logger,gain_coeff,spillover,aperture_eff,\
+            opacities = pipeutils.ta_correction(gain_coeff,spillover,\
                         fbeampol,opacity_coefficients,mjds,elevations,freq/1e9)
         else:
             opacities = False
@@ -498,23 +498,25 @@ class ScanReader():
             Units = Ta_adjusted
         
         if units=='tmb' or units=='tb*':
-            # calculate main beam efficiency approx. = 1.32 * etaA
+            # calculate main beam efficiency approx. = 1.37 * etaA
             #   where etaA is aperture efficiency
             # note to self: move to the top level so as to only call once?
 
             #etaMB = np.array([pipeutils.etaMB(ff) for ff in freq]) # all frequencies
             allfreq = self.freq_axis()
             midfreq = allfreq[len(allfreq)/2] #reference freq of first integration
-            etaMB = pipeutils.etaMB(midfreq) # idl-like version
-
-            # Braatz 2007 ("Calibration to Tmb and other units")
+            etaMB = pipeutils.etaMB(aperture_eff,midfreq) # idl-like version
+            doMessage(logger,msg.DBG,"main beam efficiency",etaMB)
+            
+            # PS specification section 4.11
             Tmb = Ta_adjusted / etaMB
             Units = Tmb
         
         if units=='jy':
             allfreq = self.freq_axis()
             midfreq = allfreq[len(allfreq)/2] #reference freq of first integration
-            etaA = pipeutils.etaA(midfreq)
+            etaA = pipeutils.etaA(aperture_eff,midfreq)
+            doMessage(logger,msg.DBG,"aperture efficiency",etaA)
             Jy = Ta_adjusted / (2.85 * etaA)
             Units = Jy
             
@@ -594,7 +596,7 @@ class ScanReader():
 
         # idl-like version uses a single avg elevation
         if not units=='ta' and (6<= freq.mean()/1e9 <=50 or 70<= freq.mean()/1e9 <=116):
-            opacities = pipeutils.ta_correction(logger,gain_coeff,spillover,aperture_eff,\
+            opacities = pipeutils.ta_correction(gain_coeff,spillover,\
                         fbeampol,opacity_coefficients,\
                         [mjds.mean()],[self.elevation_ave()],freq/1e9,verbose)
         else:
