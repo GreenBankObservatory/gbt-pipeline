@@ -58,7 +58,7 @@ fbeampol=1
 if not opt.allmaps:
     # setup scan numbers
     allscans = [ int(item) for item in opt.mapscans ]
-    doMessage(logger,msg.INFO,"Map scans",allscans)
+    doMessage(logger,msg.INFO,"Map scans",', '.join(map(str,allscans)))
 
     refscans = set([])
     if opt.refscan1:
@@ -73,7 +73,7 @@ if not opt.allmaps:
         doMessage(logger,msg.ERR,'No reference scan provided. Exiting.')
         sys.exit(1)
 
-    doMessage(logger,msg.INFO,"Reference scan(s)",list(refscans))
+    doMessage(logger,msg.INFO,"Reference scan(s)",', '.join(map(str,list(refscans))))
     doMessage(logger,msg.INFO,"---------------\n")
     
 # read in the input file
@@ -192,27 +192,17 @@ for idx,mm in enumerate(mymaps):
     doMessage(logger,msg.INFO,'Map',idx+1)
     doMessage(logger,msg.INFO,'-----')
     doMessage(logger,msg.INFO,'Reference scan.. ',mm[0])
-    doMessage(logger,msg.INFO,'map scans....... ',mm[1])
+    doMessage(logger,msg.INFO,'map scans....... ',', '.join(map(str,mm[1])))
     if mm[2]:
         doMessage(logger,msg.INFO,'Reference scan.. ',mm[2])
     if opt.allmaps:
         sampler_summary(logger,mm[3])
 
 if not opt.allmaps:
-    doMessage(logger,msg.INFO,'Processing',len(samplerlist),'sampler(s):', samplerlist)
-
-process_ids = []
-lock = multiprocessing.Lock()
+    doMessage(logger,msg.INFO,'Processing',len(samplerlist),'sampler(s):', ', '.join(samplerlist))
 
 for idx,scans in enumerate(mymaps):
     # create a process for each map
-    process_ids.append(multiprocessing.Process(target=process_a_single_map,
-        args=(scans,masks,opt,infile,samplerlist,fbeampol,opacity_coeffs,lock,) ))
-
-for idx,pp in enumerate(process_ids):
-    pp.start()
-
-for idx,pp in enumerate(process_ids):
-    pp.join()
+    process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,opacity_coeffs)
 
 doMessage(logger,msg.INFO,'Pipeline finished.')
