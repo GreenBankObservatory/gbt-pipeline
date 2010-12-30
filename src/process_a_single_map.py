@@ -270,12 +270,19 @@ def do_sampler(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
     if not opt.display_idlToSdfits:
         options = options + ' -l '
 
+    if opt.idlToSdfits_rms_flag:
+        options = options + ' -n ' + opt.idlToSdfits_rms_flag + ' '
+        
     if opt.verbose > 4:
         options = options + ' -v 2 '
     else:
         options = options + ' -v 0 '
 
+    if opt.idlToSdfits_baseline_subtract:
+        options = options + ' -w ' + opt.idlToSdfits_baseline_subtract + ' '
+        
     idlcmd = '/opt/local/bin/idlToSdfits -o ' + aipsinname + options + outfilename
+
     doMessage(logger,msg.DBG,idlcmd)
 
     os.system(idlcmd)

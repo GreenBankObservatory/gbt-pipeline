@@ -48,6 +48,15 @@ class CommandLine:
                         help="comma-separated polarization(s) to process", metavar="P[,P]")
         self.parser.add_argument("-a", "--average",dest="average", default=0, type=int,
                         help="averge the spectra over N channels (idlToSdfits)", metavar="N")
+        self.parser.add_argument("-n", "--idlToSdfits-rms-flag",dest="idlToSdfits_rms_flag", default=False,
+                        help="flag integrations with excess noise, see idlToSdfits help",
+                        metavar="N")
+        self.parser.add_argument("-w", "--idlToSdfits-baseline-subtract",dest="idlToSdfits_baseline_subtract",
+                        default=False, help="subtract median-filtered baseline, see idlToSdfits help",
+                        metavar="N")
+        self.parser.add_argument("--display-idlToSdfits", action='store_true',
+                        dest="display_idlToSdfits", default=False,
+                        help="will attempt to display idlToSdfits plots")
         self.parser.add_argument("--spillover-factor",dest="spillover", default=.99, type=float,
                         help="rear spillover factor (eta-l)", metavar="N")
         self.parser.add_argument("--apperture-efficiency",dest="aperture_eff", default=.71, type=float,
@@ -58,9 +67,6 @@ class CommandLine:
                         help="set the verbosity level-- 0-1:none, "
                              "2:errors only, 3:+warnings, "
                              "4:+user info, 5:+debug", metavar="N", type=int)
-        self.parser.add_argument("--display-idlToSdfits", action='store_true',
-                        dest="display_idlToSdfits", default=False,
-                        help="will attempt to display idlToSdfits plots")
         self.parser.add_argument("--clobber", action='store_true',
                         dest="clobber", default=False,
                         help="Overwrites existing output files if set.")
