@@ -109,16 +109,9 @@ doMessage(logger,msg.DBG,'getting data object from input file')
 doMessage(logger,msg.DBG,'opening fits file')
 infile = pyfits.open(opt.infile,memmap=1)
 
-# if we are attempting to calibrate/image all maps in the input file
-# we need to call list_samplers to get the maps and fire off a pipe for each one
-#    probably using multiprocess
-
-# get number of cpus in system
-cpucount = multiprocessing.cpu_count()
-
 # we need to set allscans, refscan1 and refscan2 for each map
 #    and continue
-maps_and_samplers = list_samplers(indexfile)
+maps_and_samplers = list_samplers(opt.allmaps,indexfile)
 
 samplerlist = []
 if opt.allmaps:
@@ -130,59 +123,50 @@ if opt.allmaps:
         samplerlist.append(mask.keys())
 
 else:
-    for mapblock in maps_and_samplers:
+    samplermap = maps_and_samplers[allscans[0]][1]
 
-        # See if the first of the map scans is in the
-        #  list of map scans for this block of map scans
-        # The reason for this is to find the correct set of
-        #  samplers before filtering
-        if int(opt.mapscans[0]) in mapblock[1]:
+    if not opt.feed and not opt.pol:
+        samplerlist = samplermap.keys()
 
-            samplermap = mapblock[3]
-
-            if not opt.feed and not opt.pol:
-                samplerlist = samplermap.keys()
-
-            else:
-                # check the feed and pol specified at the commandline
-                #  before including a sampler in the list
-                if opt.feed:
-                    try:
-                        inclusive = is_inclusive_range(opt.feed)
-                    except:
-                        doMessage(logger,msg.INFO,'ERROR: can not parse range',opt.feed)
-                        sys.exit(11)
-                    # if there are only exclusive items listed
-                    #   add all feeds to the list so we have something to
-                    #   subtract from
-                    if not inclusive:
-                        feeds = []
-                        for sampler in samplermap:
-                            feeds.append(str(samplermap[sampler][0]))
-                        feeds = ',' + ','.join(feeds)
-                        opt.feed += feeds
-                    try:
-                        opt.feed = parserange(opt.feed)
-                    except:
-                        doMessage(logger,msg.ERR,'ERROR: could not parse range',opt.feed)
-                        sys.exit(11)
-
-                if opt.feed and not opt.pol:
-                    for sampler in samplermap:
-                        opt.pol.append(str(samplermap[sampler][1]))
-                elif opt.pol and not opt.feed:
-                    for sampler in samplermap:
-                        opt.feed.append(str(samplermap[sampler][0]))
-
-                # add only the samplers we will process
+    else:
+        # check the feed and pol specified at the commandline
+        #  before including a sampler in the list
+        if opt.feed:
+            try:
+                inclusive = is_inclusive_range(opt.feed)
+            except:
+                doMessage(logger,msg.INFO,'ERROR: can not parse range',opt.feed)
+                sys.exit(11)
+            # if there are only exclusive items listed
+            #   add all feeds to the list so we have something to
+            #   subtract from
+            if not inclusive:
+                feeds = []
                 for sampler in samplermap:
-                    feed = samplermap[sampler][0]
-                    pol = samplermap[sampler][1]
-                    if str(feed) in opt.feed and pol in opt.pol:
-                        samplerlist.append(sampler)
+                    feeds.append(str(samplermap[sampler][0]))
+                feeds = ',' + ','.join(feeds)
+                opt.feed += feeds
+            try:
+                opt.feed = parserange(opt.feed)
+            except:
+                doMessage(logger,msg.ERR,'ERROR: could not parse range',opt.feed)
+                sys.exit(11)
 
-            mymaps = [(opt.refscan1,allscans,opt.refscan2,samplermap)]
-            break
+        if opt.feed and not opt.pol:
+            for sampler in samplermap:
+                opt.pol.append(str(samplermap[sampler][1]))
+        elif opt.pol and not opt.feed:
+            for sampler in samplermap:
+                opt.feed.append(str(samplermap[sampler][0]))
+
+        # add only the samplers we will process
+        for sampler in samplermap:
+            feed = samplermap[sampler][0]
+            pol = samplermap[sampler][1]
+            if str(feed) in opt.feed and pol in opt.pol:
+                samplerlist.append(sampler)
+
+    mymaps = [(opt.refscan1,allscans,opt.refscan2,samplermap)]
 
 if not opt.allmaps:
     sampler_summary(logger,samplermap)

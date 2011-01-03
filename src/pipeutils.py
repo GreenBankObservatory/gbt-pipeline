@@ -661,7 +661,7 @@ def index_it(indexfile,fitsfile=None,table_length=0,samplers=[],verbose=0):
     
     return mask
 
-def list_samplers(indexfile,debug=False):
+def list_samplers(allmaps,indexfile,debug=False):
 
     myFile = open(indexfile,'rU')
     
@@ -726,6 +726,10 @@ def list_samplers(indexfile,debug=False):
         print 'mapkeys', mapkeys
 
     samplermap = {}
+
+    if not allmaps:
+        return scans
+        
     for idx,scan in enumerate(mapkeys):
 
         # look for the offs
