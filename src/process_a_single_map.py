@@ -355,12 +355,15 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,opacity_coe
     else:
         cpucount = multiprocessing.cpu_count()
         number_of_samplers = len(thismap_samplerlist)
+
         if cpucount < number_of_samplers:
             process_group_max = cpucount
         else:
             process_group_max = number_of_samplers
 
-    doMessage(logger,msg.DBG,'process_group_max',process_group_max)
+        process_group_max = int(math.ceil(float(process_group_max)/2))
+
+    doMessage(logger,msg.INFO,'Maxiumum number of running processes:',process_group_max)
     lcl_samplerlist = thismap_samplerlist[:]
     while(lcl_samplerlist):
         process_ids = []
