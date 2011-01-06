@@ -350,21 +350,39 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,opacity_coe
         thismap_samplerlist = [thismap_samplerlist]
 
 # ---------------------------------------------------------------- start parallelism
-    process_ids = []
-    cc, dd = multiprocessing.Pipe()
-    for sampler in thismap_samplerlist:
-        # create a process for each sampler
-        process_ids.append(multiprocessing.Process(target=do_sampler,
-            args=(dd,sampler,logger,block_found,blockid,samplermap,allscans,\
-            refscans,scans,masks,opt,infile,fbeampol,opacity_coeffs)) )
-    
-    for pp in process_ids:
-        pp.start()
+    if opt.process_max:
+        process_group_max = opt.process_max
+    else:
+        cpucount = multiprocessing.cpu_count()
+        number_of_samplers = len(thismap_samplerlist)
+        if cpucount < number_of_samplers:
+            process_group_max = cpucount
+        else:
+            process_group_max = number_of_samplers
 
-    outfilenames = []
-    for pp in process_ids:
-        outfilenames.append(cc.recv())
-        pp.join()
+    doMessage(logger,msg.DBG,'process_group_max',process_group_max)
+    lcl_samplerlist = thismap_samplerlist[:]
+    while(lcl_samplerlist):
+        process_ids = []
+        cc, dd = multiprocessing.Pipe()
+        samplergroup = []
+        for idx in range(process_group_max):
+            if lcl_samplerlist:
+                samplergroup.append(lcl_samplerlist.pop(-1))
+        for sampler in samplergroup:
+            # create a process for each sampler
+
+            process_ids.append(multiprocessing.Process(target=do_sampler,
+                args=(dd,sampler,logger,block_found,blockid,samplermap,allscans,\
+                refscans,scans,masks,opt,infile,fbeampol,opacity_coeffs)) )
+        
+        for pp in process_ids:
+            pp.start()
+
+        outfilenames = []
+        for pp in process_ids:
+            outfilenames.append(cc.recv())
+            pp.join()
 
 # ---------------------------------------------------------------- end parallelism
 

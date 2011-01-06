@@ -77,6 +77,8 @@ class CommandLine:
                         help="comma-separated gain factors for each left-polarized feed", metavar="G[,G]")
         self.parser.add_argument("--gain-factors-right",dest="gain_right", default=[],
                         help="comma-separated gain factors for each right-polarized feed", metavar="G[,G]")
+        self.parser.add_argument("--max-processors",dest="process_max", default=False, type=int,
+                        help="optional max number of processors, to reduce resource usage", metavar="N")
 
     def read(self,sys):
         """Read and parse the command line arguments
