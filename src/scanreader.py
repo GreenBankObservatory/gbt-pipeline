@@ -463,7 +463,7 @@ class ScanReader():
             tsky_ref = np.array(ref_tskys[0],ndmin=2)
             tsys_ref = np.array(ref_tsyss[0],ndmin=2)
 
-        # Braatz 2007 eqn. (2)
+        # PS specification (eqn. 5)  FS specification (eqn. 5)
         Ta = tsys_ref * ((sig_counts-ref)/ref)
         Units = Ta
 
