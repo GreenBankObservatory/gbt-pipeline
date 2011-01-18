@@ -19,8 +19,14 @@ if not opt.allmaps:
         print 'ERROR: could not parse range:',opt.mapscans
         sys.exit(10)
 
-opt.infile = check_for_sdfits_file(opt.infile, opt.sdfitsdir, opt.mapscans[0],\
-                               opt.mapscans[-1],opt.refscan1, opt.refscan2,\
+beginscan = False
+endscan = False
+if opt.mapscans:
+    beginscan = opt.mapscans[0]
+    endscan = opt.mapscans[-1]
+
+opt.infile = check_for_sdfits_file(opt.infile, opt.sdfitsdir, beginscan,\
+                               endscan,opt.refscan1, opt.refscan2,\
                                opt.verbose)
 
 # -------------------------------------------------------- configure logging

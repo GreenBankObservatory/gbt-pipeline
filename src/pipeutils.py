@@ -555,8 +555,7 @@ def check_for_sdfits_file( infile, sdfitsdir, beginscan, endscan,\
     
     """
     # if the SDFITS input file doesn't exist, generate it
-    if (not os.path.isfile(infile) and os.path.isdir(sdfitsdir) and \
-        beginscan < endscan):
+    if (not os.path.isfile(infile) and os.path.isdir(sdfitsdir)):
         if VERBOSE > 0:
             print "SDFITS input file does not exist; trying to generate it from",\
                   "sdfits-dir input parameter directory and user-provided",\
@@ -567,20 +566,35 @@ def check_for_sdfits_file( infile, sdfitsdir, beginscan, endscan,\
             print "    regenerate it using the 'sdfits' filler program in"
             print "    Green Bank. (/opt/local/bin/sdfits).  Exiting"
             sys.exit(2)
-            
-        if refscan1 < beginscan:
-            minscan = refscan1
-        else:
-            minscan = beginscan
 
-        if refscan2 > endscan:
-            maxscan = refscan2
-        else:
-            maxscan = endscan
+        if beginscan and endscan:
+            if not beginscan <= endscan:
+                print 'ERROR: begin scan is greater than end scan',beginscan,'>',endscan
+                sys.exit(9)
 
-        sdfitsstr = '/opt/local/bin/sdfits -fixbadlags -backends=acs' + \
-                    ' -scans=' + str(minscan) + ':' + str(maxscan) + ' ' + \
-                    sdfitsdir
+        if beginscan or endscan or refscan1 or refscan2:
+
+            scanslist = [beginscan,endscan,refscan1,refscan2]
+            while(True):
+                try:
+                    scanslist.remove(False)
+                except(ValueError):
+                    break
+
+            minscan = min(scanslist)
+            maxscan = max(scanslist)
+
+        if minscan and not maxscan:
+            scanrange = '-scans=' + str(minscan) + ': '
+        elif maxscan and not minscan:
+            scanrange = '-scans=:'+ str(maxscan) + ' '
+        elif minscan and maxscan:
+            scanrange = '-scans=' + str(minscan) + ':' + str(maxscan) + ' '
+        else:
+            scanrange = ''
+
+        sdfitsstr = '/opt/local/bin/sdfits -fixbadlags -backends=acs ' + \
+                    scanrange + sdfitsdir
 
         if VERBOSE > 0:
             print sdfitsstr
