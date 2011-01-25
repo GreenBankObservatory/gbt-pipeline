@@ -614,7 +614,7 @@ def check_for_sdfits_file( infile, sdfitsdir, beginscan, endscan,\
     return infile
 
 def index_it(indexfile,fitsfile=None,table_length=0,samplers=[],verbose=0):
-    
+
     myFile = open(indexfile,'rU')
     if fitsfile:
         fd = pyfits.open(fitsfile,memmap=1)
@@ -623,7 +623,7 @@ def index_it(indexfile,fitsfile=None,table_length=0,samplers=[],verbose=0):
         # each set of masks has a mask for each sampler
         mask = []
         for blockid in range(1,len(fd)):
-            table_length.append(len(fd[blockid].data))
+            table_length.append(fd[blockid].header['naxis2'])
             mask.append({})
 
         fd.close()
