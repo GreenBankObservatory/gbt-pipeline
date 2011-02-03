@@ -5,6 +5,7 @@ from pipeutils import *
 import numpy as np
 import math
 import sys
+import pylab
 
 class ScanReader():
     """The primary class for reading sdfits input.
@@ -22,6 +23,7 @@ class ScanReader():
         self.attr['ra'] = []
         self.attr['dec'] = []
         self.attr['calmask'] = []
+        
         self.attr['exposure'] = []
         self.attr['tcal'] = []
         self.attr['crpix1'] = []
@@ -29,8 +31,10 @@ class ScanReader():
         self.attr['cdelt1'] = []
         self.attr['row'] = []
         self.attr['tambient'] = []
+        #self.attr['sig'] = []
 
         self.data = []
+        self.statemask = []
 
         self.feeds = set([])
         self.integrations = set([])
@@ -98,7 +102,9 @@ class ScanReader():
             self.attr['cdelt1'].append(row['CDELT1'])
             self.attr['ra'].append(row['CRVAL2'])
             self.attr['dec'].append(row['CRVAL3'])
-      	    if len(self.data):
+            #self.attr['sig'].append(row['SIG'])
+
+            if len(self.data):
                 self.data = np.vstack((self.data,row['DATA']))
             else:
                 self.data = np.array(row['DATA'],ndmin=2)
@@ -112,6 +118,12 @@ class ScanReader():
             else:
                 self.attr['calmask'].append(False)
 
+            # create mask for frequency-swithced states
+            if 'T'==row['SIG']:
+                self.statemask.append(True)
+            else:
+                self.statemask.append(False)
+
             self.frequency_resolution = row['FREQRES']
 
             # count number of feeds and cal states
@@ -119,10 +131,13 @@ class ScanReader():
             self.cals.add(row['CAL'])
 
         # convert attr lists to numpy arrays
-        for xx in self.attr: self.attr[xx]=np.array(self.attr[xx])
+        for xx in self.attr: self.attr[xx]=np.array(self.attr[xx],ndmin=2)
+        
+        # convert statemask to numpy array
+        self.statemask = np.array(self.statemask)
 
         # change data into a masked array to remove effect of nans
-        self.data = np.ma.masked_array(self.data,np.isnan(self.data))
+        self.data = np.ma.masked_array(self.data,np.isnan(self.data),ndmin=2)
 
         # set a flag if the noise diode is firing
         if len(self.cals)==2:
@@ -131,15 +146,15 @@ class ScanReader():
             self.noise_diode = False
             
         doMessage(self.logger,msg.DBG,'feeds',len(self.feeds))
-        doMessage(self.logger,msg.DBG,'n_polarizations',len(set(self.attr['polarization'])))
+        doMessage(self.logger,msg.DBG,'n_polarizations',len(set(self.attr['polarization'][0])))
         doMessage(self.logger,msg.DBG,'n_cals',len(self.cals))
         doMessage(self.logger,msg.DBG,'n_channels',len(self.data[0]))
 
         doMessage(self.logger,msg.DBG,'nrecords',len(self.data))
         doMessage(self.logger,msg.DBG,'frequency_resolution',self.frequency_resolution,'Hz')
 
-    def calonoff_ave(self):
-        """Get average of Cal-on spectra and Cal-off
+    def calonoffave_ave(self,state=0):
+        """Get average of average Cal-on spectra and average Cal-off
 
         Keyword arguments:
         
@@ -148,10 +163,25 @@ class ScanReader():
         the same as the number of channels in each input spectrum.
         """
         
-        return (self.calon_ave()+self.caloff_ave())/2.
+        return (self.calon_ave(state)+self.caloff_ave(state))/2.
 
-    def calonoff_diff(self):
-        """Get CalON minus CalOFF
+    def calonoff_ave(self,state=0):
+        """Get average of Cal-on spectra and Cal-off
+
+        Keyword arguments:
+        
+        Returns:
+        The mean of the CAL ON and CAL OFF spectra.  The vector size is
+        the same as the number of channels in each input spectrum.
+        """
+
+        data = self.data[state]
+        calmask = self.attr['calmask'][state]
+        
+        return (data[calmask]+data[~calmask])/2.
+
+    def calonoff_ave_diff(self,state=0):
+        """Get average CalON minus average CalOFF
 
         Keyword arguments:
         
@@ -160,9 +190,24 @@ class ScanReader():
         the same as the number of channels in each input spectrum.
         """
         
-        return self.calon_ave() - self.caloff_ave()
+        return self.calon_ave(state) - self.caloff_ave(state)
 
-    def calon_ave(self):
+    def calonoff_diff(self,state=0):
+        """Get CalON minus CalOFF
+
+        Keyword arguments:
+        
+        Returns:
+        The CAL (ON-OFF).  The vector size is
+        the same as the number of channels in each input spectrum.
+        """
+
+        data = self.data[state]
+        calmask = self.attr['calmask'][state]
+        
+        return data[calmask]-data[~calmask]
+
+    def calon_ave(self,state=0):
         """Get the exposure-weighted average of Cal-on spectra for given
 
         Keyword arguments:
@@ -172,9 +217,9 @@ class ScanReader():
         the same as the number of channels in each input spectrum.
         """
         
-        data = self.data
-        exposure = self.attr['exposure']
-        calmask = self.attr['calmask']
+        data = self.data[state]
+        exposure = self.attr['exposure'][state]
+        calmask = self.attr['calmask'][state]
 
         return np.ma.average(data[calmask],axis=0,weights=exposure[calmask])
 
@@ -194,7 +239,7 @@ class ScanReader():
 
         return np.ma.average(elevation[calmask],axis=0,weights=exposure[calmask])
 
-    def caloff_ave(self):
+    def caloff_ave(self,state=0):
         """Get the exposure-weighted average of Cal-off spectra
 
         Keyword arguments:
@@ -204,9 +249,9 @@ class ScanReader():
         the same as the number of channels in each input spectrum.
         """
         
-        data = self.data
-        exposure = self.attr['exposure']
-        calmask = self.attr['calmask']
+        data = self.data[state]
+        exposure = self.attr['exposure'][state]
+        calmask = self.attr['calmask'][state]
         
         return np.ma.average(data[~calmask],axis=0,weights=exposure[~calmask])
 
@@ -285,7 +330,7 @@ class ScanReader():
 
         return faxis
 
-    def average_tsys(self,verbose=0):
+    def average_tsys(self,state=0,verbose=0):
         """Get the total power for a single scan (i.e. feed,pol,IF)
 
         Keyword arguments:
@@ -297,15 +342,16 @@ class ScanReader():
         """
 
         # apply sampler filter
-        data = self.data
-        exposure = self.attr['exposure']
-        tcal = self.attr['tcal']
+        data = self.data[state]
+
+        exposure = self.attr['exposure'][state]
+        tcal = self.attr['tcal'][state]
 
         chanlo = int(len(data)*.1)
         chanhi = int(len(data)*.9)
 
-        ref = self.calonoff_ave()
-        cal = self.calonoff_diff()
+        ref = self.calonoffave_ave(state)
+        cal = self.calonoff_ave_diff(state)
 
         ratios = ref[chanlo:chanhi] / cal[chanlo:chanhi]
         mytsys = ratios.mean() * self.max_tcal()
@@ -313,6 +359,43 @@ class ScanReader():
         Tsys = mytsys
         doMessage(self.logger,msg.DBG,'Tsys', Tsys)
         doMessage(self.logger,msg.DBG,'Tcal', tcal.mean())
+
+        return Tsys
+
+    def tsys(self,state,verbose=0):
+        """Get the total power for every integration of scan
+        
+        (i.e. feed,pol,IF)
+
+        Keyword arguments:
+        verbose -- verbosity level, default to 0
+        
+        Returns:
+        An averaged, weighted sytem temperature, using the center 80% of
+        the band.
+        """
+
+        # apply sampler filter
+        data = self.data[state]
+
+        calmask = self.attr['calmask'][state]
+        tcal = self.attr['tcal'][state][calmask]
+        
+       
+        #chanlo = int(len(data)*.1)
+        #chanhi = int(len(data)*.9)
+
+        ref = self.calonoff_ave(state)
+        cal = self.calonoff_diff(state)
+
+        #ratios = ref[chanlo:chanhi] / cal[chanlo:chanhi]
+
+        Tsys = np.ones(ref.shape)
+        
+        for idx,ee in enumerate(Tsys):
+            Tsys[idx] = tcal[idx] * (ref[idx]/cal[idx])
+            
+        print tcal[idx].mean(),'tcal'
 
         return Tsys
 
@@ -369,6 +452,44 @@ class ScanReader():
         else:
             return input_rows
 
+    def calibrate_fs(self):
+    #def calibrate_fs(self,logger,refs,ref_dates,ref_tsyss,\
+        #k_per_count,opacity_coefficients,gain_coeff,spillover,aperture_eff,\
+        #fbeampol,ref_tskys,units,gain_factor,verbose):
+        
+        self.split_fs_states()
+
+        sig_state = 0
+        ref_state = 1
+        sig = self.data[sig_state].mean(0)
+        ref = self.data[ref_state].mean(0)
+        tsys = self.average_tsys(state=ref_state)
+        print 'tsys',tsys
+        ta0 = tsys * ((sig-ref)/ref)
+        pylab.plot(ta0,'g-')
+        pylab.savefig('ta0.ps')
+        pylab.cla()
+
+        sig_state = 1
+        ref_state = 0
+        sig = self.data[sig_state].mean(0)
+        ref = self.data[ref_state].mean(0)
+        tsys = self.average_tsys(state=ref_state)
+        print 'tsys',tsys
+        ta1 = tsys * ((sig-ref)/ref)
+        pylab.plot(ta1,'g-')
+        pylab.savefig('ta1.ps')
+        pylab.cla()
+
+        # do shift HERE
+        
+        ta = (ta0+ta1)/2.
+        pylab.plot(ta,'g-')
+        pylab.savefig('ta.ps')
+        pylab.cla()
+
+        return ta0
+    
     def calibrate_to(self,logger,refs,ref_dates,ref_tsyss,\
         k_per_count,opacity_coefficients,gain_coeff,spillover,aperture_eff,\
         fbeampol,ref_tskys,units,gain_factor,verbose):
@@ -564,9 +685,9 @@ class ScanReader():
         data = self.data
         
         max_tcal = self.max_tcal()
-        mean_tsys = self.average_tsys(verbose)
+        mean_tsys = self.average_tsys(verbose=verbose)
         
-        spectrum = self.calonoff_ave()
+        spectrum = self.calonoffave_ave()
         date = self.min_date()
 
         elevations = self.attr['elevation']
@@ -612,3 +733,22 @@ class ScanReader():
             tskys = False
         
         return spectrum,max_tcal,date,allfreq,tskys,mean_tsys
+
+    def split_fs_states(self):
+
+        statemask = self.statemask
+        # split all rows attributes into two states for frequency switched mode
+        for xx in self.attr:
+            self.attr[xx]= np.array([self.attr[xx][0][statemask],self.attr[xx][0][~statemask]])
+        
+        # split into two states for frequency swithced mode
+        state = []
+        state.append(self.data[statemask])
+        state.append(self.data[~statemask])
+        self.data = np.array(state)
+
+        # split calmask into two states as well
+        #cals = []
+        #cals.append(self.attr['calmask'][statemask])
+        #cals.append(self.attr['calmask'][~statemask])
+        #self.attr['calmask'] = cals

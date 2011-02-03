@@ -2,6 +2,7 @@ import os
 import sys
 import getpass
 import multiprocessing
+import pylab
 
 import numpy as np
 import pyfits
@@ -11,8 +12,119 @@ import smoothing
 import pipeutils
 from pipeutils import *
 
-def do_sampler(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
-               refscans,scans,masks,opt,infile,fbeampol,opacity_coeffs):
+def do_sampler_fs(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
+                  refscans,scans,masks,opt,infile,fbeampol,opacity_coeffs):
+    print 'IN do_sampler_fs',sampler
+    doMessage(logger,msg.DBG,'-----------')
+    doMessage(logger,msg.DBG,'SAMPLER',sampler)
+    doMessage(logger,msg.DBG,'-----------')
+
+    try:
+        samplermask = masks[blockid-1].pop(sampler)
+    except(TypeError):
+        doMessage(logger,msg.ERR,'ERROR: TypeError when defining samplermask')
+        doMessage(logger,msg.DBG,'sampler',sampler)
+        doMessage(logger,msg.DBG,'blockid',blockid)
+        doMessage(logger,msg.DBG,'len(samplerlist)',len(samplerlist))
+        doMessage(logger,msg.DBG,'len(masks)',len(masks))
+        doMessage(logger,msg.DBG,'len(masks[0])',len(masks[0]))
+        doMessage(logger,msg.DBG,'type(masks)',type(masks))
+        doMessage(logger,msg.DBG,'type(masks[0])',type(masks[0]))
+        sys.exit(9)
+    except(KeyError):
+        doMessage(logger,msg.ERR,'ERROR: KeyError when defining samplermask')
+        doMessage(logger,msg.DBG,'type(sampler)',type(sampler))
+        doMessage(logger,msg.DBG,'sampler',sampler)
+        doMessage(logger,msg.DBG,'type(samplers)',type(thismap_samplerlist))
+        doMessage(logger,msg.DBG,'samplers',thismap_samplerlist)
+        sys.exit(9)
+
+    doMessage(logger,msg.DBG,'appying mask')
+    if block_found:
+        doMessage(logger,msg.DBG,'to extension',blockid)
+        sdfitsdata = infile[blockid].data[samplermask]
+        doMessage(logger,msg.DBG,'length of sampler-filtered data block is',len(sdfitsdata))
+        del samplermask
+    doMessage(logger,msg.DBG,'done')
+
+    freq=0
+    refspec = []
+    refdate = []
+    ref_tsky = []
+    ref_tsys = []
+
+    # ------------------------------------------- name output file
+    scan=allscans[0]
+    mapscan = scanreader.ScanReader()
+    mapscan.setLogger(logger)
+
+    obj,centerfreq,feed = mapscan.map_name_vals(scan,sdfitsdata,opt.verbose)
+    outfilename = obj + '_' + str(feed) + '_' + \
+                str(allscans[0]) + '_' + str(allscans[-1]) + '_' + \
+                str(centerfreq)[:6] + '_' + sampler + '.fits'
+    import warnings
+    def send_warnings_to_logger(message, category, filename, lineno, file=None, line=None):
+        doMessage(logger,msg.WARN,message)
+    warnings.showwarning = send_warnings_to_logger
+    warnings.filterwarnings('once', '.*converting a masked element to nan.*',)
+
+    doMessage(logger,msg.DBG,'outfile name',outfilename)
+    if (False == opt.clobber) and os.path.exists(outfilename):
+        doMessage(logger,msg.ERR,'Outfile exits:',outfilename)
+        doMessage(logger,msg.ERR,'Please remove or rename outfile(s) and try again')
+        sys.exit(1)
+
+    #    a FS reference scan integration (1st pass) is the F part of the SIG data
+    #    a FS reference scan (2nd pass) is the T part of the SIG data
+    #    on each pass the signal/map scan is the remainder of the data
+
+    #    signal,reference = splitFSscan(scan,sdfitsdata,opt.verbose)
+    
+    #    Ta1 = sig-ref/ref
+    
+    #    switch signal and reference
+    
+    #    Ta2 = sig-ref/ref
+    
+    #    average
+    #    Ta = (Ta1+Ta2) / 2
+    # ----------------  calibrate all integrations to Ta* or requested
+    # ----------------------------  if not possible, calibrate to Ta
+
+    calibrated_integrations = []
+    nchans = False # number of channels, used to filter of 2% from either edge
+
+    for scan in allscans:
+        doMessage(logger,msg.DBG,'Calibrating scan:',scan)
+
+        mapscan = scanreader.ScanReader()
+        mapscan.setLogger(logger)
+        
+        mapscan.get_scan(scan,sdfitsdata,opt.verbose)
+        nchans = len(mapscan.data[0])
+
+        # set relative gain factors for each beam/pol
+        #  if they are supplied
+        gain_factor = gainfactor(opt,samplermap,sampler)
+
+        cal_ints = mapscan.calibrate_fs()
+
+        #print cal_ints.mean(0)
+        #cal_ints = mapscan.calibrate_fs(logger,refspec,refdate,ref_tsys,\
+            #k_per_count,opacity_coeffs,opt.gaincoeffs,opt.spillover,\
+            #opt.aperture_eff,fbeampol,ref_tsky,opt.units,gain_factor,opt.verbose)
+
+        if len(calibrated_integrations):
+            calibrated_integrations = np.concatenate((calibrated_integrations,cal_ints))
+        else: # first scan
+            calibrated_integrations = cal_ints
+        
+    del sdfitsdata
+
+    cc.send(sampler)
+
+def do_sampler_ps(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
+                  refscans,scans,masks,opt,infile,fbeampol,opacity_coeffs):
 
     doMessage(logger,msg.DBG,'-----------')
     doMessage(logger,msg.DBG,'SAMPLER',sampler)
@@ -91,10 +203,10 @@ def do_sampler(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
 
     # determine scale factor used to compute Tsys of each integration
     try:
-        k_per_count = ref1_max_tcal / ref1.calonoff_diff() # dcSCal in scaleIntsRef
+        k_per_count = ref1_max_tcal / ref1.calonoff_ave_diff() # dcSCal in scaleIntsRef
     except FloatingPointError:
         doMessage(logger,msg.ERR,ref1_max_tcal)
-        doMessage(logger,msg.ERR,ref1.calonoff_diff())
+        doMessage(logger,msg.ERR,ref1.calonoff_ave_diff())
 
     onave1 = ref1.calon_ave()
     offave1 = ref1.caloff_ave()
@@ -107,7 +219,7 @@ def do_sampler(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
     tsysRef1 = ratios.mean()*ref1_max_tcal
     ref_tsys.append(tsysRef1)
     doMessage(logger,msg.DBG,'REF 1')
-    doMessage(logger,msg.DBG,'dcCal (avg. calON-calOFF):',ref1.calonoff_diff().mean())
+    doMessage(logger,msg.DBG,'dcCal (avg. calON-calOFF):',ref1.calonoff_ave_diff().mean())
     doMessage(logger,msg.DBG,'avg. K/count from ref1:',k_per_count.mean())
     doMessage(logger,msg.DBG,'ON AVE [0][1000][nChan]',onave1[0],onave1[1000],onave1[-1])
     doMessage(logger,msg.DBG,'OFF AVE [0][1000][nChan]',offave1[0],offave1[1000],offave1[-1])
@@ -191,7 +303,7 @@ def do_sampler(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
         doMessage(logger,msg.DBG,'dcRef2',dcRef2[0],dcRef2[1000],dcRef2[-1])
         doMessage(logger,msg.DBG,'ref2 Tsys:',tsysRef2)
 
-    # --------------------------  calibrate all integrations to Tb
+    # ----------------  calibrate all integrations to Ta* or requested
     # ----------------------------  if not possible, calibrate to Ta
 
     calibrated_integrations = []
@@ -208,16 +320,7 @@ def do_sampler(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
 
         # set relative gain factors for each beam/pol
         #  if they are supplied
-        if opt.gain_left and samplermap[sampler][1]=='LL':
-            doMessage(logger,msg.DBG,'Multiplying by gain factor',
-                opt.gain_left[samplermap[sampler][0]-1])
-            gain_factor = opt.gain_left[samplermap[sampler][0]-1]
-        elif opt.gain_right and samplermap[sampler][1]=='RR':
-            doMessage(logger,msg.DBG,'Multiplying by gain factor',
-                opt.gain_right[samplermap[sampler][0]-1])
-            gain_factor = opt.gain_right[samplermap[sampler][0]-1]
-        else:
-            gain_factor = float(1)
+        gain_factor = gainfactor(opt,samplermap,sampler)
 
         cal_ints = mapscan.calibrate_to(logger,refspec,refdate,ref_tsys,\
             k_per_count,opacity_coeffs,opt.gaincoeffs,opt.spillover,\
@@ -307,6 +410,7 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,opacity_coe
         refscans.append(scans[2])
 
     samplermap = scans[3]
+    maptype = scans[4]
 
     try:
         logfilename = 'scans_'+str(allscans[0])+'_'+str(allscans[-1])+'_'+timestamp()+'.log'
@@ -372,10 +476,15 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,opacity_coe
         for idx in range(process_group_max):
             if lcl_samplerlist:
                 samplergroup.append(lcl_samplerlist.pop(-1))
+                
+        if maptype == 'FS':
+            target = do_sampler_fs
+        else:
+            target = do_sampler_ps
+
         for sampler in samplergroup:
             # create a process for each sampler
-
-            process_ids.append(multiprocessing.Process(target=do_sampler,
+            process_ids.append(multiprocessing.Process(target=target,
                 args=(dd,sampler,logger,block_found,blockid,samplermap,allscans,\
                 refscans,scans,masks,opt,infile,fbeampol,opacity_coeffs)) )
         

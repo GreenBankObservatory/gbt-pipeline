@@ -933,3 +933,59 @@ def string_to_floats(string_list):
     string_list = string_list.replace(' ','')
     string_list = string_list.split(',')
     return [ float(item) for item in string_list ]
+
+def maptype(firstscan,indexfile,debug=False):
+
+    myFile = open(indexfile,'rU')
+
+    scans = {}
+    map_scans = {}
+
+    # skip over the index file header lines
+    while True:
+        row = myFile.readline().split()
+        if len(row)==40:
+            # we just found the column keywords, so read the next line
+            row = myFile.readline().split()
+            break
+
+    states = set([])
+    while row:
+
+        scan = int(row[10])
+
+        if scan == firstscan:
+            states.add(row[18])
+        elif scan > firstscan:
+            break
+
+        # read the next row
+        row = myFile.readline().split()
+
+    myFile.close()
+
+    if debug:
+        print states
+
+    if len(states) == 2:
+        return 'FS'
+    elif len(states) == 1:
+        return 'PS'
+    else:
+        return 'UKNOWN'
+
+def gainfactor(opt,samplermap,sampler):
+    # set relative gain factors for each beam/pol
+    #  if they are supplied
+    if opt.gain_left and samplermap[sampler][1]=='LL':
+        doMessage(logger,msg.DBG,'Multiplying by gain factor',
+            opt.gain_left[samplermap[sampler][0]-1])
+        gain_factor = opt.gain_left[samplermap[sampler][0]-1]
+    elif opt.gain_right and samplermap[sampler][1]=='RR':
+        doMessage(logger,msg.DBG,'Multiplying by gain factor',
+            opt.gain_right[samplermap[sampler][0]-1])
+        gain_factor = opt.gain_right[samplermap[sampler][0]-1]
+    else:
+        gain_factor = float(1)
+
+    return gain_factor

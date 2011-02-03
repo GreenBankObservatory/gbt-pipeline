@@ -75,10 +75,6 @@ if not opt.allmaps:
         else:
             opt.refscan2 = False
 
-    if not any(refscans):
-        doMessage(logger,msg.ERR,'No reference scan provided. Exiting.')
-        sys.exit(1)
-
     doMessage(logger,msg.INFO,"Reference scan(s)",', '.join(map(str,list(refscans))))
     doMessage(logger,msg.INFO,"---------------\n")
     
@@ -172,18 +168,24 @@ else:
             if str(feed) in opt.feed and pol in opt.pol:
                 samplerlist.append(sampler)
 
-    mymaps = [(opt.refscan1,allscans,opt.refscan2,samplermap)]
+    maptype = maptype(allscans[0],indexfile,debug=False)
+    mymaps = [(opt.refscan1,allscans,opt.refscan2,samplermap,maptype)]
 
 if not opt.allmaps:
     sampler_summary(logger,samplermap)
+    doMessage(logger,msg.INFO,'This map is type:',maptype)
+    if maptype == 'PS' and not opt.refscan1:
+        doMessage(logger,msg.ERR,'ERROR: missing 1st reference scan.')
+        sys.exit(9)
 
 doMessage(logger,msg.INFO,'Processing',len(mymaps),'map(s):')
 for idx,mm in enumerate(mymaps):
     doMessage(logger,msg.INFO,'Map',idx+1)
     doMessage(logger,msg.INFO,'-----')
-    doMessage(logger,msg.INFO,'Reference scan.. ',mm[0])
+    if mm[4] == 'PS':
+        doMessage(logger,msg.INFO,'Reference scan.. ',mm[0])
     doMessage(logger,msg.INFO,'map scans....... ',', '.join(map(str,mm[1])))
-    if mm[2]:
+    if mm[2] and mm[4] == 'PS':
         doMessage(logger,msg.INFO,'Reference scan.. ',mm[2])
     if opt.allmaps:
         sampler_summary(logger,mm[3])
