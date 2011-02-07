@@ -613,6 +613,22 @@ def check_for_sdfits_file( infile, sdfitsdir, beginscan, endscan,\
 
     return infile
 
+def get_start_mjd(indexfile,verbose=0):
+    myFile = open(indexfile,'rU')
+
+    # skip over the index file header lines
+    while True:
+        row = myFile.readline().split()
+        if len(row)==40:
+            # we just found the column keywords, so read the next line
+            row = myFile.readline().split()
+            break
+
+    dateobs = row[34]
+    start_mjd = dateToMjd(dateobs)
+
+    return int(start_mjd)
+
 def index_it(indexfile,fitsfile=None,table_length=0,samplers=[],verbose=0):
 
     myFile = open(indexfile,'rU')
