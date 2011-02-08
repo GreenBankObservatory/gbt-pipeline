@@ -5,7 +5,9 @@ from pipeutils import *
 import numpy as np
 import math
 import sys
-import pylab
+PYLAB=True
+if PYLAB:
+    import pylab
 
 class ScanReader():
     """The primary class for reading sdfits input.
@@ -307,7 +309,7 @@ class ScanReader():
 
         return pipeutils.dateToMjd(dates[0])
         
-    def freq_axis(self,verbose=0):
+    def freq_axis(self,state=0,verbose=0):
         """ frequency axis to return for plotting
 
         Keyword arguments:
@@ -319,10 +321,11 @@ class ScanReader():
         """
         
         # apply sampler filter
-        data = self.data
-        crpix1 = self.attr['crpix1'].mean()
-        cdelt1 = self.attr['cdelt1'].mean()
-        crval1 = self.attr['crval1'].mean()
+        data = self.data[state]
+
+        crpix1 = self.attr['crpix1'][state].mean()
+        cdelt1 = self.attr['cdelt1'][state].mean()
+        crval1 = self.attr['crval1'][state].mean()
 
         faxis = np.zeros(len(data[0]))
         for idx,e in enumerate(data[0]):
@@ -344,7 +347,6 @@ class ScanReader():
         # apply sampler filter
         data = self.data[state]
 
-        exposure = self.attr['exposure'][state]
         tcal = self.attr['tcal'][state]
 
         chanlo = int(len(data)*.1)
@@ -352,7 +354,7 @@ class ScanReader():
 
         ref = self.calonoffave_ave(state)
         cal = self.calonoff_ave_diff(state)
-
+        print ref.shape
         ratios = ref[chanlo:chanhi] / cal[chanlo:chanhi]
         mytsys = ratios.mean() * self.max_tcal()
 
@@ -382,22 +384,22 @@ class ScanReader():
         tcal = self.attr['tcal'][state][calmask]
         
        
-        #chanlo = int(len(data)*.1)
-        #chanhi = int(len(data)*.9)
+        calon = data[calmask]
+        caloff = data[~calmask]
 
-        ref = self.calonoff_ave(state)
-        cal = self.calonoff_diff(state)
-
-        #ratios = ref[chanlo:chanhi] / cal[chanlo:chanhi]
-
-        Tsys = np.ones(ref.shape)
+        Tsys = np.ones(calon.shape)
         
+        # get average of the center 80%
+        chanlo = int(len(data)*.1)
+        chanhi = int(len(data)*.9)
+        
+        avg_tsys = np.ones(data.shape[0])
         for idx,ee in enumerate(Tsys):
-            Tsys[idx] = tcal[idx] * (ref[idx]/cal[idx])
-            
-        print tcal[idx].mean(),'tcal'
+            Tsys[idx] = tcal[idx] * ( (calon[idx]+caloff[idx]) / (2*(calon[idx]-caloff[idx])) )
+            avg_tsys[idx*2] = (Tsys[idx][chanlo:chanhi]).mean(0)
+            avg_tsys[(idx*2)+1] = (Tsys[idx][chanlo:chanhi]).mean(0)
 
-        return Tsys
+        return avg_tsys
 
     def _average_coordinates(self):
         """Get exposure-weighted average coordinates
@@ -461,34 +463,74 @@ class ScanReader():
 
         sig_state = 0
         ref_state = 1
-        sig = self.data[sig_state].mean(0)
-        ref = self.data[ref_state].mean(0)
-        tsys = self.average_tsys(state=ref_state)
-        print 'tsys',tsys
-        ta0 = tsys * ((sig-ref)/ref)
-        pylab.plot(ta0,'g-')
-        pylab.savefig('ta0.ps')
-        pylab.cla()
+        sig = self.data[sig_state]
+        ref = self.data[ref_state]
+        tsys = self.tsys(state=ref_state)
+        ta0 = np.ones(sig.shape)
+        for idx,ee in enumerate(tsys):
+            ta0[idx] = tsys[idx] * ((sig[idx]-ref[idx])/ref[idx])
 
         sig_state = 1
         ref_state = 0
-        sig = self.data[sig_state].mean(0)
-        ref = self.data[ref_state].mean(0)
-        tsys = self.average_tsys(state=ref_state)
-        print 'tsys',tsys
-        ta1 = tsys * ((sig-ref)/ref)
-        pylab.plot(ta1,'g-')
-        pylab.savefig('ta1.ps')
-        pylab.cla()
+        sig = self.data[sig_state]
+        ref = self.data[ref_state]
+        tsys = self.tsys(state=ref_state)
+        ta1 = np.ones(sig.shape)
+        for idx,ee in enumerate(tsys):
+            ta1[idx] = tsys[idx] * ((sig[idx]-ref[idx])/ref[idx])
 
-        # do shift HERE
-        
+        sigfreq = self.freq_axis(0)
+        reffreq = self.freq_axis(1)
+
+        cdelt1 = self.attr['cdelt1'][sig_state].mean()
+        channel_shift = ((sigfreq-reffreq)/cdelt1)[0]
+        ta0 = np.roll(ta0,int(channel_shift),axis=1)
+
+        #sys.exit(9)
+
+        #pylab.plot(sig.mean(0),'g-')
+        #pylab.savefig('sig.ps')
+        #pylab.cla()
+        #pylab.plot(ref.mean(0),'g-')
+        #pylab.savefig('ref.ps')
+        #pylab.cla()
+        #pylab.plot((sig-ref).mean(0),'g-')
+        #pylab.savefig('tp.ps')
+        #pylab.cla()
         ta = (ta0+ta1)/2.
-        pylab.plot(ta,'g-')
-        pylab.savefig('ta.ps')
-        pylab.cla()
+        if PYLAB:
+            pylab.plot(ta0.mean(0),'g-')
+            pylab.plot(ta1.mean(0),'b-')
+            pylab.savefig('ta01.ps')
+            pylab.cla()
+            
+            pylab.plot(ta.mean(0),'g-')
+            pylab.savefig('ta.ps')
+            pylab.cla()
+        #sys.exit(9)
+        #sig_state = 1
+        #ref_state = 0
+        #sig = self.data[sig_state].mean(0)
+        #ref = self.data[ref_state].mean(0)
+        #tsys = self.average_tsys(state=ref_state)
+        #print 'tsys',tsys
+        #ta1 = tsys * ((sig-ref)/ref)
+        #pylab.plot(ta1,'g-')
+        #pylab.savefig('ta1.ps')
+        #pylab.cla()
 
-        return ta0
+        ## do shift HERE!!
+        
+        #ta = (ta0+ta1)/2.
+        #pylab.plot(ta,'g-')
+        #pylab.savefig('ta.ps')
+        #pylab.cla()
+        input_rows = self.attr['row'][sig_state]
+        for idx,row in enumerate(input_rows):
+            row.setfield('DATA',ta[idx])
+            row.setfield('TSYS',tsys[idx])
+
+        return input_rows
     
     def calibrate_to(self,logger,refs,ref_dates,ref_tsyss,\
         k_per_count,opacity_coefficients,gain_coeff,spillover,aperture_eff,\

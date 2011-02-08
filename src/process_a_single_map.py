@@ -2,7 +2,7 @@ import os
 import sys
 import getpass
 import multiprocessing
-import pylab
+#import pylab
 
 import numpy as np
 import pyfits
@@ -121,7 +121,69 @@ def do_sampler_fs(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
         
     del sdfitsdata
 
-    cc.send(sampler)
+    # ---------------------------------- write out calibrated fits file
+
+    primary = pyfits.PrimaryHDU()
+    primary.header = infile[0].header
+    
+    sdfits = pyfits.new_table(pyfits.ColDefs(infile[blockid].columns),nrows=len(calibrated_integrations),fill=1)
+
+    # add in virtual columns (keywords)
+    inCardList = infile[blockid].header.ascardlist()
+    for key in ["TELESCOP","CTYPE4","PROJID","BACKEND","SITELONG","SITELAT","SITEELEV"]:
+        card = inCardList[key]
+        sdfits.header.update(key,card.value,card.comment)
+
+    print calibrated_integrations.shape,type(calibrated_integrations)
+    print type(sdfits),type(sdfits.data),len(sdfits.data),np.__version__
+
+    for idx,ee in enumerate(calibrated_integrations):
+        sdfits.data[idx] = ee
+
+    sdfits.name = 'SINGLE DISH'
+
+    hdulist = pyfits.HDUList([primary,sdfits])
+    hdulist.writeto(outfilename,clobber=opt.clobber)
+    hdulist.close()
+    del hdulist
+
+    # set the idlToSdfits output file name
+    aipsinname = os.path.splitext(outfilename)[0]+'.sdf'
+
+    # run idlToSdfits, which converts calibrated sdfits into a format
+    options = ''
+
+    if bool(opt.average):
+        options = options + ' -a ' + str(opt.average)
+
+    if nchans:
+        chan_min = int(nchans*.02) # start at 2% of nchan
+        chan_max = int(nchans*.98) # end at 98% of nchans
+        options = options + ' -c ' + str(chan_min) + ':' + str(chan_max) + ' '
+
+    if not opt.display_idlToSdfits:
+        options = options + ' -l '
+
+    if opt.idlToSdfits_rms_flag:
+        options = options + ' -n ' + opt.idlToSdfits_rms_flag + ' '
+        
+    if opt.verbose > 4:
+        options = options + ' -v 2 '
+    else:
+        options = options + ' -v 0 '
+
+    if opt.idlToSdfits_baseline_subtract:
+        options = options + ' -w ' + opt.idlToSdfits_baseline_subtract + ' '
+        
+    idlcmd = '/opt/local/bin/idlToSdfits -o ' + aipsinname + options + outfilename
+
+    doMessage(logger,msg.DBG,idlcmd)
+
+    os.system(idlcmd)
+    
+    doMessage(logger,msg.INFO,'Finished calibrating: scans',allscans[0],'to',\
+              allscans[-1],', beam',' '.join(map(str,samplermap[sampler])),'Hz')
+    cc.send(outfilename)
 
 def do_sampler_ps(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
                   refscans,scans,masks,opt,infile,fbeampol,opacity_coeffs):
