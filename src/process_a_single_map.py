@@ -14,7 +14,6 @@ from pipeutils import *
 
 def do_sampler_fs(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
                   refscans,scans,masks,opt,infile,fbeampol,opacity_coeffs):
-    print 'IN do_sampler_fs',sampler
     doMessage(logger,msg.DBG,'-----------')
     doMessage(logger,msg.DBG,'SAMPLER',sampler)
     doMessage(logger,msg.DBG,'-----------')
@@ -101,7 +100,7 @@ def do_sampler_fs(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
         mapscan.setLogger(logger)
         
         mapscan.get_scan(scan,sdfitsdata,opt.verbose)
-        nchans = len(mapscan.data[0])
+        nchans = len(mapscan.data[0][0])
 
         # set relative gain factors for each beam/pol
         #  if they are supplied
@@ -133,9 +132,6 @@ def do_sampler_fs(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
     for key in ["TELESCOP","CTYPE4","PROJID","BACKEND","SITELONG","SITELAT","SITEELEV"]:
         card = inCardList[key]
         sdfits.header.update(key,card.value,card.comment)
-
-    print calibrated_integrations.shape,type(calibrated_integrations)
-    print type(sdfits),type(sdfits.data),len(sdfits.data),np.__version__
 
     for idx,ee in enumerate(calibrated_integrations):
         sdfits.data[idx] = ee
@@ -378,7 +374,7 @@ def do_sampler_ps(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
         mapscan.setLogger(logger)
         
         mapscan.get_scan(scan,sdfitsdata,opt.verbose)
-        nchans = len(mapscan.data[0])
+        nchans = len(mapscan.data[0][0])
 
         # set relative gain factors for each beam/pol
         #  if they are supplied

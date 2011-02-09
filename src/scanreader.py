@@ -5,7 +5,7 @@ from pipeutils import *
 import numpy as np
 import math
 import sys
-PYLAB=True
+PYLAB=False
 if PYLAB:
     import pylab
 
@@ -33,7 +33,6 @@ class ScanReader():
         self.attr['cdelt1'] = []
         self.attr['row'] = []
         self.attr['tambient'] = []
-        #self.attr['sig'] = []
 
         self.data = []
         self.statemask = []
@@ -47,6 +46,9 @@ class ScanReader():
 
         self.frequency_resolution = 0
         self.noise_diode = False
+
+        # number of signal states =2 for FS mode
+        self.nstates = 1
         
     def setLogger(self,logger):
         self.logger = logger
@@ -104,7 +106,6 @@ class ScanReader():
             self.attr['cdelt1'].append(row['CDELT1'])
             self.attr['ra'].append(row['CRVAL2'])
             self.attr['dec'].append(row['CRVAL3'])
-            #self.attr['sig'].append(row['SIG'])
 
             if len(self.data):
                 self.data = np.vstack((self.data,row['DATA']))
@@ -133,13 +134,21 @@ class ScanReader():
             self.cals.add(row['CAL'])
 
         # convert attr lists to numpy arrays
-        for xx in self.attr: self.attr[xx]=np.array(self.attr[xx],ndmin=2)
+        for xx in self.attr: self.attr[xx]=np.array(self.attr[xx])
         
+        # add an axis, allowing attributes to be stored
+        #   into two states for frequency switched mode
+        # to keep code consistent, will add an axis for PS mode
+        #   so all attributes are accesible with first dim=0
+        #   in other words, a NxM array would be accessed
+        #   after this call with a[0][N][M]
+        for xx in self.attr: self.attr[xx]=np.array(self.attr[xx],ndmin=2)
+
         # convert statemask to numpy array
         self.statemask = np.array(self.statemask)
 
         # change data into a masked array to remove effect of nans
-        self.data = np.ma.masked_array(self.data,np.isnan(self.data),ndmin=2)
+        self.data = np.ma.masked_array(self.data,np.isnan(self.data),ndmin=3)
 
         # set a flag if the noise diode is firing
         if len(self.cals)==2:
@@ -150,9 +159,9 @@ class ScanReader():
         doMessage(self.logger,msg.DBG,'feeds',len(self.feeds))
         doMessage(self.logger,msg.DBG,'n_polarizations',len(set(self.attr['polarization'][0])))
         doMessage(self.logger,msg.DBG,'n_cals',len(self.cals))
-        doMessage(self.logger,msg.DBG,'n_channels',len(self.data[0]))
+        doMessage(self.logger,msg.DBG,'n_channels',len(self.data[0][0]))
 
-        doMessage(self.logger,msg.DBG,'nrecords',len(self.data))
+        doMessage(self.logger,msg.DBG,'nrecords',len(self.data[0]))
         doMessage(self.logger,msg.DBG,'frequency_resolution',self.frequency_resolution,'Hz')
 
     def calonoffave_ave(self,state=0):
@@ -354,7 +363,7 @@ class ScanReader():
 
         ref = self.calonoffave_ave(state)
         cal = self.calonoff_ave_diff(state)
-        print ref.shape
+
         ratios = ref[chanlo:chanhi] / cal[chanlo:chanhi]
         mytsys = ratios.mean() * self.max_tcal()
 
@@ -485,18 +494,8 @@ class ScanReader():
         cdelt1 = self.attr['cdelt1'][sig_state].mean()
         channel_shift = ((sigfreq-reffreq)/cdelt1)[0]
         ta0 = np.roll(ta0,int(channel_shift),axis=1)
+        ta0[:,:channel_shift]=0
 
-        #sys.exit(9)
-
-        #pylab.plot(sig.mean(0),'g-')
-        #pylab.savefig('sig.ps')
-        #pylab.cla()
-        #pylab.plot(ref.mean(0),'g-')
-        #pylab.savefig('ref.ps')
-        #pylab.cla()
-        #pylab.plot((sig-ref).mean(0),'g-')
-        #pylab.savefig('tp.ps')
-        #pylab.cla()
         ta = (ta0+ta1)/2.
         if PYLAB:
             pylab.plot(ta0.mean(0),'g-')
@@ -507,24 +506,7 @@ class ScanReader():
             pylab.plot(ta.mean(0),'g-')
             pylab.savefig('ta.ps')
             pylab.cla()
-        #sys.exit(9)
-        #sig_state = 1
-        #ref_state = 0
-        #sig = self.data[sig_state].mean(0)
-        #ref = self.data[ref_state].mean(0)
-        #tsys = self.average_tsys(state=ref_state)
-        #print 'tsys',tsys
-        #ta1 = tsys * ((sig-ref)/ref)
-        #pylab.plot(ta1,'g-')
-        #pylab.savefig('ta1.ps')
-        #pylab.cla()
 
-        ## do shift HERE!!
-        
-        #ta = (ta0+ta1)/2.
-        #pylab.plot(ta,'g-')
-        #pylab.savefig('ta.ps')
-        #pylab.cla()
         input_rows = self.attr['row'][sig_state]
         for idx,row in enumerate(input_rows):
             row.setfield('DATA',ta[idx])
@@ -547,30 +529,32 @@ class ScanReader():
         Returns:
         Spectra, calibrated to antenna temperature.
         """
-        crpix1 = self.attr['crpix1']
-        cdelt1 = self.attr['cdelt1']
-        crval1 = self.attr['crval1']
+        onlystate = 0
         
-        input_rows = self.attr['row']
+        crpix1 = self.attr['crpix1'][onlystate]
+        cdelt1 = self.attr['cdelt1'][onlystate]
+        crval1 = self.attr['crval1'][onlystate]
+        
+        input_rows = self.attr['row'][onlystate]
         data = self.data
-        tcal = self.attr['tcal']
-        dates = self.attr['date']
-        elevations = self.attr['elevation']
-        temps = self.attr['tambient']
+        tcal = self.attr['tcal'][onlystate]
+        dates = self.attr['date'][onlystate]
+        elevations = self.attr['elevation'][onlystate]
+        temps = self.attr['tambient'][onlystate]
         ambient_temp = temps.mean()
         
         # average signal CALON and CALOFF
         if self.noise_diode:
-            calmask = self.attr['calmask']
+            calmask = self.attr['calmask'][onlystate]
             input_rows = input_rows[calmask]
-            sig_counts = (data[calmask] + data[~calmask]) / 2.
+            sig_counts = (data[onlystate][calmask] + data[onlystate][~calmask]) / 2.
             elevations = elevations[calmask]
             crpix1 = crpix1[calmask]
             crval1 = crval1[calmask]
             cdelt1 = cdelt1[calmask]
             mjds = np.array([ pipeutils.dateToMjd(xx) for xx in dates[calmask] ])
         else:
-            sig_counts = data
+            sig_counts = data[onlystate]
             mjds = np.array([ pipeutils.dateToMjd(xx) for xx in dates ])
 
         #freq = self.freq_axis(verbose)
@@ -691,8 +675,8 @@ class ScanReader():
         #   using the scaling factor (Tcal/(calON-calOFF))
         #   from the reference scan(s)
         #   [using the center 80% of the band]
-        chanlo = int(len(data[0])*.1)
-        chanhi = int(len(data[0])*.9)
+        chanlo = int(len(data[onlystate][0])*.1)
+        chanhi = int(len(data[onlystate][0])*.9)
         tsys = k_per_count * sig_counts
         tsys = tsys[:,chanlo:chanhi].mean(1)
 
@@ -721,9 +705,11 @@ class ScanReader():
         freq -- the frequency axis, to be used for plotting
         """
         
-        crpix1 = self.attr['crpix1'].mean()
-        cdelt1 = self.attr['cdelt1'].mean()
-        crval1 = self.attr['crval1'].mean()
+        onlystate = 0
+
+        crpix1 = self.attr['crpix1'][onlystate].mean()
+        cdelt1 = self.attr['cdelt1'][onlystate].mean()
+        crval1 = self.attr['crval1'][onlystate].mean()
         data = self.data
         
         max_tcal = self.max_tcal()
@@ -732,16 +718,16 @@ class ScanReader():
         spectrum = self.calonoffave_ave()
         date = self.min_date()
 
-        elevations = self.attr['elevation']
-        exposure = self.attr['exposure']
+        elevations = self.attr['elevation'][onlystate]
+        exposure = self.attr['exposure'][onlystate]
 
-        dates = self.attr['date']
-        calmask = self.attr['calmask']
+        dates = self.attr['date'][onlystate]
+        calmask = self.attr['calmask'][onlystate]
         
         # idl-like version of frequency interpolation across band
         refChan = crpix1-1
         observed_frequency = crval1
-        nchan = len(data[0])
+        nchan = len(data[onlystate][0])
         delChan = cdelt1
         freq_lo = observed_frequency + (0-refChan)*delChan
         freq_hi = observed_frequency + (nchan-refChan)*delChan
@@ -754,7 +740,7 @@ class ScanReader():
         else:
             mjds = np.array([ pipeutils.dateToMjd(xx) for xx in dates ])
             
-        temps = self.attr['tambient']
+        temps = self.attr['tambient'][onlystate]
         ambient_temp = temps.mean()
 
         # idl-like version uses a single avg elevation
@@ -778,19 +764,15 @@ class ScanReader():
 
     def split_fs_states(self):
 
+        self.nstates = 2
+
         statemask = self.statemask
-        # split all rows attributes into two states for frequency switched mode
+
         for xx in self.attr:
             self.attr[xx]= np.array([self.attr[xx][0][statemask],self.attr[xx][0][~statemask]])
         
         # split into two states for frequency swithced mode
-        state = []
-        state.append(self.data[statemask])
-        state.append(self.data[~statemask])
-        self.data = np.array(state)
-
-        # split calmask into two states as well
-        #cals = []
-        #cals.append(self.attr['calmask'][statemask])
-        #cals.append(self.attr['calmask'][~statemask])
-        #self.attr['calmask'] = cals
+        states = []
+        states.append(self.data[0][statemask])
+        states.append(self.data[0][~statemask])
+        self.data = np.array(states)
