@@ -3,6 +3,7 @@ import sys
 import os
 import pyfits
 import multiprocessing
+import glob
 
 import commandline
 import pipeutils
@@ -96,8 +97,22 @@ doMessage(logger,msg.DBG,'getting mask index',projname+'.raw.acs.index')
 masks = index_it(indexfile,opt.infile)
 doMessage(logger,msg.DBG,'done')
 
+start_mjd = get_start_mjd(indexfile)
+opacity_files = glob.glob('/users/rmaddale/Weather/ArchiveCoeffs/CoeffsOpacityFreqList_avrg_*.txt')
+for opacity_candidate_file in opacity_files:
+    dates = opacity_candidate_file.split('_')[-2:]
+    mydate = []
+    for date in dates:
+        mydate.append(int(date.split('.')[0]))
+
+    if start_mjd >= mydate[0] and start_mjd < mydate[1]:
+        opacity_coefficients_filename = opacity_candidate_file
+        break
+
+if not opacity_coefficients_filename:
+    opacity_coefficients_filename = '/users/rmaddale/Weather/ArchiveCoeffs/CoeffsOpacityFreqList_avrg.txt'
+
 # opacities coefficients filename
-opacity_coefficients_filename = '/users/rmaddale/Weather/ArchiveCoeffs/CoeffsOpacityFreqList_avrg.txt'
 if os.path.exists(opacity_coefficients_filename):
     doMessage(logger,msg.DBG,'Using coefficients from',opacity_coefficients_filename)
     opacity_coeffs = pipeutils.opacity_coefficients(opacity_coefficients_filename)
