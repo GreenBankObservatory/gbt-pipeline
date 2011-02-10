@@ -98,6 +98,7 @@ masks = index_it(indexfile,opt.infile)
 doMessage(logger,msg.DBG,'done')
 
 start_mjd = get_start_mjd(indexfile)
+opacity_coefficients_filename = False
 opacity_files = glob.glob('/users/rmaddale/Weather/ArchiveCoeffs/CoeffsOpacityFreqList_avrg_*.txt')
 for opacity_candidate_file in opacity_files:
     dates = opacity_candidate_file.split('_')[-2:]

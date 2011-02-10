@@ -5,9 +5,6 @@ from pipeutils import *
 import numpy as np
 import math
 import sys
-PYLAB=False
-if PYLAB:
-    import pylab
 
 class ScanReader():
     """The primary class for reading sdfits input.
@@ -497,15 +494,6 @@ class ScanReader():
         ta0[:,:channel_shift]=0
 
         ta = (ta0+ta1)/2.
-        if PYLAB:
-            pylab.plot(ta0.mean(0),'g-')
-            pylab.plot(ta1.mean(0),'b-')
-            pylab.savefig('ta01.ps')
-            pylab.cla()
-            
-            pylab.plot(ta.mean(0),'g-')
-            pylab.savefig('ta.ps')
-            pylab.cla()
 
         input_rows = self.attr['row'][sig_state]
         for idx,row in enumerate(input_rows):
