@@ -43,9 +43,6 @@ class ScanReader():
 
         self.frequency_resolution = 0
         self.noise_diode = False
-
-        # number of signal states =2 for FS mode
-        self.nstates = 1
         
     def setLogger(self,logger):
         self.logger = logger
@@ -751,8 +748,6 @@ class ScanReader():
         return spectrum,max_tcal,date,allfreq,tskys,mean_tsys
 
     def split_fs_states(self):
-
-        self.nstates = 2
 
         statemask = self.statemask
 

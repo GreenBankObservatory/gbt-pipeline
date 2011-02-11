@@ -12,6 +12,8 @@ import smoothing
 import pipeutils
 from pipeutils import *
 
+# ----------------------------------------------- calibrate FS-mode spectra
+
 def do_sampler_fs(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
                   refscans,scans,masks,opt,infile,fbeampol,opacity_coeffs):
     doMessage(logger,msg.DBG,'-----------')
@@ -42,7 +44,8 @@ def do_sampler_fs(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
     if block_found:
         doMessage(logger,msg.DBG,'to extension',blockid)
         sdfitsdata = infile[blockid].data[samplermask]
-        doMessage(logger,msg.DBG,'length of sampler-filtered data block is',len(sdfitsdata))
+        doMessage(logger,msg.DBG,'length of sampler-filtered data block is',
+                  len(sdfitsdata))
         del samplermask
     doMessage(logger,msg.DBG,'done')
 
@@ -62,7 +65,8 @@ def do_sampler_fs(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
                 str(allscans[0]) + '_' + str(allscans[-1]) + '_' + \
                 str(centerfreq)[:6] + '_' + sampler + '.fits'
     import warnings
-    def send_warnings_to_logger(message, category, filename, lineno, file=None, line=None):
+    def send_warnings_to_logger(message, category, filename, lineno, file=None,\
+                                line=None):
         doMessage(logger,msg.WARN,message)
     warnings.showwarning = send_warnings_to_logger
     warnings.filterwarnings('once', '.*converting a masked element to nan.*',)
@@ -70,23 +74,10 @@ def do_sampler_fs(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
     doMessage(logger,msg.DBG,'outfile name',outfilename)
     if (False == opt.clobber) and os.path.exists(outfilename):
         doMessage(logger,msg.ERR,'Outfile exits:',outfilename)
-        doMessage(logger,msg.ERR,'Please remove or rename outfile(s) and try again')
+        doMessage(logger,msg.ERR,\
+                  'Please remove or rename outfile(s) and try again')
         sys.exit(1)
 
-    #    a FS reference scan integration (1st pass) is the F part of the SIG data
-    #    a FS reference scan (2nd pass) is the T part of the SIG data
-    #    on each pass the signal/map scan is the remainder of the data
-
-    #    signal,reference = splitFSscan(scan,sdfitsdata,opt.verbose)
-    
-    #    Ta1 = sig-ref/ref
-    
-    #    switch signal and reference
-    
-    #    Ta2 = sig-ref/ref
-    
-    #    average
-    #    Ta = (Ta1+Ta2) / 2
     # ----------------  calibrate all integrations to Ta* or requested
     # ----------------------------  if not possible, calibrate to Ta
 
@@ -106,6 +97,9 @@ def do_sampler_fs(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
         #  if they are supplied
         gain_factor = gainfactor(opt,samplermap,sampler)
 
+        # a FS reference scan integration (1st pass) is the F part of the SIG
+        # data. a FS reference scan (2nd pass) is the T part of the SIG data
+        # on each pass the signal/map scan is the remainder of the data
         cal_ints = mapscan.calibrate_fs()
 
         #print cal_ints.mean(0)
@@ -180,6 +174,8 @@ def do_sampler_fs(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
     doMessage(logger,msg.INFO,'Finished calibrating: scans',allscans[0],'to',\
               allscans[-1],', beam',' '.join(map(str,samplermap[sampler])),'Hz')
     cc.send(outfilename)
+
+# ----------------------------------------------- calibrate PS-mode spectra
 
 def do_sampler_ps(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
                   refscans,scans,masks,opt,infile,fbeampol,opacity_coeffs):
@@ -442,7 +438,8 @@ def do_sampler_ps(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
     if opt.idlToSdfits_baseline_subtract:
         options = options + ' -w ' + opt.idlToSdfits_baseline_subtract + ' '
         
-    idlcmd = '/opt/local/bin/idlToSdfits -o ' + aipsinname + options + outfilename
+    idlcmd = '/opt/local/bin/idlToSdfits -o ' + aipsinname + options + \
+             outfilename
 
     doMessage(logger,msg.DBG,idlcmd)
 
@@ -452,10 +449,12 @@ def do_sampler_ps(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
               allscans[-1],', beam',' '.join(map(str,samplermap[sampler])),'Hz')
     cc.send(outfilename)
 
-def process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,opacity_coeffs):
+def process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,\
+                         opacity_coeffs):
     """
     """
     
+    # ------------------------------------------- interpret scans and map type
     allscans = scans[1]
     
     if 0==len(allscans):
@@ -471,30 +470,36 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,opacity_coe
     maptype = scans[4]
 
     try:
-        logfilename = 'scans_'+str(allscans[0])+'_'+str(allscans[-1])+'_'+timestamp()+'.log'
+        logfilename = 'scans_'+str(allscans[0])+'_'+str(allscans[-1])+'_'+\
+                      timestamp()+'.log'
         
     except(IndexError):
         print allscans
         sys.exit(9)
-        
+
+    # ----------------------------------------------- configure a scan logger
+    
     logger = pipeutils.configure_logfile(opt,logfilename)
 
     doMessage(logger,msg.DBG,'finding scans')
-    
+
+    # to indicate a map is found in one of the fits extensions
     block_found = False
     
     for blockid in range(1,len(infile)):
         if allscans[-1] <= infile[blockid].data[-1].field('SCAN'):
             block_found = True
-            doMessage(logger,msg.DBG,'scan',allscans[-1],'found in extension',blockid)
+            doMessage(logger,msg.DBG,'scan',allscans[-1],'found in extension',\
+                      blockid)
             break
     if not block_found:
-        doMessage(logger,msg.ERR,'ERROR: map scans not found for scan',allscans[-1])
+        doMessage(logger,msg.ERR,'ERROR: map scans not found for scan',\
+                  allscans[-1])
         sys.exit(9)
 
     doMessage(logger,msg.DBG,'done')
 
-    # --allmaps set
+    # get the sampler list for this particular map
     if opt.allmaps:
         doMessage(logger,msg.DBG,scans,blockid,samplerlist[blockid-1])
         thismap_samplerlist = samplerlist[blockid-1]
@@ -511,7 +516,12 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,opacity_coe
     if type([]) != type(thismap_samplerlist):
         thismap_samplerlist = [thismap_samplerlist]
 
-# ---------------------------------------------------------------- start parallelism
+# --------------------------------------------------------- start parallelism
+
+    # limit the number of concurrent processes
+    #   either by command line parameter
+    #   or (by default) 1/2 the number of processors
+
     if opt.process_max:
         process_group_max = opt.process_max
     else:
@@ -525,7 +535,10 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,opacity_coe
 
         process_group_max = int(math.ceil(float(process_group_max)/2))
 
-    doMessage(logger,msg.INFO,'Maxiumum number of running processes:',process_group_max)
+    doMessage(logger,msg.INFO,'Maxiumum number of running processes:',\
+              process_group_max)
+              
+    # calibrate data from each sampler in parallel
     lcl_samplerlist = thismap_samplerlist[:]
     while(lcl_samplerlist):
         process_ids = []
@@ -543,8 +556,9 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,opacity_coe
         for sampler in samplergroup:
             # create a process for each sampler
             process_ids.append(multiprocessing.Process(target=target,
-                args=(dd,sampler,logger,block_found,blockid,samplermap,allscans,\
-                refscans,scans,masks,opt,infile,fbeampol,opacity_coeffs)) )
+                args=(dd,sampler,logger,block_found,blockid,samplermap,\
+                allscans,refscans,scans,masks,opt,infile,fbeampol,\
+                opacity_coeffs)) )
         
         for pp in process_ids:
             pp.start()
@@ -554,7 +568,9 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,opacity_coe
             outfilenames.append(cc.recv())
             pp.join()
 
-# ---------------------------------------------------------------- end parallelism
+# --------------------------------------------------------- end parallelism
+
+# -------------------------------------------------------------- do imaging
 
     if not opt.imagingoff:
         aipsNumber = str(os.getuid())
@@ -568,15 +584,23 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,opacity_coe
             scan_e = outsplit[3]
             freq_set.add(outsplit[4])
 
-        doMessage(logger,msg.INFO,'Imaging center frequencies:',' & '.join(freq_set),'MHz')
+        doMessage(logger,msg.INFO,'Imaging center frequencies:',\
+                  ' & '.join(freq_set),'MHz')
         
         for freq in freq_set:
-            doMessage(logger,msg.INFO,'Started imaging scans',scan_b,'to',scan_e,'with center frequency',freq,'MHz')
-            filenames = target + '*' + scan_b + '_' + scan_e + '_' + freq + '*.sdf'
-            doimg_cmd = ' '.join(('doImage',opt.imageScript,aipsNumber,filenames))
+            doMessage(logger,msg.INFO,'Started imaging scans',\
+                      scan_b,'to',scan_e,'with center frequency',freq,'MHz')
+            filenames = target + '*' + scan_b + '_' + scan_e + '_' +\
+                        freq + '*.sdf'
+                        
+            # define command to invoke imaging script
+            #   which in turn invokes AIPS via ParselTongue
+            doimg_cmd = ' '.join(('doImage',opt.imageScript,aipsNumber,\
+                        filenames))
             doMessage(logger,msg.DBG,doimg_cmd)
 
-            p = subprocess.Popen(doimg_cmd.split(),stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+            p = subprocess.Popen(doimg_cmd.split(),stdout=subprocess.PIPE,\
+                                 stderr=subprocess.PIPE)
             aips_stdout,aips_stderr = p.communicate()
 
             doMessage(logger,msg.DBG,aips_stdout)

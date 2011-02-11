@@ -10,9 +10,13 @@ import pipeutils
 from pipeutils import *
 from process_a_single_map import *
 
+# -----------------------------------  interpret the command linen parameters
+
 cl = commandline.CommandLine()
 opt = cl.read(sys)
 
+# if not using automatic map detection
+#   try to interpret the range of scans provided by the user
 if not opt.allmaps:
     try:
         opt.mapscans = parserange(opt.mapscans)
@@ -20,27 +24,32 @@ if not opt.allmaps:
         print 'ERROR: could not parse range:',opt.mapscans
         sys.exit(10)
 
+# define begin and end map scans if range set by user
 beginscan = False
 endscan = False
 if opt.mapscans:
     beginscan = opt.mapscans[0]
     endscan = opt.mapscans[-1]
 
+# -----------------------------------------------  look for an input file
+
+#   if it doesn't exist try to recreate it from a user supplied directory
 opt.infile = check_for_sdfits_file(opt.infile, opt.sdfitsdir, beginscan,\
                                endscan,opt.refscan1, opt.refscan2,\
                                opt.verbose)
 
 # -------------------------------------------------------- configure logging
+
 logger = pipeutils.configure_logfile(opt,'pipeline'+'_'+timestamp()+'.log')
 
 # ------------------------------------------------- identify imaging script
 
-# look in integration and release contrib directories for
+# look in integration and release contrib directories for imaging script
 # if no script is found, turn imaging off
+
 RELCONDIR = '/home/gbtpipeline/release/contrib'
 TESTCONDIR = '/home/gbtpipeline/integration/contrib'
 IMSCRIPT = '/' + 'imageDefault.py'
-
 if not opt.imagingoff:
     if TESTCONDIR in sys.path and os.path.isfile(TESTCONDIR + IMSCRIPT):
         opt.imageScript = TESTCONDIR + IMSCRIPT
@@ -50,15 +59,23 @@ if not opt.imagingoff:
         doMessage(logger,msg.ERR,"ERROR: imaging script not found.")
         opt.imagingoff = True
 
-# -------------------  force units to all lowercase to make later tests easier
+# ---------------------------------------------------  check calibration units
+
+#  force units to all lowercase to make later tests easier
 opt.units = opt.units.lower()
 ACCEPTABLE_UNITS = [ 'ta', 'ta*', 'tmb', 'tb*', 'jy' ]
 if not (opt.units in ACCEPTABLE_UNITS ):
-    doMessage(logger,msg.ERR,'ERROR: Not able to calibrate to units of',opt.units)
-    doMessage(logger,msg.ERR,'       Please use one of the following:',', '.join(ACCEPTABLE_UNITS))
+    doMessage(logger,msg.ERR,'ERROR: Not able to calibrate to units of',\
+              opt.units)
+    doMessage(logger,msg.ERR,'       Please use one of the following:',\
+              ', '.join(ACCEPTABLE_UNITS))
     sys.exit(9)
 
+# --------------------------------------------------- print command summary
+
 commandSummary(logger,opt)
+
+# --------------------------------------------- define PS-mode reference scans
 
 fbeampol=1
 
@@ -76,26 +93,33 @@ if not opt.allmaps:
         else:
             opt.refscan2 = False
 
-    doMessage(logger,msg.INFO,"Reference scan(s)",', '.join(map(str,list(refscans))))
+    doMessage(logger,msg.INFO,"Reference scan(s)",\
+        ', '.join(map(str,list(refscans))))
     doMessage(logger,msg.INFO,"---------------\n")
     
-# read in the input file
+# -------------------------------------------------  read in the input file
+
 doMessage(logger,msg.DBG,'opening input sdfits file')
 if not os.path.exists(opt.infile):
     doMessage(logger,msg.ERR,'ERROR: input sdfits file not readable')
     doMessage(logger,msg.ERR,'    Please check input sdfits and run again')
     sys.exit(9)
 
-# name index file
+# -------------------------------------------------  name index file
+
 projdir = "/".join(opt.infile.split('/')[:-1])
 projfile = opt.infile.split('/')[-1]
 projhead = projfile.split('.')[0]
 projname = projdir + "/" + projhead
 indexfile=projname+'.raw.acs.index'
 
+# ------------------------------------------- get sampler mask using index file
+
 doMessage(logger,msg.DBG,'getting mask index',projname+'.raw.acs.index')
 masks = index_it(indexfile,opt.infile)
 doMessage(logger,msg.DBG,'done')
+
+# ----------------------------------------------- look for opacity coefficients
 
 start_mjd = get_start_mjd(indexfile)
 opacity_coefficients_filename = False
@@ -111,21 +135,31 @@ for opacity_candidate_file in opacity_files:
         break
 
 if not opacity_coefficients_filename:
-    opacity_coefficients_filename = '/users/rmaddale/Weather/ArchiveCoeffs/CoeffsOpacityFreqList_avrg.txt'
+    opacity_coefficients_filename = \
+        '/users/rmaddale/Weather/ArchiveCoeffs/CoeffsOpacityFreqList_avrg.txt'
 
 # opacities coefficients filename
 if os.path.exists(opacity_coefficients_filename):
-    doMessage(logger,msg.DBG,'Using coefficients from',opacity_coefficients_filename)
-    opacity_coeffs = pipeutils.opacity_coefficients(opacity_coefficients_filename)
+    doMessage(logger,msg.DBG,'Using coefficients from',\
+              opacity_coefficients_filename)
+    opacity_coeffs = \
+        pipeutils.opacity_coefficients(opacity_coefficients_filename)
 else:
     doMessage(logger,msg.WARN,'WARNING: No opacity coefficients file')
     opacity_coeffs = False
 
 aips_input_files = []
 
+# ---------------------------------------------------------- open data file
+
 doMessage(logger,msg.DBG,'getting data object from input file')
 doMessage(logger,msg.DBG,'opening fits file')
 infile = pyfits.open(opt.infile,memmap=1)
+
+
+# --------------------------------------------------- automatically find maps
+
+# also get a list of samplers used for each map
 
 # we need to set allscans, refscan1 and refscan2 for each map
 #    and continue
@@ -146,6 +180,7 @@ else:
     if not opt.feed and not opt.pol:
         samplerlist = samplermap.keys()
 
+    # filter on feed and polarization if defined by user
     else:
         # check the feed and pol specified at the commandline
         #  before including a sampler in the list
@@ -153,7 +188,8 @@ else:
             try:
                 inclusive = is_inclusive_range(opt.feed)
             except:
-                doMessage(logger,msg.INFO,'ERROR: can not parse range',opt.feed)
+                doMessage(logger,msg.INFO,'ERROR: can not parse range',\
+                          opt.feed)
                 sys.exit(11)
             # if there are only exclusive items listed
             #   add all feeds to the list so we have something to
@@ -167,7 +203,8 @@ else:
             try:
                 opt.feed = parserange(opt.feed)
             except:
-                doMessage(logger,msg.ERR,'ERROR: could not parse range',opt.feed)
+                doMessage(logger,msg.ERR,'ERROR: could not parse range',\
+                          opt.feed)
                 sys.exit(11)
 
         if opt.feed and not opt.pol:
@@ -186,6 +223,8 @@ else:
 
     maptype = maptype(allscans[0],indexfile,debug=False)
     mymaps = [(opt.refscan1,allscans,opt.refscan2,samplermap,maptype)]
+
+# -------------------------------------------- print map and samplers summary
 
 if not opt.allmaps:
     sampler_summary(logger,samplermap)
@@ -207,10 +246,14 @@ for idx,mm in enumerate(mymaps):
         sampler_summary(logger,mm[3])
 
 if not opt.allmaps:
-    doMessage(logger,msg.INFO,'Processing',len(samplerlist),'sampler(s):', ', '.join(samplerlist))
+    doMessage(logger,msg.INFO,'Processing',len(samplerlist),\
+        'sampler(s):', ', '.join(samplerlist))
+
+# ------------------------------------ do calibration and imaging of each map
 
 for idx,scans in enumerate(mymaps):
     # create a process for each map
-    process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,opacity_coeffs)
+    process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,\
+                         opacity_coeffs)
 
 doMessage(logger,msg.INFO,'Pipeline finished.')
