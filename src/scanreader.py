@@ -462,8 +462,10 @@ class ScanReader():
         #k_per_count,opacity_coefficients,gain_coeff,spillover,aperture_eff,\
         #fbeampol,ref_tskys,units,gain_factor,verbose):
         
+        # split the data into to states, one for SIG and one for REF
         self.split_fs_states()
 
+        # calibrate to Ta for the first state
         sig_state = 0
         ref_state = 1
         sig = self.data[sig_state]
@@ -473,6 +475,7 @@ class ScanReader():
         for idx,ee in enumerate(tsys):
             ta0[idx] = tsys[idx] * ((sig[idx]-ref[idx])/ref[idx])
 
+        # calibrate to Ta for the second state
         sig_state = 1
         ref_state = 0
         sig = self.data[sig_state]
@@ -482,21 +485,57 @@ class ScanReader():
         for idx,ee in enumerate(tsys):
             ta1[idx] = tsys[idx] * ((sig[idx]-ref[idx])/ref[idx])
 
+        
+        # shift spectra to match in frequency
         sigfreq = self.freq_axis(0)
         reffreq = self.freq_axis(1)
-
         cdelt1 = self.attr['cdelt1'][sig_state].mean()
         channel_shift = ((sigfreq-reffreq)/cdelt1)[0]
+        # do integer channel shift to first spectrum
         ta0 = np.roll(ta0,int(channel_shift),axis=1)
         ta0[:,:channel_shift]=0
+        # do fractional channel shift
+        delta_f = math.modf(channel_shift)[0]
+        if delta_f > 0.01:
+            # inverse fft of spetrum, 0
+            num_channels = len(ta0[0])
+            ta0_ifft = np.fft.ifft(ta0,n=num_channels*2,axis=1)
+            real_part = ta0_ifft.real
+            imag_part = ta0_ifft.imag
+            # eqn. 7
+            amplitude = np.sqrt(real_part**2 + imag_part**2)
+            # eqn. 8
+            phase = np.arctan(imag_part,real_part)
+            # eqn. 9
+            delta_p = (2.0 * np.pi * delta_f) / (num_channels*2)
+            # eqn. 10
+            kk = [ np.mod(ii,num_channels) for ii in range(num_channels) ]
+            kk.extend(kk)
+            kk0 = np.array(kk)
+            for idx in range(len(ta0)-1):
+                kk = np.vstack((kk,kk0))
+            # eqn. 11
+            amplitude = amplitude*(1-(kk/num_channels))**2
+            # eqn. 12
+            phase = phase + (kk * delta_p)
+            # eqn. 13
+            real_part = amplitude * np.cos(phase)
+            # eqn. 14
+            image_part = amplitude * np.sin(phase)
 
+            # finally fft to get back to spectra
+            ta0_shifted = np.fft.fft(real_part+image_part,n=num_channels,axis=1)
+
+        # average shifted spectra
         ta = (ta0+ta1)/2.
 
+        # set the calibrated data into the output structure
         input_rows = self.attr['row'][sig_state]
         for idx,row in enumerate(input_rows):
             row.setfield('DATA',ta[idx])
             row.setfield('TSYS',tsys[idx])
 
+        # return calibrated spectra
         return input_rows
     
     def calibrate_to(self,logger,refs,ref_dates,ref_tsyss,\

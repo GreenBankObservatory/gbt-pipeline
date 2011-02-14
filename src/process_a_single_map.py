@@ -2,7 +2,6 @@ import os
 import sys
 import getpass
 import multiprocessing
-#import pylab
 
 import numpy as np
 import pyfits
