@@ -1,5 +1,6 @@
 # parsel-tongue script tuned for SGR B2 obs of NH3
 #HISTORY
+#11JAN26 GIL add help
 #10OCT06 GIL measure the NH3 1-1 integrated profile only
 
 from AIPS import *
