@@ -216,7 +216,7 @@ def do_sampler(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
 
         # set relative gain factors for each beam/pol
         #  if they are supplied
-        gain_factor = gainfactor(opt,samplermap,sampler)
+        gain_factor = gainfactor(logger,opt,samplermap,sampler)
 
         if 'PS' == maptype:
             cal_ints = mapscan.calibrate_to(logger,refspec,refdate,ref_tsys,\

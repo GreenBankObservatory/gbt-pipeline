@@ -990,7 +990,7 @@ def maptype(firstscan,indexfile,debug=False):
     else:
         return 'UKNOWN'
 
-def gainfactor(opt,samplermap,sampler):
+def gainfactor(logger,opt,samplermap,sampler):
     # set relative gain factors for each beam/pol
     #  if they are supplied
     if opt.gain_left and samplermap[sampler][1]=='LL':
