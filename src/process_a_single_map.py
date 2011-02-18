@@ -267,7 +267,9 @@ def do_sampler(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
     if bool(opt.average):
         options = options + ' -a ' + str(opt.average)
 
-    if nchans:
+    if opt.channels:
+        options = options + ' -c ' + str(opt.channels) + ' '
+    elif nchans:
         chan_min = int(nchans*.02) # start at 2% of nchan
         chan_max = int(nchans*.98) # end at 98% of nchans
         options = options + ' -c ' + str(chan_min) + ':' + str(chan_max) + ' '

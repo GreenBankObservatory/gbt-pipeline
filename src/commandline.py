@@ -48,6 +48,8 @@ class CommandLine:
                         help="comma-separated polarization(s) to process", metavar="P[,P]")
         self.parser.add_argument("-a", "--average",dest="average", default=0, type=int,
                         help="averge the spectra over N channels (idlToSdfits)", metavar="N")
+        self.parser.add_argument("-c", "--channels",dest="channels", default=False, type=str,
+                        help="channel selection i.e. 100:200 (idlToSdfits); use with CAUTION")
         self.parser.add_argument("-n", "--idlToSdfits-rms-flag",dest="idlToSdfits_rms_flag", default=False,
                         help="flag integrations with excess noise, see idlToSdfits help",
                         metavar="N")
