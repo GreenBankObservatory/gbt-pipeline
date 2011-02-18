@@ -49,12 +49,25 @@ logger = pipeutils.configure_logfile(opt,'pipeline'+'_'+timestamp()+'.log')
 
 RELCONDIR = '/home/gbtpipeline/release/contrib'
 TESTCONDIR = '/home/gbtpipeline/integration/contrib'
-IMSCRIPT = '/' + 'imageDefault.py'
+DBCONSCRIPT = '/' + 'dbcon.py'
+MAPSCRIPT = '/' + 'mapDefault.py'
 if not opt.imagingoff:
-    if TESTCONDIR in sys.path and os.path.isfile(TESTCONDIR + IMSCRIPT):
-        opt.imageScript = TESTCONDIR + IMSCRIPT
-    elif os.path.isfile(RELCONDIR + IMSCRIPT):
-        opt.imageScript = RELCONDIR + IMSCRIPT
+
+    # test version of pipeline
+    if TESTCONDIR in sys.path and \
+      os.path.isfile(TESTCONDIR + DBCONSCRIPT) and \
+      os.path.isfile(TESTCONDIR + MAPSCRIPT):
+
+        opt.dbconScript = TESTCONDIR + DBCONSCRIPT
+        opt.mapScript = TESTCONDIR + MAPSCRIPT
+
+    # release version of pipeline
+    elif os.path.isfile(RELCONDIR + DBCONSCRIPT) and \
+      os.path.isfile(RELCONDIR + MAPSCRIPT):
+
+        opt.dbconScript = RELCONDIR + DBCONSCRIPT
+        opt.mapScript = RELCONDIR + MAPSCRIPT
+
     else:
         doMessage(logger,msg.ERR,"ERROR: imaging script not found.")
         opt.imagingoff = True

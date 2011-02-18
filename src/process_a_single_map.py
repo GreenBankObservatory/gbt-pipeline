@@ -438,10 +438,25 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,\
             filenames = target + '*' + scan_b + '_' + scan_e + '_' +\
                         freq + '*.sdf'
                         
-            # define command to invoke imaging script
+            # define command to invoke dbcon imaging script
             #   which in turn invokes AIPS via ParselTongue
-            doimg_cmd = ' '.join(('doImage',opt.imageScript,aipsNumber,\
+            doimg_cmd = ' '.join(('doImage',opt.dbconScript,aipsNumber,\
                         filenames))
+            doMessage(logger,msg.DBG,doimg_cmd)
+
+            p = subprocess.Popen(doimg_cmd.split(),stdout=subprocess.PIPE,\
+                                 stderr=subprocess.PIPE)
+            aips_stdout,aips_stderr = p.communicate()
+
+            doMessage(logger,msg.DBG,aips_stdout)
+            doMessage(logger,msg.DBG,aips_stderr)
+            doMessage(logger,msg.INFO,'... done')
+
+            # define command to invoke mapping script
+            #   which in turn invokes AIPS via ParselTongue
+            channel_average = 3
+            doimg_cmd = ' '.join(('doImage',opt.mapScript,aipsNumber,\
+                        str(channel_average)))
             doMessage(logger,msg.DBG,doimg_cmd)
 
             p = subprocess.Popen(doimg_cmd.split(),stdout=subprocess.PIPE,\
