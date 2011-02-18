@@ -782,7 +782,7 @@ def list_samplers(allmaps,indexfile,debug=False):
         # or see if we have a ref2
         #    if so, close out    
         if ref2 or idx==len(mapkeys)-1:
-            maps.append((ref1,mapscans,ref2,samplermap))
+            maps.append((ref1,mapscans,ref2,samplermap,'NA'))
             ref1 = False
             ref2 = False
             mapscans = []
@@ -798,6 +798,7 @@ def list_samplers(allmaps,indexfile,debug=False):
             else:
                 print "\tReference scan......",mm[0]
             print "\tMap scans...........",mm[1]
+            print "\tMap type...........",mm[4]
 
     return maps
 

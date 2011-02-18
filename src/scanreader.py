@@ -581,8 +581,9 @@ class ScanReader():
             sig_counts = data[onlystate]
             mjds = np.array([ pipeutils.dateToMjd(xx) for xx in dates ])
 
-        #freq = self.freq_axis(verbose)
+        # create an array of low and high frequencies for each integration
 
+        #freq = self.freq_axis(verbose)
         #glen's version
         refChan = crpix1-1
         observed_frequency = crval1
@@ -601,7 +602,9 @@ class ScanReader():
                         fbeampol,opacity_coefficients,mjds,elevations,freq/1e9)
         else:
             opacities = False
-            
+
+        # compute sky temperatures (tsky) at ends of bands and interpolate
+        #   in between the low and high frequency channels
         if np.any(opacities):
             all_opacities = np.zeros(sig_counts.shape)
             dOpacity = (opacities[:,1]-opacities[:,0])/float(sig_counts.shape[1])
@@ -624,7 +627,7 @@ class ScanReader():
                 doMessage(self.logger,msg.WARN,'WARNING: Opacities not available, calibrating to units of Ta')
                 units = 'ta'
         
-        # interpolate (by time) reference spectrum and tskys
+        # interpolate (by time) the reference spectrum and tskys
         if ( len(refs)>1 and \
              len(ref_dates)>1 and \
              len(ref_tskys)>1 ):
@@ -634,7 +637,7 @@ class ScanReader():
             tsky_ref = np.array(ref_tskys[0],ndmin=2)
             tsys_ref = np.array(ref_tsyss[0],ndmin=2)
 
-        # PS specification (eqn. 5)  FS specification (eqn. 5)
+        # PS specification (eqn. 5)
         Ta = tsys_ref * ((sig_counts-ref)/ref)
         Units = Ta
 
