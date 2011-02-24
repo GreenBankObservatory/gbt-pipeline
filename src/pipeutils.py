@@ -9,6 +9,11 @@ import pyfits
 import numpy as np
 
 def timestamp():
+    """Return a string with the current date and time
+
+    The format of the string is: dd.mm.yyyy_hh:mm:ss
+
+    """
     lt = time.localtime(time.time())
     return "%02d.%02d.%04d_%02d:%02d:%02d" % (lt[2], lt[1], lt[0], lt[3], lt[4], lt[5])
     
@@ -21,6 +26,14 @@ class msg:
     DBG = 5
     
 def doMessage(logger,level,*args):
+    """Write a message to the log file
+
+    Keyword arguments:
+    logger -- the log handler object
+    level -- the level of the message (ERR,WARN,INFO,etc.)
+    args -- the message text
+
+    """
     message = ' '.join(map(str,(args)))
     if msg.CRIT == level:
         logger.critical(message)
@@ -36,6 +49,14 @@ def doMessage(logger,level,*args):
         logger.critical(message)
 
 def configure_logfile(opt,logfilename,toconsole=True):
+    """Configure the format and levels for the logfile
+
+    Keyword arguments:
+    opt -- user-defined verbosity options
+    logfilename -- name of desired log file
+    toconsole -- optional console output
+
+    """
     LEVELS = {5: logging.DEBUG, # errors + warnings + summary + debug
               4: logging.INFO, # errors + warnings + summary
               3: logging.WARNING, # errors + warnings
@@ -429,6 +450,10 @@ def tatm(freqHz, tmpC):
 def corrected_opacity(zenith_opacities,elevation):
     """Compute elevation-corrected opacities.
     
+    Keywords:
+    zenith_opacities -- opacity based only on time
+    elevation -- used to apply correction
+
     """
     n_atmos = natm(elevation)
     corrected_opacities = [math.exp(xx/n_atmos) for xx in zenith_opacities]
@@ -436,7 +461,11 @@ def corrected_opacity(zenith_opacities,elevation):
     return corrected_opacities
 
 def interpolated_zenith_opacity(coeffs, freqs):
-    """
+    """Iterpolate low and high opacities across a vector of frequencies
+
+    Keywords:
+    coeffs -- opacitiy coefficients
+    freqs -- frequency vector
     
     """
     # interpolate between the coefficients based on time for a given frequency
@@ -614,6 +643,13 @@ def check_for_sdfits_file( infile, sdfitsdir, beginscan, endscan,\
     return infile
 
 def get_start_mjd(indexfile,verbose=0):
+    """Get the start date (mjd) of the session
+
+    Keywords:
+    indexfile -- file which contains integrations with time stamps
+    verbose -- optional verbosity level
+
+    """
     myFile = open(indexfile,'rU')
 
     # skip over the index file header lines
@@ -630,7 +666,16 @@ def get_start_mjd(indexfile,verbose=0):
     return int(start_mjd)
 
 def index_it(indexfile,fitsfile=None,table_length=0,samplers=[],verbose=0):
+    """Create a mask on the input file for each sampler
 
+    Keywords:
+    indexfile -- used to find integrations for each sampler
+    fitsfile -- backup when indexfile is not accessible
+    table_length -- needed to create the mask when using an index file
+    samplers -- set when only masks for some samplers are desired
+    verbose -- optional verbosity on output
+
+    """
     myFile = open(indexfile,'rU')
     if fitsfile:
         fd = pyfits.open(fitsfile,memmap=1)
@@ -692,6 +737,14 @@ def index_it(indexfile,fitsfile=None,table_length=0,samplers=[],verbose=0):
     return mask
 
 def list_samplers(allmaps,indexfile,debug=False):
+    """Find mapping blocks.  Also find samplers used in each map
+
+    Keywords:
+    allmaps -- when set, mapping block discovery is enabled
+    indexfile -- input required to search for maps and samplers
+    debug -- optional debug flag
+
+    """
 
     myFile = open(indexfile,'rU')
     
@@ -803,7 +856,11 @@ def list_samplers(allmaps,indexfile,debug=False):
     return maps
 
 def sampler_summary(logger,samplermap):
-    """
+    """Print a summary of samplers used in a map
+
+    Keywords:
+    logger -- where to send output
+    samplermap -- data structure holding sampler information
     """
     
     import operator
@@ -816,6 +873,17 @@ def sampler_summary(logger,samplermap):
         doMessage(logger,msg.INFO,message)
 
 def parserange(rangelist):
+    """Given a range string, produce a list of integers
+
+    Inclusive and exclusive integers are both possible.
+
+    The range string 1:4,6:8,10 becomes 1,2,3,4,6,7,8,10
+    The range string 1:4,-2 becomes 1,3,4
+
+    Keywords:
+    rangelist -- a range string with inclusive ranges and exclusive integers
+
+    """
 
     oklist = set([])
     excludelist = set([])
@@ -873,7 +941,14 @@ def parserange(rangelist):
     return sorted(list(oklist))
 
 def is_inclusive_range(rangelist):
+    """Determine if a range is not an excluded integer
 
+    For example, if '-5' is the range then return False.  If 1:3 is the range, return True.
+
+    Keywords:
+    rangelist -- a string with integers to check
+
+    """
     rangelist = rangelist.replace(' ','')
     rangelist = rangelist.split(',')
 
@@ -899,7 +974,12 @@ def is_inclusive_range(rangelist):
 
 
 def commandSummary(logger,opt):
-    """
+    """Print a summary of the options controlling the pipeline run.
+
+    Keywords:
+    logger -- where the output will be written
+    opt -- command options
+
     """
 
     class prettyfloat(float):
@@ -947,12 +1027,28 @@ def commandSummary(logger,opt):
     doMessage(logger,msg.INFO,"overwrite existing output.....",str(opt.clobber))
 
 def string_to_floats(string_list):
+    """Change a list of numbers to a list of floats
+
+    Keywords:
+    string_list -- a comma-seperated list of numbers
+
+    """
     string_list = string_list.replace(' ','')
     string_list = string_list.split(',')
     return [ float(item) for item in string_list ]
 
 def maptype(firstscan,indexfile,debug=False):
+    """Return a string describing the type of the mapping block
 
+    Typically, this will say whether a map if used position-switched (PS) calibration
+    or frequency-switched (FS) calibration.
+
+    Keywords:
+    firstscan -- the first scan number of the map
+    indexfile -- used to determine the number of switching states
+    debug -- optional debug flag
+
+    """
     myFile = open(indexfile,'rU')
 
     scans = {}
@@ -992,6 +1088,15 @@ def maptype(firstscan,indexfile,debug=False):
         return 'UKNOWN'
 
 def gainfactor(logger,opt,samplermap,sampler):
+    """Returns gain factor set for a given beam and polarization
+
+    Keywords:
+    logger -- where to write output
+    opt -- structure which holds gain factors
+    samplermap -- lists samplers for each mapping block
+    sampler -- sampler representing beam and polarization which needs gain adjustment
+
+    """
     # set relative gain factors for each beam/pol
     #  if they are supplied
     if opt.gain_left and samplermap[sampler][1]=='LL':
