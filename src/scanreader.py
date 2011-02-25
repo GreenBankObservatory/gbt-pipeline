@@ -660,6 +660,10 @@ class ScanReader():
             doMessage(self.logger,msg.WARN,'WARNING: No opacities, calibrating to units of Ta')
             units=='ta'
 
+        # apply a relative gain factor, if not 1
+        if float(1) != gain_factor:
+            Units = Units * gain_factor
+
         if units=='tatsky':
             # remove the elevation contribution to sky temperatures
             if np.any(all_tsky_sig) and np.any(tsky_ref):
@@ -706,10 +710,6 @@ class ScanReader():
         chanhi = int(len(data[onlystate][0])*.9)
         tsys = k_per_count * sig_counts
         tsys = tsys[:,chanlo:chanhi].mean(1)
-
-        # apply a relative gain factor, if not 1
-        if float(1) != gain_factor:
-            Units = Units * gain_factor
 
         for idx,row in enumerate(input_rows):
             row.setfield('DATA',Units[idx])
