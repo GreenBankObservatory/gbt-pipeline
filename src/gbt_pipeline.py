@@ -76,7 +76,7 @@ if not opt.imagingoff:
 
 #  force units to all lowercase to make later tests easier
 opt.units = opt.units.lower()
-ACCEPTABLE_UNITS = [ 'ta', 'ta*', 'tmb', 'tb*', 'jy' ]
+ACCEPTABLE_UNITS = [ 'ta', 'ta*', 'tmb', 'tb*', 'jy', 'tatsky' ]
 if not (opt.units in ACCEPTABLE_UNITS ):
     doMessage(logger,msg.ERR,'ERROR: Not able to calibrate to units of',\
               opt.units)
