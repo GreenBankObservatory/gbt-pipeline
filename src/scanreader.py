@@ -664,7 +664,8 @@ class ScanReader():
         if float(1) != gain_factor:
             Units = Units * gain_factor
 
-        if units=='tatsky':
+        if units=='tatsky' or units=='ta*' or units=='tmb' or \
+           units=='tb*' or units=='jy':
             # remove the elevation contribution to sky temperatures
             if np.any(all_tsky_sig) and np.any(tsky_ref):
                 Ta = Ta - (all_tsky_sig - tsky_ref)
