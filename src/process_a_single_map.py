@@ -13,7 +13,7 @@ from pipeutils import *
 
 
 def do_sampler(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
-               refscans,scans,masks,opt,infile,fbeampol,opacity_coeffs,maptype):
+               refscans,scans,masks,opt,infile,opacity_coeffs,maptype):
 
     doMessage(logger,msg.DBG,'-----------')
     doMessage(logger,msg.DBG,'SAMPLER',sampler)
@@ -89,7 +89,7 @@ def do_sampler(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
 
         ref1spec,ref1_max_tcal,ref1_mean_date,freq,tskys_ref1,ref1_tsys = \
             ref1.average_reference(logger,opt.units,opt.gaincoeffs,opt.spillover,\
-            opt.aperture_eff,fbeampol,opacity_coeffs,opt.verbose)
+            opt.aperture_eff,opacity_coeffs,opt.verbose)
 
         refdate.append(ref1_mean_date)
         ref_tsky.append(tskys_ref1)
@@ -174,7 +174,7 @@ def do_sampler(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
 
             ref2spec,ref2_max_tcal,ref2_mean_date,freq,tskys_ref2,ref2_tsys = \
                 ref2.average_reference(logger,opt.units,opt.gaincoeffs,opt.spillover,\
-                opt.aperture_eff,fbeampol,opacity_coeffs,opt.verbose)
+                opt.aperture_eff,opacity_coeffs,opt.verbose)
             refdate.append(ref2_mean_date)
             ref_tsky.append(tskys_ref2)
 
@@ -221,7 +221,7 @@ def do_sampler(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
         if 'PS' == maptype:
             cal_ints = mapscan.calibrate_to(logger,refspec,refdate,ref_tsys,\
                 k_per_count,opacity_coeffs,opt.gaincoeffs,opt.spillover,\
-                opt.aperture_eff,fbeampol,ref_tsky,opt.units,gain_factor,opt.verbose)
+                opt.aperture_eff,ref_tsky,opt.units,gain_factor,opt.verbose)
         else:
             # a FS reference scan integration (1st pass) is the F part of the SIG
             # data. a FS reference scan (2nd pass) is the T part of the SIG data
@@ -299,7 +299,7 @@ def do_sampler(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
               allscans[-1],', beam',' '.join(map(str,samplermap[sampler])),'Hz')
     cc.send(outfilename)
 
-def process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,\
+def process_a_single_map(scans,masks,opt,infile,samplerlist,\
                          opacity_coeffs):
     """
     """
@@ -402,7 +402,7 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,\
             # create a process for each sampler
             process_ids.append(multiprocessing.Process(target=do_sampler,
                 args=(dd,sampler,logger,block_found,blockid,samplermap,\
-                allscans,refscans,scans,masks,opt,infile,fbeampol,\
+                allscans,refscans,scans,masks,opt,infile,\
                 opacity_coeffs,maptype)) )
         
         for pp in process_ids:
@@ -450,7 +450,7 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,\
 
             doMessage(logger,msg.DBG,aips_stdout)
             doMessage(logger,msg.DBG,aips_stderr)
-            doMessage(logger,msg.INFO,'... done')
+            doMessage(logger,msg.INFO,'... (1/2) done')
 
             # define command to invoke mapping script
             #   which in turn invokes AIPS via ParselTongue
@@ -465,4 +465,4 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,\
 
             doMessage(logger,msg.DBG,aips_stdout)
             doMessage(logger,msg.DBG,aips_stderr)
-            doMessage(logger,msg.INFO,'... done')
+            doMessage(logger,msg.INFO,'... (2/2)  done')

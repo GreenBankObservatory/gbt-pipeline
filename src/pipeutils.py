@@ -491,7 +491,7 @@ def _gain(gain_coeff,elevation):
     return gain
 
 def ta_correction(gain_coeff,spillover,\
-        fbeampol,opacity_coefficients,mjds,elevations,freq,verbose=0):
+        opacity_coefficients,mjds,elevations,freq,verbose=0):
     """Compute correction to Ta for determining Ta*
     
     Correction is for atmospheric attenuation, rear spillover, ohmic loss
@@ -536,7 +536,7 @@ def ta_correction(gain_coeff,spillover,\
             opacities = opacities[0]
 
         # return right part of equation 13
-        return (fbeampol * np.array(opacities)) / (spillover * gain)
+        return (np.array(opacities)) / (spillover * gain)
 
     else:
     

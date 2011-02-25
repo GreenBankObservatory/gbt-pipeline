@@ -90,8 +90,6 @@ commandSummary(logger,opt)
 
 # --------------------------------------------- define PS-mode reference scans
 
-fbeampol=1
-
 if not opt.allmaps:
     # setup scan numbers
     allscans = [ int(item) for item in opt.mapscans ]
@@ -266,7 +264,7 @@ if not opt.allmaps:
 
 for idx,scans in enumerate(mymaps):
     # create a process for each map
-    process_a_single_map(scans,masks,opt,infile,samplerlist,fbeampol,\
+    process_a_single_map(scans,masks,opt,infile,samplerlist,\
                          opacity_coeffs)
 
 doMessage(logger,msg.INFO,'Pipeline finished.')

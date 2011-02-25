@@ -460,7 +460,7 @@ class ScanReader():
     def calibrate_fs(self):
     #def calibrate_fs(self,logger,refs,ref_dates,ref_tsyss,\
         #k_per_count,opacity_coefficients,gain_coeff,spillover,aperture_eff,\
-        #fbeampol,ref_tskys,units,gain_factor,verbose):
+        #ref_tskys,units,gain_factor,verbose):
         
         # split the data into to states, one for SIG and one for REF
         self.split_fs_states()
@@ -540,7 +540,7 @@ class ScanReader():
     
     def calibrate_to(self,logger,refs,ref_dates,ref_tsyss,\
         k_per_count,opacity_coefficients,gain_coeff,spillover,aperture_eff,\
-        fbeampol,ref_tskys,units,gain_factor,verbose):
+        ref_tskys,units,gain_factor,verbose):
         """
 
         Keyword arguments:
@@ -599,7 +599,7 @@ class ScanReader():
         # calculate weather-dependent opacities for each frequency, time and elevation
         if not units=='ta' and (6<= freq.mean()/1e9 <=50 or 70<= freq.mean()/1e9 <=116):
             opacities = pipeutils.ta_correction(gain_coeff,spillover,\
-                        fbeampol,opacity_coefficients,mjds,elevations,freq/1e9)
+                        opacity_coefficients,mjds,elevations,freq/1e9)
         else:
             opacities = False
 
@@ -718,7 +718,7 @@ class ScanReader():
         return input_rows
 
     def average_reference(self,logger,units,gain_coeff,spillover,aperture_eff,\
-            fbeampol,opacity_coefficients,verbose):
+            opacity_coefficients,verbose):
         """
 
         Keyword arguments:
@@ -773,7 +773,7 @@ class ScanReader():
         # idl-like version uses a single avg elevation
         if not units=='ta' and (6<= freq.mean()/1e9 <=50 or 70<= freq.mean()/1e9 <=116):
             opacities = pipeutils.ta_correction(gain_coeff,spillover,\
-                        fbeampol,opacity_coefficients,\
+                        opacity_coefficients,\
                         [mjds.mean()],[self.elevation_ave()],freq/1e9,verbose)
         else:
             opacities = False
