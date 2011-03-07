@@ -662,7 +662,7 @@ def get_start_mjd(indexfile,verbose=0):
 
     dateobs = row[34]
     start_mjd = dateToMjd(dateobs)
-
+    myFile.close()
     return int(start_mjd)
 
 def index_it(indexfile,fitsfile=None,table_length=0,samplers=[],verbose=0):
