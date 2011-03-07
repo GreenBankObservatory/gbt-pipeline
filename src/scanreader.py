@@ -571,14 +571,14 @@ class ScanReader():
         if self.noise_diode:
             calmask = self.attr['calmask'][onlystate]
             input_rows = input_rows[calmask]
-            sig_counts = (data[onlystate][calmask] + data[onlystate][~calmask]) / 2.
+            sig = (data[onlystate][calmask] + data[onlystate][~calmask]) / 2.
             elevations = elevations[calmask]
             crpix1 = crpix1[calmask]
             crval1 = crval1[calmask]
             cdelt1 = cdelt1[calmask]
             mjds = np.array([ pipeutils.dateToMjd(xx) for xx in dates[calmask] ])
         else:
-            sig_counts = data[onlystate]
+            sig = data[onlystate]
             mjds = np.array([ pipeutils.dateToMjd(xx) for xx in dates ])
 
         # create an array of low and high frequencies for each integration
@@ -587,41 +587,45 @@ class ScanReader():
         #glen's version
         refChan = crpix1-1
         observed_frequency = crval1
-        nchan = np.zeros(len(sig_counts))
+        nchan = np.zeros(len(sig))
         for idx,ee in enumerate(nchan):
-            nchan[idx] = len(sig_counts[idx])
+            nchan[idx] = len(sig[idx])
         delChan = cdelt1
         freq_los = observed_frequency + (0-refChan)*delChan
         freq_his = observed_frequency + (nchan-refChan)*delChan
         freq = np.array([freq_los,freq_his])
         freq = freq.transpose()
         
-        # calculate weather-dependent opacities for each frequency, time and elevation
-        if not units=='ta' and (6<= freq.mean()/1e9 <=50 or 70<= freq.mean()/1e9 <=116):
-            opacities = pipeutils.ta_correction(gain_coeff,spillover,\
+        # calculate correction to ta* for each frequency, time and elevation
+        if not units=='ta' and \
+          (6<= freq.mean()/1e9 <=50 or 70<= freq.mean()/1e9 <=116):
+            ta_correction = pipeutils.ta_correction(gain_coeff,spillover,\
                         opacity_coefficients,mjds,elevations,freq/1e9)
         else:
-            opacities = False
+            ta_correction = False
 
         # compute sky temperatures (tsky) at ends of bands and interpolate
         #   in between the low and high frequency channels
-        if np.any(opacities):
-            all_opacities = np.zeros(sig_counts.shape)
-            dOpacity = (opacities[:,1]-opacities[:,0])/float(sig_counts.shape[1])
-            for idx in range(sig_counts.shape[1]):
-                all_opacities[:,idx] = opacities[:,0]+(idx*dOpacity)
+        if np.any(ta_correction):
+            all_ta_correction = np.zeros(sig.shape)
+            dOpacity = (ta_correction[:,1]-ta_correction[:,0])/float(sig.shape[1])
+            for idx in range(sig.shape[1]):
+                all_ta_correction[:,idx] = ta_correction[:,0]+(idx*dOpacity)
             
             # get sky temperature contribution to signal
-            tsky_sig = np.array([pipeutils.tsky(ambient_temp,freq[idx],opacity) for idx,opacity in enumerate(opacities)])
+            tsky_sig = np.array([pipeutils.tsky(ambient_temp,freq[idx],opacity)\
+                                for idx,opacity in enumerate(ta_correction)])
             allfreq = self.freq_axis()
             
             # tsky interpolation over frequency band (idl-like)
-            all_tsky_sig = np.zeros(sig_counts.shape)
-            dT = (tsky_sig[:,1]-tsky_sig[:,0])/float(sig_counts.shape[1])
-            for idx in range(sig_counts.shape[1]):
+            all_tsky_sig = np.zeros(sig.shape)
+            dT = (tsky_sig[:,1]-tsky_sig[:,0])/float(sig.shape[1])
+            for idx in range(sig.shape[1]):
                 all_tsky_sig[:,idx] = tsky_sig[:,0]+(idx*dT)
             
-            doMessage(self.logger,msg.DBG,'TSKY SIG (interpolated)',all_tsky_sig[0][0],'to',all_tsky_sig[0][-1],'for first integration')
+            doMessage(self.logger,msg.DBG,'TSKY SIG (interpolated):',\
+                      all_tsky_sig[0][0],'to',all_tsky_sig[0][-1],\
+                      'for first integration')
         else:
             if not units=='ta':
                 doMessage(self.logger,msg.WARN,'WARNING: Opacities not available, calibrating to units of Ta')
@@ -638,29 +642,30 @@ class ScanReader():
             tsys_ref = np.array(ref_tsyss[0],ndmin=2)
 
         # PS specification (eqn. 5)
-        Ta = tsys_ref * ((sig_counts-ref)/ref)
+        Ta = tsys_ref * ((sig-ref)/ref)
         Units = Ta
 
         doMessage(self.logger,msg.DBG,'freqs',freq[0],'to',freq[-1])
-        if np.any(opacities):
-            doMessage(self.logger,msg.DBG,'opacities',opacities.shape,opacities[0].mean())
+        if np.any(ta_correction):
+            doMessage(self.logger,msg.DBG,'ta_correction',ta_correction.shape,ta_correction[0].mean())
             doMessage(self.logger,msg.DBG,'TSKY REF',tsky_ref[0][0],'to',tsky_ref[0][-1])
             doMessage(self.logger,msg.DBG,'Shapes Ta,all_tsky_sig,tsky_ref',Ta.shape,all_tsky_sig.shape,tsky_ref.shape)
         doMessage(self.logger,msg.DBG,'refs',ref.shape)
         doMessage(self.logger,msg.DBG,'tsys (mean)',tsys_ref.mean())
-        doMessage(self.logger,msg.DBG,tsys_ref.mean(),sig_counts.shape,ref.shape)
-        doMessage(self.logger,msg.DBG,'1st int SIG aves[0],[1000],[nChan]',sig_counts[0][0],sig_counts[0][1000],sig_counts[0][-1])
+        doMessage(self.logger,msg.DBG,tsys_ref.mean(),sig.shape,ref.shape)
+        doMessage(self.logger,msg.DBG,'1st int SIG aves[0],[1000],[nChan]',sig[0][0],sig[0][1000],sig[0][-1])
         if len(refs) > 1:
             doMessage(self.logger,msg.DBG,'B-REF [0],[1000],[nChan]',refs[0][0],refs[0][1000],refs[0][-1])
             doMessage(self.logger,msg.DBG,'E-REF [0],[1000],[nChan]',refs[1][0],refs[1][1000],refs[1][-1])
             doMessage(self.logger,msg.DBG,'1st int REF [0],[1000],[nChan]',ref[0][0],ref[0][1000],ref[0][-1])
-        doMessage(self.logger,msg.DBG,'1st int SIG [0],[1000],[nChan]',sig_counts[0][0],sig_counts[0][1000],sig_counts[0][-1])
+        doMessage(self.logger,msg.DBG,'1st int SIG [0],[1000],[nChan]',sig[0][0],sig[0][1000],sig[0][-1])
 
-        if not np.any(opacities) and not units=='ta':
+        if not np.any(ta_correction) and not units=='ta':
             doMessage(self.logger,msg.WARN,'WARNING: No opacities, calibrating to units of Ta')
             units=='ta'
 
         # apply a relative gain factor, if not 1
+        # this is the same as fbeampol in eqn. 13 of the PS document
         if float(1) != gain_factor:
             Units = Units * gain_factor
 
@@ -673,7 +678,7 @@ class ScanReader():
 
         if units=='ta*' or units=='tmb' or units=='tb*' or units=='jy':
             # Braatz 2007 (eqn. 3), modified with denominator == 1
-            Ta_adjusted = Ta * all_opacities
+            Ta_adjusted = Ta * all_ta_correction
             Units = Ta_adjusted
         
         if units=='tmb' or units=='tb*':
@@ -699,7 +704,8 @@ class ScanReader():
             Jy = Ta_adjusted / (2.85 * etaA)
             Units = Jy
             
-        if not (units=='ta' or units=='tatsky' or units=='ta*' or units=='tmb' or units=='tb*' or units=='jy'):
+        if not (units=='ta' or units=='tatsky' or units=='ta*' or units=='tmb'\
+                or units=='tb*' or units=='jy'):
             doMessage(self.logger,msg.WARN,'Unable to calibrate to units of',units)
             doMessage(self.logger,msg.WARN,'  calibrated to Ta')
 
@@ -709,7 +715,7 @@ class ScanReader():
         #   [using the center 80% of the band]
         chanlo = int(len(data[onlystate][0])*.1)
         chanhi = int(len(data[onlystate][0])*.9)
-        tsys = k_per_count * sig_counts
+        tsys = k_per_count * sig
         tsys = tsys[:,chanlo:chanhi].mean(1)
 
         for idx,row in enumerate(input_rows):
@@ -773,16 +779,16 @@ class ScanReader():
 
         # idl-like version uses a single avg elevation
         if not units=='ta' and (6<= freq.mean()/1e9 <=50 or 70<= freq.mean()/1e9 <=116):
-            opacities = pipeutils.ta_correction(gain_coeff,spillover,\
+            ta_correction = pipeutils.ta_correction(gain_coeff,spillover,\
                         opacity_coefficients,\
                         [mjds.mean()],[self.elevation_ave()],freq/1e9,verbose)
         else:
-            opacities = False
+            ta_correction = False
             
         allfreq = self.freq_axis()
         
-        if np.any(opacities):
-            tskys = pipeutils.tsky(ambient_temp,freq,opacities)
+        if np.any(ta_correction):
+            tskys = pipeutils.tsky(ambient_temp,freq,ta_correction)
             all_tskys = pipeutils.interpolate(allfreq,freq,tskys)
             tskys = all_tskys
         else:

@@ -186,7 +186,11 @@ if opt.allmaps:
         samplerlist.append(mask.keys())
 
 else:
-    samplermap = maps_and_samplers[allscans[0]][1]
+    try:
+        samplermap = maps_and_samplers[allscans[0]][1]
+    except(KeyError):
+        doMessage(logger,msg.ERR,'ERROR: scan',str(allscans[0]),'not in infile')
+        sys.exit(8)
 
     if not opt.feed and not opt.pol:
         samplerlist = samplermap.keys()
