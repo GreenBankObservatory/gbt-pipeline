@@ -678,7 +678,7 @@ def index_it(indexfile,fitsfile=None,table_length=0,samplers=[],verbose=0):
     """
     myFile = open(indexfile,'rU')
     if fitsfile:
-        fd = pyfits.open(fitsfile,memmap=1)
+        fd = pyfits.open(fitsfile,memmap=1,mode='readonly')
         table_length = []
         # one set of masks per FITS extension
         # each set of masks has a mask for each sampler

@@ -43,7 +43,8 @@ class ScanReader():
 
         self.frequency_resolution = 0
         self.noise_diode = False
-        
+        self.lastrowindex = 0
+
     def setLogger(self,logger):
         self.logger = logger
 
@@ -67,16 +68,18 @@ class ScanReader():
         feed -- the feed number from "FEED" col. in the sdfits input
         """
 
-        scanmask = fdata.field('SCAN')==int(first_map_scan)
-        lcldata = fdata[scanmask]
+        for idx,row in enumerate(fdata):
+            if row['SAMPLER'] != sampler or row['SCAN'] != int(first_map_scan):
+                continue
 
-        obj = lcldata.field('OBJECT')[0]
-        feed = lcldata.field('FEED')[0]
-        centerfreq = lcldata.field('CRVAL1')[0]
+            obj = row['OBJECT']
+            feed = row['FEED']
+            centerfreq = row['CRVAL1']
+            break
 
         return obj,centerfreq,feed
 
-    def get_scan(self,scan_number,fdata,verbose):
+    def get_scan(self,scan_number,sampler,fdata,verbose):
         """Collect all primary needed information for a given scan.
 
         Keyword arguments:
@@ -85,52 +88,89 @@ class ScanReader():
         verbose -- verbosity level
 
         """
-        doMessage(self.logger,msg.DBG,type(fdata),len(fdata),scan_number)
-        scanmask = fdata.field('SCAN')==int(scan_number)
-        #doMessage(self.logger,msg.DBG,scanmask)
-        lcldata = fdata[scanmask]
-        
-        for idx,row in enumerate(lcldata):
-            self.attr['row'].append(row)
-            self.attr['date'].append(row['DATE-OBS'])
-            self.attr['polarization'].append(row['CRVAL4'])
-            self.attr['elevation'].append(row['ELEVATIO'])
-            self.attr['crval1'].append(row['CRVAL1'])
-            self.attr['crpix1'].append(row['CRPIX1'])
-            self.attr['cdelt1'].append(row['CDELT1'])
-            self.attr['ra'].append(row['CRVAL2'])
-            self.attr['dec'].append(row['CRVAL3'])
 
-            if len(self.data):
-                self.data = np.vstack((self.data,row['DATA']))
+        # instead of creating a sampler and scan mask on the whole dataset,
+        #   which is expensive, we will break the table into bite sized chunks
+        #   and filter those one at a time
+        print 'looking for',int(scan_number)
+        # I estimate up to 16k channels of 4-byte samples in a spectrum
+        #   so a chunksize of (5000) would be ~ 320 MB = 5k*16k*4
+        #   on each read
+        chunksize = 5000
+        while (True):
+            # grab a chunk of 'chunksize' rows at a time, filter and search
+            minrow = self.lastrowindex
+            maxrow = self.lastrowindex+chunksize
+            # next line uses up to ~ 320 MB
+            lcldata = fdata[minrow:maxrow]
+
+            # remember the last row grabbed as a starting point for the next
+            # iteration
+            self.lastrowindex = maxrow
+
+            # if there is no data left, break out
+            # note: this is the exit point of the loop!
+            if 0==len(lcldata):
+                break
+
+            # create mask for data chunk by scan
+            scanmask = lcldata.field('SCAN')==int(scan_number)
+
+            # if the scan doesn't appear in this chunk, get the next chunk
+            if not np.any(scanmask):
+                continue
+
             else:
-                self.data = np.array(row['DATA'],ndmin=2)
-            self.attr['tcal'].append(row['TCAL'])
-            self.attr['exposure'].append(row['EXPOSURE'])
-            self.attr['tambient'].append(row['TAMBIENT'])
+                # filter data by scan
+                lcldata = lcldata[scanmask]
+                # create mask for scan chunk data
+                samplermask = lcldata.field('SAMPLER')==sampler
+                # if the sampler doesn't appear, get another chunk
+                if not np.any(samplermask):
+                    continue
+                else:
+                    print 'found relevant data in range',minrow,'to',maxrow
+                    # filter scan data on sampler
+                    lcldata = lcldata[samplermask]
+                    print 'filtered data is ready to accumulate'
 
-            # create mask for calONs and calOFFs
-            if 'T'==row['CAL']:
-                self.attr['calmask'].append(True)
-            else:
-                self.attr['calmask'].append(False)
+                    # collect information for the data matching
+                    # scan and sampler
+                    for idx,row in enumerate(fdata_ok):
 
-            # create mask for frequency-swithced states
-            if 'T'==row['SIG']:
-                self.statemask.append(True)
-            else:
-                self.statemask.append(False)
+                        self.attr['row'].append(row)
+                        self.attr['date'].append(row['DATE-OBS'])
+                        self.attr['polarization'].append(row['CRVAL4'])
+                        self.attr['elevation'].append(row['ELEVATIO'])
+                        self.attr['crval1'].append(row['CRVAL1'])
+                        self.attr['crpix1'].append(row['CRPIX1'])
+                        self.attr['cdelt1'].append(row['CDELT1'])
+                        self.attr['ra'].append(row['CRVAL2'])
+                        self.attr['dec'].append(row['CRVAL3'])
+                        if len(self.data):
+                            self.data = np.vstack((self.data,row['DATA']))
+                        else:
+                            self.data = np.array(row['DATA'],ndmin=2)
+                        self.attr['tcal'].append(row['TCAL'])
+                        self.attr['exposure'].append(row['EXPOSURE'])
+                        self.attr['tambient'].append(row['TAMBIENT'])
 
-            self.frequency_resolution = row['FREQRES']
+                        # create mask for calONs and calOFFs
+                        if 'T'==row['CAL']:
+                            self.attr['calmask'].append(True)
+                        else:
+                            self.attr['calmask'].append(False)
 
-            # count number of feeds and cal states
-            self.feeds.add(row['FEED'])
-            self.cals.add(row['CAL'])
+                        self.frequency_resolution = row['FREQRES']
+
+                        # count number of feeds and cal states
+                        self.feeds.add(row['FEED'])
+                        self.cals.add(row['CAL'])
+
+        print 'size of scan',scan_number,'sampler',sampler,'(MB):',self.data.nbytes/1e6
 
         # convert attr lists to numpy arrays
-        for xx in self.attr: self.attr[xx]=np.array(self.attr[xx])
-        
-        # add an axis, allowing attributes to be stored
+        # also add an axis, allowing attributes to be stored
         #   into two states for frequency switched mode
         # to keep code consistent, will add an axis for PS mode
         #   so all attributes are accesible with first dim=0

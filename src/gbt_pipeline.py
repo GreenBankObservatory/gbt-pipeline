@@ -165,7 +165,7 @@ aips_input_files = []
 
 doMessage(logger,msg.DBG,'getting data object from input file')
 doMessage(logger,msg.DBG,'opening fits file')
-infile = pyfits.open(opt.infile,memmap=1)
+infile = pyfits.open(opt.infile,memmap=1,mode='readonly')
 
 
 # --------------------------------------------------- automatically find maps
