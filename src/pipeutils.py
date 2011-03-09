@@ -835,7 +835,7 @@ def list_samplers(allmaps,indexfile,debug=False):
         # or see if we have a ref2
         #    if so, close out    
         if ref2 or idx==len(mapkeys)-1:
-            maps.append((ref1,mapscans,ref2,samplermap,'NA'))
+            maps.append((ref1,mapscans,ref2,samplermap,'PS'))
             ref1 = False
             ref2 = False
             mapscans = []
