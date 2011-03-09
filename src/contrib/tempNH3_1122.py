@@ -1,5 +1,6 @@
 # parsel-tongue script tuned for 200 MHz bw obs of NH3
 #HISTORY
+#10OCT20 GIL clean up comments and more help
 #10OCT13 GIL add more comments and write out the Temperature image
 #10OCT06 GIL measure the NH3 1-1 integrated profile only
 
@@ -14,23 +15,38 @@ import sys
 import os
 import math
 
+argc = len(sys.argv)
+
+print 'Number of arguments:', argc
+if argc < 5:
+    print 'tempNH3-11-22: Compute temperature map from NH3 11 and 22 obs.'
+    print 'usage: tempNH3-11-22 <aipsNumber> <outName> <velocityKmS> <velWidthKmS> <fluxMin>'
+    print 'where <aipsNumber>  your *PIPELINE* AIPS number (should always be the same)'
+    print '      <outName>     Initial part of Name of output temperature map'
+    print '      <velocityKmS> Source Velocity in km/sec'
+    print '      <velWidthKmS> Source Velocity width to Sum (km/sec)'
+    print '      <fluxMin>     Minimum Intensity to include sum (- for +/- values)'
+    print '                    Pick 1-3 sigma to blank out noise'
+
 AIPS.userno=int(sys.argv[1])        # Extract AIPS pipeline number
+print 'User Number:', AIPS.userno
 outName = sys.argv[2]               # Extract Integrated Line Name
 velocityKmS = 0.                    # Default velocity (km/s)
 velWidthKmS = 10.                   # Default velocity Full Width (km/s)
-fluxMin = 0.010                     # Default Minimum flux (K)
-if sys.argc > 3:
+fluxMin = -0.050                    # Default Minimum flux for sum (K)
+
+if argc > 3:
     velocityKmS = float(sys.argv[3])# velocity (km/s)
-if sys.argc > 4
+if argc > 4:
     velWidthKmS = float(sys.argv[4])# velocity Full Width (km/s)
-if sys.argc > 5:
-    fluxMin = float(sys.argv[5])    # rest Frequency (MHz)
+if argc > 5:
+    fluxMin = float(sys.argv[5])    # minimum flux to include in sum
+
 mydisk=2                            # default AIPS disk drive
 
-defaultName = 'Pipeline'
-#Enforce name > 5 characters; for name copy below;
-if len(outName) < 6:
-    outName = defaultName[0:(6-len(outName))] + outName
+sigma = fluxMin
+if sigma < 0:
+    sigma = -sigma
     
 print 'Outname : ',outName
 print 'Velocity: ',velocityKmS,' (km/s)'
@@ -42,9 +58,11 @@ momnt=AIPSTask('momnt')
 subim=AIPSTask('subim')
 comb=AIPSTask('comb')
 
+print 'mydisk:',mydisk
 # This proceedure assumes calibrated data are already loaded into AIPS
 # and the first images are produced.  A spectral baseline must be subtracted
 image = AIPSImage(AIPSCat()[mydisk][-1].name, 'IMLIN', mydisk, 1)
+#image = WizAIPSImage(AIPSCat()[mydisk][-1].name, 'IMLIN', mydisk, 1)
 
 # now read parameters passed inside the data header
 nChan    = round(image.header.naxis[0])
@@ -178,8 +196,6 @@ subim.outclass='22'
 subim.outdi=mydisk
 subim.go()
 
-dX = 41.5 # Kelvin
-
 #make a unit image for later use
 comb.outdisk=mydisk
 comb.indisk=mydisk
@@ -221,6 +237,10 @@ comb.aparm[1]=1./2.3025851
 comb.aparm[2]=0.
 comb.aparm[3]=1./3.
 comb.aparm[4]=0.
+comb.bparm[1] = 0
+comb.bparm[2] = 0
+comb.bparm[4] = 0
+comb.bparm[5] = 0
 comb.outcl='LOG-11'
 comb.go()
 
@@ -246,7 +266,9 @@ comb.aparm[4]=0.
 comb.outcl='DY'
 comb.go()
 
-#next make the Trot image
+#Temperature difference between 11 and 22 line
+dX = 41.5 # Kelvin
+#finally make the Trot image
 comb.inclass='ONE'
 comb.in2class='DY'
 comb.opcode='DIV'
@@ -256,19 +278,22 @@ comb.aparm[2] = 0.
 comb.aparm[3] = 0.
 comb.go()
 
-image = WizAIPSImage(AIPSCat()[mydisk][-1].name, \
-                     AIPSCat()[mydisk][-1].klass, \
-                     mydisk, AIPSCat()[mydisk][-1].seq)
-image.header.bunit = 'K'
-image.header.update()
-image.update()
+comb.inclass='TROT'
+comb.in2class='TROT'
+comb.opcode='CLIP'
+comb.outcl = 'T CLIP'
+comb.aparm[1] = -1.    # Minimum temp
+comb.aparm[2] = 100.   # Maximum temp; arbitrary 
+comb.aparm[3] = 0.
+comb.go()
+
 
 ## and write the last thing now in the catalog to disk
 fittp.indisk=mydisk
 fittp.inname=AIPSCat()[mydisk][-1].name
 fittp.inclass=AIPSCat()[mydisk][-1].klass
 fittp.inseq=AIPSCat()[mydisk][-1].seq
-outimage = outname+'_T_11_22.fits'
+outimage = outName+'_T_11_22.fits'
 if os.path.exists(outimage):
     os.remove(outimage)
     print 'Removed existing file to make room for new one :',outimage
