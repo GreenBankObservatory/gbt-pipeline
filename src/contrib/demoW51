@@ -9,12 +9,10 @@
 # 100929 GIL try all w51 data on gbtpipeline
 # 100325 GIL revised for existing SDFITS file
 
-setenv pipehome /home/sandboxes/gbtpipeline
-setenv gbtpipeline /opt/local/bin/gbtpipeline-test
+setenv pipehome /home/gbtpipeline/release
 set you=`whoami`
 
 #Use AIPS with a public number
-setenv NUMBERS `$pipehome/contrib/aipsNumber $you`
 #Due to strange prompt issues, strip out last 5 digits only
 setenv AIPSNUM `id -u | awk '{print substr($0,length($0)-4,length($0))}'`
 echo '--------------------------------------------------'
@@ -22,9 +20,9 @@ echo ' Your ('$you') pipeline AIPS number: '$AIPSNUM
 echo '--------------------------------------------------'
 
 #select NH3 (1,1) scans for this map
-$gbtpipeline -i /home/sdfits/TKFPA_29/TKFPA_29.raw.acs.fits -m 14:24 \
+$pipehome/gbtpipeline -i /home/sdfits/TKFPA_29/TKFPA_29.raw.acs.fits -m 14:24 \
     --refscan1=13 --refscan2=26 --units=Tmb -v 4 \
-    --imaging-off --max-processors=8 -n 4.0 --clobber
+    --imaging-off -n 4.0 --clobber
 # --allmaps
 
 
@@ -36,7 +34,7 @@ if (! -f "$merge") then
   cp $pipehome/contrib/$merge .
 endif
 
-set doImage=$pipehome/doImage
+set doImage=$pipehome/tools/doImage
 #Merge all data into a single trimed data set
 $doImage $merge $AIPSNUM *.sdf
 
