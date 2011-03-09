@@ -1,5 +1,6 @@
 # parsel-tongue script that performs only the default processing
 #HISTORY
+#11MAR04 GIL add more messages and fix dbcon
 #10DEC16 GIL sort uvdata to final slot; this fixes some data issues.
 #10DEC02 GIL assure final dbcon is in the first catalog slot
 #10DEC01 GIL merge all spectra in single dish format
@@ -75,6 +76,14 @@ for thisFile in myfiles:        # input all AIPS single dish FITS files
     else:
         kount = kount+1
 
+spectra = AIPSUVData(AIPSCat()[mydisk][-1].name, AIPSCat()[mydisk][-1].klass, mydisk, AIPSCat()[mydisk][-1].seq)
+
+# prepare to accumulate source names
+allObjects = ["","","","","","","","","","","","","","","","","","","",
+                  "","","","","","","","","","","","","","","","","","",""]
+allObjects[0] = spectra.header.object
+nObjects = 1
+
 if kount > 1:            # if more than 1 file DBCON them
 
     # always do first 2
@@ -87,6 +96,8 @@ if kount > 1:            # if more than 1 file DBCON them
     dbcon.in2name = AIPSCat()[mydisk][2].name
     dbcon.in2class = AIPSCat()[mydisk][2].klass
     dbcon.in2seq = AIPSCat()[mydisk][2].seq
+    print 'combining 1: ', dbcon.inname, dbcon.inclass, dbcon.inseq
+    print 'combining 2: ', dbcon.in2name, dbcon.in2class, dbcon.in2seq
     dbcon.reweight[1] = 0
     dbcon.reweight[2] = 0
     dbcon.go()
@@ -97,9 +108,11 @@ if kount > 1:            # if more than 1 file DBCON them
         dbcon.inname = AIPSCat()[mydisk][-1].name
         dbcon.inclass = 'DBCON'
         dbcon.inseq = i - 1
-        dbcon.in2name = AIPSCat()[mydisk][i].name
-        dbcon.in2class = AIPSCat()[mydisk][i].klass
-        dbcon.in2seq = AIPSCat()[mydisk][i].seq
+        dbcon.in2name = AIPSCat()[mydisk][i+1].name
+        dbcon.in2class = AIPSCat()[mydisk][i+1].klass
+        dbcon.in2seq = AIPSCat()[mydisk][i+1].seq
+        print 'combining 1: ', dbcon.inname, dbcon.inclass, dbcon.inseq
+        print 'combining 2: ', dbcon.in2name, dbcon.in2class, dbcon.in2seq
         #prepare to zap revious dbconned file
         dbcon.go()
         # now zap previous big input file 
@@ -114,7 +127,27 @@ if kount > 1:            # if more than 1 file DBCON them
         aseq = AIPSCat()[mydisk][j].seq
         # print i, j, aname, aclass, aseq
         spectra = AIPSUVData( aname, aclass, mydisk, aseq)
+        notFound = True
+        # check if this object is already in the list
+        for iii in range(0,nObjects):
+            if (allObjects[iii] == spectra.header.object):
+                notFound = False
+        # if not in the list add to list and increment count
+        if (notFound):
+            allObjects[nObjects] = spectra.header.object
+            nObjects = nObjects+1
         spectra.zap()
+
+#print nObjects,' Object(s) Observed: ', allObjects
+objectName = allObjects[0]
+for iii in range(1,nObjects):
+    if len(allObjects[iii]) > 0:
+        objectName = objectName + '+' + allObjects[iii]
+
+print nObjects,' Object(s) Observed: ', objectName
+
+if nObjects > 2:
+    objectName = allObjects[0] + '+' + str( nObjects-1)
 
 # Extract the observations summary
 spectra = AIPSUVData(AIPSCat()[mydisk][-1].name, AIPSCat()[mydisk][-1].klass, mydisk, AIPSCat()[mydisk][-1].seq)
@@ -163,10 +196,27 @@ fittp.inname=AIPSCat()[mydisk][-1].name
 fittp.inclass=AIPSCat()[mydisk][-1].klass
 fittp.inseq=AIPSCat()[mydisk][-1].seq
 outName = os.path.splitext(myfiles[0])[0]
+# Trim out the source name
+iUnder = outName.find("_")
+if iUnder > 0:
+    outName = outName[iUnder+1:]
+# Trim out the beam number
+iUnder = outName.find("_")
+if iUnder > 0:
+    outName = outName[iUnder+1:]
+# Trim out the first scan number
+iUnder = outName.find("_")
+if iUnder > 0:
+    outName = outName[iUnder+1:]
+# Trim out the sampler number
 iUnder = outName.rfind("_")
 if iUnder > 0:
     outName = outName[0:iUnder]
-outimage = outName+'_dbcon.fits'
+#Now prepend the objects
+lObjectName = len(objectName)
+if lObjectName > 40:
+    objectName = objectName[:40]
+outimage = objectName+'_'+outName+'_dbcon.fits'
 if os.path.exists(outimage):
     os.remove(outimage)
     print 'Removed existing file to make room for new one :',outimage

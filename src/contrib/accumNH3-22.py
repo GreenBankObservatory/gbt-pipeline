@@ -2,6 +2,9 @@
 #HISTORY
 #10OCT05 GIL extract NH3 2-2 from existing cube (200MHz)
 #10SEP29 GIL try on NH3 1-1
+#10SEP24 GIL add adam's H2CO line and the source velocity
+#10SEP23 GIL add adam's H2CO line and the source velocity
+#10SEP07 GIL set parameters for map center etc
 #10SEP01 GIL initial version
 
 from AIPS import *
@@ -136,9 +139,4 @@ if os.path.exists(outimage):
     print 'Removed existing file to make room for new one :',outimage
 fittp.dataout='PWD:'+outimage
 fittp.go()
-
-# empty the catalog
-#print 'Cleanup up all AIPS files'
-#AIPSCat().zap()
-
 

@@ -1,6 +1,5 @@
 # parsel-tongue script that performs only the default processing
 #HISTORY
-#10NOV03 GIL clean up comments before commit
 #10OCT28 GIL Strip out sampler name for output
 #10OCT20 GIL default average is 3 channels, add comments
 #10OCT08 GIL comment out all source specific lines
@@ -34,6 +33,7 @@ if argc < 3:
 AIPS.userno=int(sys.argv[1])    # retrieve AIPS pipeline user number
 myfiles = sys.argv[2:]          # make a list of input files
 mydisk=2                        # choose a good default work disk
+baddisk=1                       # choose a disk to avoid
 
 AIPSCat().zap()                 # empty the catalog
 
@@ -47,7 +47,7 @@ avspc=AIPSTask('avspc')
 subim=AIPSTask('subim')
 sqash=AIPSTask('sqash')
 
-kount = 0                       # prepare to count input files
+kount = 0
 
 for thisFile in myfiles:        # input all AIPS single dish FITS files
     print thisFile
@@ -57,9 +57,8 @@ for thisFile in myfiles:        # input all AIPS single dish FITS files
     uvlod.go()
     spectra = AIPSUVData(AIPSCat()[mydisk][-1].name, AIPSCat()[mydisk][-1].klass, mydisk, AIPSCat()[mydisk][-1].seq)
     nuRef    = spectra.header.crval[2]
-    if kount == 0:              # all input frequencies must match first
+    if kount == 0:
         firstNu = nuRef
-    # check that frequencies are within AIPS match range
     if ((firstNu - nuRef) < -1.E4) or ((firstNu - nuRef) > 1.E4):
         print 'Frequencies differ: ',nuRef,' != ',firstNu
         spectra.zap()
@@ -136,10 +135,10 @@ sdgrd.inname=AIPSCat()[mydisk][-1].name
 sdgrd.inclass=AIPSCat()[mydisk][-1].klass
 sdgrd.inseq=AIPSCat()[mydisk][-1].seq
 sdgrd.optype='-GLS'
-sdgrd.xtype=-12         # use gaussian circular convolving function
+sdgrd.xtype=-12
 sdgrd.ytype=-12
 sdgrd.reweight[1] = 0
-sdgrd.reweight[2] = 0.025
+sdgrd.reweight[2] = 0.0025
 # must break up RA into hours minutes seconds
 sdgrd.aparm[1]=math.floor(raDeg/15.)
 sdgrd.aparm[2]=math.floor(((raDeg/15.)-sdgrd.aparm[1])*60.)
@@ -164,15 +163,16 @@ print raDeg, decDeg, '->',sdgrd.aparm[1:6]
 #transfer cellsize 
 sdgrd.cellsize[1] = cellsize
 sdgrd.cellsize[2] = cellsize
-sdgrd.xparm[1] = 8*cellsize              # set convolving function sahpe
+sdgrd.xparm[1] = 8*cellsize
 sdgrd.xparm[2] = 2.5*cellsize
 sdgrd.xparm[3] = 2
-if imxSize < 30:                         # AIPS minimum image size
-    imxSize = 150                        # choose a modest value
+if imxSize < 30:
+    imxSize = 150
 if imySize < 30:
     imySize = 150
 sdgrd.imsize[1] = imxSize
 sdgrd.imsize[2] = imySize
+sdgrd.baddisk[1]=baddisk
 ## The above lines set the default image parameters
 ## Below override imaging parameters to make observer set images
 # RA
@@ -204,9 +204,9 @@ fittp.inname=AIPSCat()[mydisk][-1].name
 fittp.inclass=AIPSCat()[mydisk][-1].klass
 fittp.inseq=AIPSCat()[mydisk][-1].seq
 outName = os.path.splitext(myfiles[0])[0]
-iUnder = outName.rfind("_")     # remove sampler string from output name
-if iUnder > 0:                  # if _Sampler is found, remove
-    outName = outName[0:iUnder] 
+iUnder = outName.rfind("_")
+if iUnder > 0:
+    outName = outName[0:iUnder]
 outimage = outName+'_cube.fits'
 if os.path.exists(outimage):
     os.remove(outimage)
@@ -243,6 +243,7 @@ fittp.go()
 #Run trans task on sdgrd file to prepare for the Moment map
 trans.indisk=mydisk
 trans.outdisk=mydisk
+trans.baddisk[1]=baddisk
 trans.inname=AIPSCat()[mydisk][-1].name
 trans.inclass='SDGRD'
 trans.inseq=1
@@ -261,10 +262,10 @@ imlin.inclass=AIPSCat()[mydisk][-1].klass
 imlin.inseq=AIPSCat()[mydisk][-1].seq
 imlin.nbox=2
 # use only the end channels for the default baseline fits
-imlin.box[1][1]=round(nChan*0.05)
-imlin.box[1][2]=round(nChan*0.1)
-imlin.box[1][3]=round(nChan*0.95)
-imlin.box[1][4]=round(nChan*0.99)
+imlin.box[1][1]=round(nChan*0.075)
+imlin.box[1][2]=round(nChan*0.125)
+imlin.box[1][3]=round(nChan*0.925)
+imlin.box[1][4]=round(nChan*0.975)
 #sometimes there is curvature in the baseline and another box is needed
 #imlin.box[2][1]=round(nChan*0.6)
 #imlin.box[2][2]=round(nChan*0.65)

@@ -33,7 +33,6 @@ imlin=AIPSTask('imlin')
 momnt=AIPSTask('momnt')
 avspc=AIPSTask('avspc')
 subim=AIPSTask('subim')
-sqash=AIPSTask('sqash')
 
 for thisFile in myfiles:
     print thisFile
@@ -130,7 +129,7 @@ sdgrd.optype='-GLS'
 sdgrd.xtype=-12
 sdgrd.ytype=-12
 sdgrd.reweight[1] = 0
-sdgrd.reweight[2] = 0.025
+sdgrd.reweight[2] = 0.05
 # must break up RA into hours minutes seconds
 sdgrd.aparm[1]=math.floor(raDeg/15.)
 sdgrd.aparm[2]=math.floor(((raDeg/15.)-sdgrd.aparm[1])*60.)
@@ -159,7 +158,7 @@ print raDeg, decDeg, '->',sdgrd.aparm
 sdgrd.cellsize[1] = cellsize
 sdgrd.cellsize[2] = cellsize
 sdgrd.xparm[1] = 8*cellsize
-sdgrd.xparm[2] = 2.5*cellsize
+sdgrd.xparm[2] = 2*cellsize
 sdgrd.xparm[3] = 2
 if imxSize < 10:
     imxSize = 150
@@ -187,7 +186,7 @@ fittp.indisk=mydisk
 fittp.inname=AIPSCat()[mydisk][-1].name
 fittp.inclass=AIPSCat()[mydisk][-1].klass
 fittp.inseq=AIPSCat()[mydisk][-1].seq
-outimage = os.path.splitext(myfiles[0])[0]+'_cube.fits'
+outimage = os.path.splitext(myfiles[0])[0]+'_image.fits'
 if os.path.exists(outimage):
     os.remove(outimage)
     print 'Removed existing file to make room for new one :',outimage
@@ -197,35 +196,14 @@ fittp.go()
 
 print 'Wrote',outimage
 
-# squash the frequency axis to make a continuum image
-sqash.indisk=mydisk
-sqash.outdisk=mydisk
-sqash.inname=AIPSCat()[mydisk][-1].name
-sqash.inclass=AIPSCat()[mydisk][-1].klass
-sqash.inseq=AIPSCat()[mydisk][-1].seq
-sqash.bdrop=3 # squash frequency axis
-sqash.go()
-
 print AIPSCat()
 
-## and write the last thing now in the catalog to disk
-fittp.indisk=mydisk
-fittp.inname=AIPSCat()[mydisk][-1].name
-fittp.inclass=AIPSCat()[mydisk][-1].klass
-fittp.inseq=AIPSCat()[mydisk][-1].seq
-outimage = os.path.splitext(myfiles[0])[0]+'_cont.fits'
-if os.path.exists(outimage):
-    os.remove(outimage)
-    print 'Removed existing file to make room for new one :',outimage
-fittp.dataout='PWD:'+outimage
-fittp.go()
-
-#Run trans task on sdgrd file to prepare for the Moment map
+#Run trans task on sdgrd file 
 trans.indisk=mydisk
 trans.outdisk=mydisk
 trans.inname=AIPSCat()[mydisk][-1].name
-trans.inclass='SDGRD'
-trans.inseq=1
+trans.inclass=AIPSCat()[mydisk][-1].klass
+trans.inseq=AIPSCat()[mydisk][-1].seq
 trans.transc= '312'
 trans.outcl='312'
 trans.go()
@@ -255,7 +233,6 @@ trans.inname=AIPSCat()[mydisk][-1].name
 trans.inclass=AIPSCat()[mydisk][-1].klass
 trans.inseq=AIPSCat()[mydisk][-1].seq
 trans.transc= '231'
-trans.outdi=mydisk
 trans.outcl='baseli'
 trans.go()
 
@@ -264,7 +241,7 @@ fittp.indisk=mydisk
 fittp.inname=AIPSCat()[mydisk][-1].name
 fittp.inclass=AIPSCat()[mydisk][-1].klass
 fittp.inseq=AIPSCat()[mydisk][-1].seq
-outimage = os.path.splitext(myfiles[0])[0]+'_line.fits'
+outimage = os.path.splitext(myfiles[0])[0]+'_imlin.fits'
 if os.path.exists(outimage):
     os.remove(outimage)
     print 'Removed existing file to make room for new one :',outimage
@@ -272,10 +249,44 @@ if os.path.exists(outimage):
 fittp.dataout='PWD:'+outimage
 fittp.go()
 
-#set rest frequency to select out the line
+#Run momnt task
+#previously selected channels with the NH3 1-1 line
+momnt.indisk=mydisk
+momnt.outdisk=mydisk
+momnt.inname=AIPSCat()[mydisk][-1].name
+momnt.inclass='IMLIN'
+momnt.inseq=1
+momnt.icut=-300.
+momnt.flux=-.005
+momnt.outclass='0'
+momnt.blc[1]=1
+momnt.blc[2]=0
+momnt.blc[3]=0
+momnt.trc[1]=nChan
+momnt.trc[2]=0
+momnt.trc[3]=0
+momnt.cellsize[1] = 0
+momnt.cellsize[2] = 0
+print momnt.blc,momnt.trc
+momnt.go()
+
+## and write the last thing now in the catalog to disk
+fittp.indisk=mydisk
+fittp.inname=AIPSCat()[mydisk][-1].name
+fittp.inclass=AIPSCat()[mydisk][-1].klass
+fittp.inseq=AIPSCat()[mydisk][-1].seq
+outimage = os.path.splitext(myfiles[0])[0]+'_continuum.fits'
+if os.path.exists(outimage):
+    os.remove(outimage)
+    print 'Removed existing file to make room for new one :',outimage
+fittp.dataout='PWD:'+outimage
+fittp.go()
+
+#add rest frequency to select out the line
+restFreq = 14488.4801e6
 restFreq = 23694.506e6
 
-cLightKmSec = 299792.458  # speed of light in Km/Sec
+cLightKmSec = 299792.458
 
 #These constants are particular to each source
 sourceLineWidthHz = .2E6
@@ -309,18 +320,6 @@ if eChan > nChan:
     eChan = nChan
 if eChan < 1:
     eChan = nChan
-#Run momnt task
-#previously selected channels with the NH3 1-1 line
-momnt.indisk=mydisk
-momnt.outdisk=mydisk
-momnt.inname=AIPSCat()[mydisk][-1].name
-momnt.inclass='IMLIN'
-momnt.inseq=1
-momnt.icut=-300.
-momnt.flux=-.001
-momnt.outclass='0'
-momnt.cellsize[1] = 0
-momnt.cellsize[2] = 0
 momnt.blc[1]=bChan
 momnt.blc[2]=0
 momnt.blc[3]=0

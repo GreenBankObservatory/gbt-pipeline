@@ -1,5 +1,6 @@
 # parsel-tongue script that performs only the default imaging
 #HISTORY
+#11FEB22 GIL decrease convolution function size
 #11JAN26 GIL make default line image flatter
 #10DEC23 GIL try to reduce default size so baselineing runs
 #10DEC18 GIL clean up more comments
@@ -32,8 +33,8 @@ import pyfits
 argc = len(sys.argv)
 if argc < 2:
     print ''
-    print 'mapNH3-50: Compute default images from calibrated spectra'
-    print 'usage: doImage mapNH3-50.py <aipsNumber> [<nAverage>] [<mapRaDeg>] [<mapDecDeg>] [<imageXPixels>] [<imageYPixels>] [<refFreqMHz>]'
+    print 'mapDefault: Compute default images from calibrated spectra'
+    print 'usage: doImage mapDefault.py <aipsNumber> [<nAverage>] [<mapRaDeg>] [<mapDecDeg>] [<imageXPixels>] [<imageYPixels>] [<refFreqMHz>]'
     print 'where <aipsNumber>     Your *PIPELINE* AIPS number (should always be the same)'
     print '     [<nAverage>]      Optional number of channels to average'
     print '     [<mapRaDeg>]      Optional map center RA (in Degrees)'
@@ -44,12 +45,13 @@ if argc < 2:
     print 'To enter later arguments, values for the previous must be provided' 
     print ''
     quit()
-        
+
 AIPS.userno=int(sys.argv[1])    # retrieve AIPS pipeline user number
+# All other arguments arguments have defaults
 if argc > 2:
     inNAve = int( sys.argv[2])
 else:
-    inNAve = 0
+    inNAve = 3                  # default is average 3 channels
 if argc > 3:
     inRa = float( sys.argv[3])
 else:
@@ -75,6 +77,7 @@ baddisk=1                       # list a disk to avoid (0==no avoidance)
 
 sdgrd=AIPSTask('sdgrd')
 fittp=AIPSTask('fittp')
+imlod=AIPSTask('imlod')
 trans=AIPSTask('trans')
 imlin=AIPSTask('imlin')
 avspc=AIPSTask('avspc')
@@ -94,7 +97,11 @@ raDeg    = spectra.header.crval[3]
 decDeg   = spectra.header.crval[4]
 nuRef    = spectra.header.crval[2]
 dNu      = spectra.header.cdelt[2]
+xType    = spectra.header.ctype[3]
+yType    = spectra.header.ctype[4]
+bunit    = spectra.header.bunit
 
+print 'Observing coordinates: ',xType, yType, ' Unit: ', bunit
 if inRefFreqHz != 0.:
    restFreqHz = inRefFreqHz
    print "Using Rest Frequency: ", restFreqHz/1.E6, " MHz"
@@ -127,6 +134,7 @@ if nAverage > 1:
     print 'Averaging ',nAverage,' Spectral Channels'
 else:
     print 'Not Averaging Spectral Channels'
+    nAverage = 1
 # now average channels to reduce the image plane data volumn
 avspc.indisk=mydisk
 avspc.outdisk=mydisk
@@ -155,7 +163,6 @@ sdgrd.inclass=AIPSCat()[mydisk][-1].klass
 sdgrd.inseq=AIPSCat()[mydisk][-1].seq
 sdgrd.optype='-GLS'
 sdgrd.reweight[1] = 0
-sdgrd.reweight[2] = -1.E-6
 # must break up RA into hours minutes seconds
 sdgrd.aparm[1]=math.floor(raDeg/15.)
 sdgrd.aparm[2]=math.floor(((raDeg/15.)-sdgrd.aparm[1])*60.)
@@ -180,29 +187,32 @@ print raDeg, decDeg, '->',sdgrd.aparm[1:6]
 #transfer cellsize 
 sdgrd.cellsize[1] = cellsize
 sdgrd.cellsize[2] = cellsize
+
+#sdgrd.xtype=-16         # sync/bessel convolving type
+sdgrd.xtype=-12         # gaussian convolving type
 # sync/bessel function parameters
-sdgrd.xtype=-16
-sdgrd.xparm[1] = 4*cellsize
-sdgrd.xparm[2] = 2.5*cellsize
-sdgrd.xparm[3] = 1.5*cellsize
-sdgrd.xparm[4] = 2
+if sdgrd.xtype == -16:
+    sdgrd.xparm[1] = 3*cellsize
+    sdgrd.xparm[2] = 2.5*cellsize
+    sdgrd.xparm[3] = 1.5*cellsize
+    sdgrd.xparm[4] = 2
+    sdgrd.reweight[2] = .01
 # gaussian parameters
-sdgrd.xtype=-12
-sdgrd.xparm[1] = 4.0*cellsize
-sdgrd.xparm[2] = 2.5*cellsize # this parameter sets the gaussian FWHM
-sdgrd.xparm[3] = 2
-sdgrd.xparm[4] = 0
+if sdgrd.xtype == -12:
+    sdgrd.xparm[1] = 5.0*cellsize
+    sdgrd.xparm[2] = 1.5*cellsize # Parameter sets Gaussian FWHM
+    sdgrd.xparm[3] = 2
+    sdgrd.xparm[4] = 0
+    sdgrd.reweight[2] = -1.E-6
 # always make a circuluar convolving function
 sdgrd.ytype=sdgrd.xtype
-if imxSize < 30:
-    imxSize = 50
 #prevent error due to large image sizes; temporary
-if imxSize > 500:
+if imxSize > 700:
     imxSize = 150
 if imySize < 30:
     imySize = 50
 #prevent error due to large image sizes; temporary
-if imySize > 500:
+if imySize > 700:
     imySize = 150
 
 #if needed, override size here
@@ -228,10 +238,7 @@ image = WizAIPSImage(AIPSCat()[mydisk][-1].name, \
                      mydisk, AIPSCat()[mydisk][-1].seq)
 
 image.header.niter = 1          # Allow down stream IMSTATs to sum correctly
-# optionally could change units to Jy/Beam, ETC
-#image.header.bunit = 'JY/BEAM'
-image.header.update()
-print image.header
+#print image.header
 bmaj = image.header.bmaj
 #assume no smoothing in convolving function (sdgrd.xtype = -16)
 newBmaj = bmaj
@@ -239,15 +246,20 @@ if sdgrd.xtype == -12:
     convolveMaj = sdgrd.xparm[2]/3600. # convolving function FWHM in degrees
 #Convolved image resolution adds in quadrature
     newBmaj = math.sqrt( (bmaj*bmaj) + (convolveMaj*convolveMaj))
+    print 'Gaussian Convolving function:'
     print bmaj*3600., convolveMaj*3600., '->',newBmaj*3600.
+if sdgrd.xtype == -16:
+#Convolved image resolution adds in quadrature
+    newBmaj = bmaj
+    print 'Sync Bessel Convolving function FWHM :', newBmaj
 image.header.bmaj = newBmaj
 image.header.bmin = newBmaj
-image.update()
-
+image.update()                  # This step does not seem to work!
+                                # Work-around: write file, update header, read.
 ## keep track of the latest cube squence for later processing
 outseq = AIPSCat()[mydisk][-1].seq
 
-## and write the last thing now in the catalog to disk
+## Write the last Entry in the catalog to disk
 fittp.indisk=mydisk
 fittp.inname=AIPSCat()[mydisk][-1].name
 fittp.inclass=AIPSCat()[mydisk][-1].klass
@@ -262,13 +274,48 @@ if os.path.exists(outimage):
 fittp.dataout='PWD:'+outimage
 fittp.go()
 
+gridType = image.header.ctype[0]
+image.zap()
+
+#transfer coordinate back after gridding
+print 'Data Coordinate type: ', xType, yType
+xlen = len(xType)
+if (xlen < 2):
+    xType = xType + '-'
+if (xlen < 3):
+    xType = xType + '-'
+if (xlen < 4):
+    xType = xType + '-'
+ylen = len(yType)
+if (ylen < 2):
+    yType = yType + '-'
+if (ylen < 3):
+    yType = yType + '-'
+if (ylen < 4):
+    yType = yType + '-'
+print 'Padded Coordinate type: ', xType, yType
+xType = xType + gridType[4:]
+yType = yType + gridType[4:]
+print 'Map Coordinate type: ', xType, yType
+
+#Need to update header on output data file (parselTongue Limitation)
 #update rest frequency 
 fd = pyfits.open(outimage,memmap=1, mode='update')
 hdr = fd[0].header
 hdr.update('RESTFREQ', restFreqHz,'Updated Keyword')
+hdr.update('BUNIT', 'JY/BEAM', 'Calibration units')
 hdr.update('BMAJ', newBmaj, 'Major axis (deg)')
 hdr.update('BMIN', newBmaj, 'Minor axis (deg)')
+hdr.update('CTYPE1', xType, 'X coordinate type')
+hdr.update('CTYPE2', yType, 'Y coordinate type')
+#NITER=1 tells AIPS that flux is measured in appropriate Units
+hdr.update('NITER', 1, 'Number of iterations')
 fd.flush()
+
+#Now reload data with header fixed and put in the same slot
+imlod.outdisk=mydisk
+imlod.datain = fittp.dataout
+imlod.go()
 
 # squash the frequency axis to make a continuum image
 sqash.indisk=mydisk
@@ -292,14 +339,6 @@ if os.path.exists(outimage):
     print 'Removed existing file to make room for new one :',outimage
 fittp.dataout='PWD:'+outimage
 fittp.go()
-
-#write KEYWORD parameters to output file
-fd = pyfits.open(outimage,memmap=1, mode='update')
-hdr = fd[0].header
-hdr.update('RESTFREQ', restFreqHz,'Updated Keyword')
-hdr.update('BMAJ', newBmaj, 'Major axis (deg)')
-hdr.update('BMIN', newBmaj, 'Minor axis (deg)')
-fd.flush()
 
 #Run trans task on sdgrd file to prepare for the Moment map
 trans.indisk=mydisk
@@ -353,12 +392,4 @@ if os.path.exists(outimage):
 
 fittp.dataout='PWD:'+outimage
 fittp.go()
-
-#write KEYWORD parameters to output file
-fd = pyfits.open(outimage,memmap=1, mode='update')
-hdr = fd[0].header
-hdr.update('RESTFREQ', restFreqHz,'Updated Keyword')
-hdr.update('BMAJ', newBmaj, 'Major axis (deg)')
-hdr.update('BMIN', newBmaj, 'Minor axis (deg)')
-fd.flush()
 
