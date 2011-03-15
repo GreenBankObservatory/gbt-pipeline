@@ -2,6 +2,7 @@ import smoothing
 import pipeutils
 from pipeutils import *
 
+from pylab import *
 import numpy as np
 import math
 import sys
@@ -312,7 +313,7 @@ class ScanReader():
 
         return pipeutils.dateToMjd(dates[0])
         
-    def freq_axis(self,state=0,verbose=0):
+    def freq_axis_mean(self,state=0,verbose=0):
         """ frequency axis to return for plotting
 
         Keyword arguments:
@@ -320,7 +321,7 @@ class ScanReader():
         verbose -- verbosity level, default to 0
         
         Returns:
-        A mean frequency axis for the scan.
+        A single mean frequency axis for the scan.
         """
         
         # apply sampler filter
@@ -335,6 +336,43 @@ class ScanReader():
             faxis[idx] = ((idx-crpix1)*cdelt1+crval1)
 
         return faxis
+
+    def freq_axis(self,state=0,verbose=0):
+        """ frequency axis to return for plotting
+
+        Keyword arguments:
+        sampler -- the sampler number
+        verbose -- verbosity level, default to 0
+        
+        Returns:
+        A frequency axis vector for the scan.
+        """
+        
+        # apply sampler filter
+        calmask = self.attr['calmask'][state]
+        data = self.data[state][calmask]
+        crpix1 = self.attr['crpix1'][state][calmask]
+        cdelt1 = self.attr['cdelt1'][state][calmask]
+        crval1 = self.attr['crval1'][state][calmask]
+
+        faxis = np.zeros(data.shape)
+        
+        for idx,ee in enumerate(data):
+            for chan,ee in enumerate(data[0]):
+                faxis[idx][chan] = ((chan-crpix1[idx])*cdelt1[idx]+crval1[idx])
+
+        return faxis
+
+        #refChan = crpix1-1
+        #observed_frequency = crval1
+        #nchan = np.array([len(data[0])] * len(data))
+        #delChan = cdelt1
+        #freq_lo = observed_frequency + (0-refChan)*delChan
+        #freq_hi = observed_frequency + (nchan-refChan)*delChan
+        #freq = np.array([freq_lo,freq_hi])
+        #faxis = freq.transpose()
+
+        #return faxis
 
     def average_tsys(self,state=0,verbose=0):
         """Get the total power for a single scan (i.e. feed,pol,IF)
@@ -391,18 +429,25 @@ class ScanReader():
         caloff = data[~calmask]
 
         Tsys = np.ones(calon.shape)
-        
-        # get average of the center 80%
-        chanlo = int(len(data)*.1)
-        chanhi = int(len(data)*.9)
-        
-        avg_tsys = np.ones(data.shape[0])
-        for idx,ee in enumerate(Tsys):
-            Tsys[idx] = tcal[idx] * ( (calon[idx]+caloff[idx]) / (2*(calon[idx]-caloff[idx])) )
-            avg_tsys[idx*2] = (Tsys[idx][chanlo:chanhi]).mean(0)
-            avg_tsys[(idx*2)+1] = (Tsys[idx][chanlo:chanhi]).mean(0)
+        mean_tsys = np.ones(calon.shape)
 
-        return avg_tsys
+        # determine the channel numbers bounding the center 80% of the band
+        chanlo = int(len(data[0])*.1)
+        chanhi = int(len(data[0])*.9)
+        
+        # comput the tsys and average the center 80% for each integration
+        for idx,ee in enumerate(Tsys):
+            # compute the tsys at every channel across the band for
+            #   a single (SIG or REF) integration
+            Tsys[idx] = tcal[idx] * ( (calon[idx]+caloff[idx]) / (2*(calon[idx]-caloff[idx])) )
+            # average the tsys across the center 80% of the band for
+            #   each integration's spectrum
+            mean_tsys[idx] = (Tsys[idx][chanlo:chanhi]).mean()
+
+        # return a vector of average (center 80%) tsys values for each
+        #   integration of a single state (SIG or REF).
+        #   this is likely 1/4 of the original rows for the scan/sampler
+        return mean_tsys
 
     def _average_coordinates(self):
         """Get exposure-weighted average coordinates
@@ -457,83 +502,216 @@ class ScanReader():
         else:
             return input_rows
 
-    def calibrate_fs(self):
-    #def calibrate_fs(self,logger,refs,ref_dates,ref_tsyss,\
-        #k_per_count,opacity_coefficients,gain_coeff,spillover,aperture_eff,\
-        #ref_tskys,units,gain_factor,verbose):
+    def centerfreq(self,state):
+        
+        # apply sampler filter
+        data = self.data[state]
+        calmask = self.attr['calmask'][state]
+        #crpix1 = self.attr['crpix1'][state][calmask]
+        crval1 = self.attr['crval1'][state][calmask]
+        #cdelt1 = self.attr['cdelt1'][state][calmask]
+        
+        return crval1
+
+    def freqdelta(self,state):
+        
+        # apply sampler filter
+        data = self.data[state]
+        calmask = self.attr['calmask'][state]
+        #crpix1 = self.attr['crpix1'][state][calmask]
+        #crval1 = self.attr['crval1'][state][calmask]
+        cdelt1 = self.attr['cdelt1'][state][calmask]
+        
+        return cdelt1
+
+    def calibrate_fs(self, logger, opacity_coefficients, gain_coeff, spillover,\
+                     aperture_eff, units, gain_factor, verbose):
         
         # split the data into to states, one for SIG and one for REF
         self.split_fs_states()
 
-        # calibrate to Ta for the first state
+        # --------------------------------- calibrate to Ta for the first state
+        
+        # identify which spectra are signal and which are reference
         sig_state = 0
         ref_state = 1
-        sig = self.data[sig_state]
-        ref = self.data[ref_state]
+        
+        # get signal spectra
+        sig = self.calonoff_ave(state=sig_state)
+        
+        # get reference spectra
+        ref = self.calonoff_ave(state=ref_state)
+        
+        # compute the reference tsys values
         tsys = self.tsys(state=ref_state)
+        
+        # calculate Ta for first SIG/REF set
         ta0 = np.ones(sig.shape)
         for idx,ee in enumerate(tsys):
             ta0[idx] = tsys[idx] * ((sig[idx]-ref[idx])/ref[idx])
 
-        # calibrate to Ta for the second state
+        # ------------------------------ calibrate to Ta for the second state
+        
+        # identify which spectra are signal and which are reference
         sig_state = 1
         ref_state = 0
-        sig = self.data[sig_state]
-        ref = self.data[ref_state]
+
+        # get signal spectra
+        sig = self.calonoff_ave(state=sig_state)
+
+        # get reference spectra
+        ref = self.calonoff_ave(state=ref_state)
+
+        # compute the reference tsys values
         tsys = self.tsys(state=ref_state)
+
         ta1 = np.ones(sig.shape)
         for idx,ee in enumerate(tsys):
             ta1[idx] = tsys[idx] * ((sig[idx]-ref[idx])/ref[idx])
 
-        
-        # shift spectra to match in frequency
-        sigfreq = self.freq_axis(0)
-        reffreq = self.freq_axis(1)
-        cdelt1 = self.attr['cdelt1'][sig_state].mean()
-        channel_shift = ((sigfreq-reffreq)/cdelt1)[0]
-        # do integer channel shift to first spectrum
-        ta0 = np.roll(ta0,int(channel_shift),axis=1)
-        ta0[:,:channel_shift]=0
+        # --------------------------------- shift spectra to match in frequency
+
+        sig_centerfreq = self.centerfreq(state=sig_state)
+        ref_centerfreq = self.centerfreq(state=ref_state)
+        sig_delta = self.freqdelta(state=sig_state)
+        channel_shift = ((sig_centerfreq-ref_centerfreq)/sig_delta).mean()
+
+        # do integer channel shift to second spectrum
+        ta1 = np.roll(ta1,int(channel_shift),axis=1)
+        if channel_shift > 0:
+            ta1[:,:channel_shift]=0
+        elif channel_shift < 0:
+            ta1[:,channel_shift:]=0
+
         # do fractional channel shift
         delta_f = math.modf(channel_shift)[0]
-        if delta_f > 0.01:
-            # inverse fft of spetrum, 0
-            num_channels = len(ta0[0])
-            ta0_ifft = np.fft.ifft(ta0,n=num_channels*2,axis=1)
-            real_part = ta0_ifft.real
-            imag_part = ta0_ifft.imag
-            # eqn. 7
-            amplitude = np.sqrt(real_part**2 + imag_part**2)
-            # eqn. 8
-            phase = np.arctan(imag_part,real_part)
-            # eqn. 9
-            delta_p = (2.0 * np.pi * delta_f) / (num_channels*2)
-            # eqn. 10
-            kk = [ np.mod(ii,num_channels) for ii in range(num_channels) ]
-            kk.extend(kk)
-            kk0 = np.array(kk)
-            for idx in range(len(ta0)-1):
-                kk = np.vstack((kk,kk0))
-            # eqn. 11
-            amplitude = amplitude*(1-(kk/num_channels))**2
-            # eqn. 12
-            phase = phase + (kk * delta_p)
-            # eqn. 13
-            real_part = amplitude * np.cos(phase)
-            # eqn. 14
-            image_part = amplitude * np.sin(phase)
+        doMessage(logger,msg.DBG,'Fractional channel shift is',delta_f)
+        #if 1==0:# and abs(delta_f) > 0.01:
+            ## inverse fft of spetrum, 0
+            #num_channels = len(ta0[0])
+            #ta1_ifft = np.fft.ifft(ta1,n=num_channels*2,axis=1)
+            #real_part = ta1_ifft.real
+            #imag_part = ta1_ifft.imag
+            ## eqn. 7
+            #amplitude = np.sqrt(real_part**2 + imag_part**2)
+            ## eqn. 8
+            #phase = np.arctan(imag_part,real_part)
+            ## eqn. 9
+            #delta_p = (2.0 * np.pi * delta_f) / (num_channels*2)
+            ## eqn. 10
+            #kk = [ np.mod(ii,num_channels) for ii in range(num_channels) ]
+            #kk.extend(kk)
+            #kk0 = np.array(kk)
+            #for idx in range(len(ta1)-1):
+                #kk = np.vstack((kk,kk0))
+            ## eqn. 11
+            #amplitude = amplitude*(1-(kk/num_channels))**2
+            ## eqn. 12
+            #phase = phase + (kk * delta_p)
+            ## eqn. 13
+            #real_part = amplitude * np.cos(phase)
+            ## eqn. 14
+            #image_part = amplitude * np.sin(phase)
 
-            # finally fft to get back to spectra
-            ta0_shifted = np.fft.fft(real_part+image_part,n=num_channels,axis=1)
+            ## finally fft to get back to spectra
+            #ta1_shifted = np.fft.fft(real_part+image_part,n=num_channels,axis=1)
+            #ta1 = ta1_shifted
 
         # average shifted spectra
-        ta = (ta0+ta1)/2.
+        
+        Ta = (ta0+ta1)/2.
+        Units = Ta
+
+        # apply a relative gain factor, if not 1
+        # this is the same as fbeampol in eqn. 13 of the PS document
+        if float(1) != gain_factor:
+            Units = Units * gain_factor
+        
+        if units=='ta*' or units=='tmb' or units=='tb*' or units=='jy':
+            # calculate correction to ta* for each frequency, time and elevation
+            if (6<= sig_centerfreq.mean()/1e9 <=50 or 70<= sig_centerfreq.mean()/1e9 <=116):
+                sigstate = 0
+                calmask = self.attr['calmask'][sigstate]
+                elevations = self.attr['elevation'][sigstate][calmask]
+                dates = self.attr['date'][sigstate][calmask]
+                mjds = np.array([ pipeutils.dateToMjd(xx) for xx in dates ])
+                freqs = self.freq_axis(sigstate)
+                # get first and last frequency of each frequency axis
+                hiandlofreqs = freqs[:,[0,-1]]
+                ta_correction = pipeutils.ta_correction(gain_coeff,spillover,\
+                            opacity_coefficients,mjds,elevations,hiandlofreqs/1e9)
+            else:
+                ta_correction = False
+            
+            # compute sky temperatures (tsky) at ends of bands and interpolate
+            #   in between the low and high frequency channels
+            if np.any(ta_correction):
+                all_ta_correction = np.zeros(sig.shape)
+                dOpacity = (ta_correction[:,1]-ta_correction[:,0])/float(sig.shape[1])
+                for idx in range(sig.shape[1]):
+                    ta_correction[:,idx] = ta_correction[:,0]+(idx*dOpacity)
+                
+                temps = self.attr['tambient'][sigstate][calmask]
+                ambient_temp = temps.mean()
+
+                # get sky temperature contribution to signal
+                tsky_sig = np.array([pipeutils.tsky(ambient_temp,hiandlofreqs[idx],opacity)\
+                                    for idx,opacity in enumerate(ta_correction)])
+                allfreq = self.freq_axis_mean()
+                
+                # tsky interpolation over frequency band (idl-like)
+                all_tsky_sig = np.zeros(sig.shape)
+                dT = (tsky_sig[:,1]-tsky_sig[:,0])/float(sig.shape[1])
+                for idx in range(sig.shape[1]):
+                    all_tsky_sig[:,idx] = tsky_sig[:,0]+(idx*dT)
+                
+                doMessage(self.logger,msg.DBG,'TSKY SIG (interpolated):',\
+                        all_tsky_sig[0][0],'to',all_tsky_sig[0][-1],\
+                        'for first integration')
+            else:
+                if not units=='ta':
+                    doMessage(self.logger,msg.WARN,'WARNING: Opacities not available, calibrating to units of Ta')
+                    units = 'ta'
+            
+            Ta_adjusted = Ta * ta_correction
+            Units = Ta_adjusted
+
+        #if units=='tmb' or units=='tb*':
+            ## calculate main beam efficiency approx. = 1.37 * etaA
+            ##   where etaA is aperture efficiency
+            ## note to self: move to the top level so as to only call once?
+
+            ##etaMB = np.array([pipeutils.etaMB(ff) for ff in freq]) # all frequencies
+            #allfreq = self.freq_axis()
+            #midfreq = allfreq[len(allfreq)/2] #reference freq of first integration
+            #etaMB = pipeutils.etaMB(aperture_eff,midfreq) # idl-like version
+            #doMessage(logger,msg.DBG,"main beam efficiency",etaMB)
+
+            ## PS specification section 4.11
+            #Tmb = Ta_adjusted / etaMB
+            #Units = Tmb
+
+        #if units=='jy':
+            #allfreq = self.freq_axis()
+            #midfreq = allfreq[len(allfreq)/2] #reference freq of first integration
+            #etaA = pipeutils.etaA(aperture_eff,midfreq)
+            #doMessage(logger,msg.DBG,"aperture efficiency",etaA)
+            #Jy = Ta_adjusted / (2.85 * etaA)
+            #Units = Jy
+
+        #if not (units=='ta' or units=='tatsky' or units=='ta*' or units=='tmb'\
+                #or units=='tb*' or units=='jy'):
+            #doMessage(self.logger,msg.WARN,'Unable to calibrate to units of',units)
+            #doMessage(self.logger,msg.WARN,'  calibrated to Ta')
+
+
+
 
         # set the calibrated data into the output structure
-        input_rows = self.attr['row'][sig_state]
+        input_rows = self.attr['row'][sig_state][calmask]
         for idx,row in enumerate(input_rows):
-            row.setfield('DATA',ta[idx])
-            row.setfield('TSYS',tsys[idx])
+            row.setfield('DATA',Units[idx])
+            row.setfield('TSYS',tsys[idx].mean())
 
         # return calibrated spectra
         return input_rows
@@ -582,8 +760,6 @@ class ScanReader():
             mjds = np.array([ pipeutils.dateToMjd(xx) for xx in dates ])
 
         # create an array of low and high frequencies for each integration
-
-        #freq = self.freq_axis(verbose)
         #glen's version
         refChan = crpix1-1
         observed_frequency = crval1
@@ -615,7 +791,7 @@ class ScanReader():
             # get sky temperature contribution to signal
             tsky_sig = np.array([pipeutils.tsky(ambient_temp,freq[idx],opacity)\
                                 for idx,opacity in enumerate(ta_correction)])
-            allfreq = self.freq_axis()
+            allfreq = self.freq_axis_mean()
             
             # tsky interpolation over frequency band (idl-like)
             all_tsky_sig = np.zeros(sig.shape)
@@ -687,7 +863,7 @@ class ScanReader():
             # note to self: move to the top level so as to only call once?
 
             #etaMB = np.array([pipeutils.etaMB(ff) for ff in freq]) # all frequencies
-            allfreq = self.freq_axis()
+            allfreq = self.freq_axis_mean()
             midfreq = allfreq[len(allfreq)/2] #reference freq of first integration
             etaMB = pipeutils.etaMB(aperture_eff,midfreq) # idl-like version
             doMessage(logger,msg.DBG,"main beam efficiency",etaMB)
@@ -697,7 +873,7 @@ class ScanReader():
             Units = Tmb
         
         if units=='jy':
-            allfreq = self.freq_axis()
+            allfreq = self.freq_axis_mean()
             midfreq = allfreq[len(allfreq)/2] #reference freq of first integration
             etaA = pipeutils.etaA(aperture_eff,midfreq)
             doMessage(logger,msg.DBG,"aperture efficiency",etaA)
@@ -785,7 +961,7 @@ class ScanReader():
         else:
             ta_correction = False
             
-        allfreq = self.freq_axis()
+        allfreq = self.freq_axis_mean()
         
         if np.any(ta_correction):
             tskys = pipeutils.tsky(ambient_temp,freq,ta_correction)

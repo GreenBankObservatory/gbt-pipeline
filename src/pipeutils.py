@@ -515,7 +515,6 @@ def ta_correction(gain_coeff,spillover,\
                 for coeffs_line in opacity_coefficients:
                     if mjd > coeffs_line[0]:
                         coeffs = coeffs_line[1]
-
                 zenith_opacities = interpolated_zenith_opacity(coeffs,freq)
                 opacities.append(corrected_opacity(zenith_opacities[idx],elevation))
 
@@ -527,7 +526,6 @@ def ta_correction(gain_coeff,spillover,\
                 for coeffs_line in opacity_coefficients:
                     if mjd > coeffs_line[0]:
                         coeffs = coeffs_line[1]
-
                 zenith_opacities = interpolated_zenith_opacity(coeffs,freq)
                 opacities.append(corrected_opacity(zenith_opacities,elevation))
 

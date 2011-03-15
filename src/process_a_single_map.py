@@ -226,7 +226,9 @@ def do_sampler(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
             # a FS reference scan integration (1st pass) is the F part of the SIG
             # data. a FS reference scan (2nd pass) is the T part of the SIG data
             # on each pass the signal/map scan is the remainder of the data
-            cal_ints = mapscan.calibrate_fs()
+            cal_ints = mapscan.calibrate_fs(logger, opacity_coeffs,\
+                opt.gaincoeffs, opt.spillover, opt.aperture_eff, opt.units,\
+                gain_factor, opt.verbose)
 
         if len(calibrated_integrations):
             calibrated_integrations = np.concatenate((calibrated_integrations,cal_ints))
