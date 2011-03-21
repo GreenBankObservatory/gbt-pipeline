@@ -653,26 +653,13 @@ class ScanReader():
                     units = 'ta'
 
         if units=='tmb' or units=='tb*':
-            # calculate main beam efficiency approx. = 1.37 * etaA
-            #   where etaA is aperture efficiency
-            # note to self: move to the top level so as to only call once?
-
-            #etaMB = np.array([pipeutils.etaMB(ff) for ff in freq]) # all frequencies
-            allfreq = self.freq_axis()
-            midfreq = allfreq[len(allfreq)/2] #reference freq of first integration
-            etaMB = pipeutils.etaMB(aperture_eff,midfreq) # idl-like version
-            doMessage(logger,msg.DBG,"main beam efficiency",etaMB)
-
-            # PS specification section 4.11
-            Tmb = Ta_adjusted / etaMB
+            # PS specification section 4.11, equation (14)
+            Tmb = Ta_adjusted / 1.37
             Units = Tmb
 
         if units=='jy':
-            allfreq = self.freq_axis()
-            midfreq = allfreq[len(allfreq)/2] #reference freq of first integration
-            etaA = pipeutils.etaA(aperture_eff,midfreq)
-            doMessage(logger,msg.DBG,"aperture efficiency",etaA)
-            Jy = Ta_adjusted / (2.85 * etaA)
+            # PS specification section 4.12, equation (15)
+            Jy = Ta_adjusted / 2.85
             Units = Jy
 
         if not (units=='ta' or units=='tatsky' or units=='ta*' or units=='tmb'\
