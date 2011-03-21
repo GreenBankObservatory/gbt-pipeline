@@ -197,7 +197,7 @@ def hz2wavelength(f):
     return (c/f)
 
 def etaA(etaA0,freqHz):
-    """Determine etaA    
+    """Determine aperture efficiency
     
     Keyword attributes:
     freqHz -- input frequency in Hz
