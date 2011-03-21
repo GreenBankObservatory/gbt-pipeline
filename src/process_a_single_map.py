@@ -35,8 +35,7 @@ def do_sampler(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
         doMessage(logger,msg.ERR,'ERROR: KeyError when defining samplermask')
         doMessage(logger,msg.DBG,'type(sampler)',type(sampler))
         doMessage(logger,msg.DBG,'sampler',sampler)
-        doMessage(logger,msg.DBG,'type(samplers)',type(thismap_samplerlist))
-        doMessage(logger,msg.DBG,'samplers',thismap_samplerlist)
+        doMessage(logger,msg.DBG,blockid,masks)
         sys.exit(9)
 
     doMessage(logger,msg.DBG,'appying mask')
@@ -402,10 +401,13 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,\
                 
         for sampler in samplergroup:
             # create a process for each sampler
-            process_ids.append(multiprocessing.Process(target=do_sampler,
-                args=(dd,sampler,logger,block_found,blockid,samplermap,\
+            do_sampler( dd,sampler,logger,block_found,blockid,samplermap,\
                 allscans,refscans,scans,masks,opt,infile,\
-                opacity_coeffs,maptype)) )
+                opacity_coeffs,maptype )
+            #process_ids.append(multiprocessing.Process(target=do_sampler,
+                #args=(dd,sampler,logger,block_found,blockid,samplermap,\
+                #allscans,refscans,scans,masks,opt,infile,\
+                #opacity_coeffs,maptype)) )
         
         for pp in process_ids:
             pp.start()

@@ -127,7 +127,7 @@ indexfile=projname+'.raw.acs.index'
 # ------------------------------------------- get sampler mask using index file
 
 doMessage(logger,msg.DBG,'getting mask index',projname+'.raw.acs.index')
-masks = index_it(indexfile,opt.infile)
+masks = get_masks(indexfile,opt.infile)
 doMessage(logger,msg.DBG,'done')
 
 # ----------------------------------------------- look for opacity coefficients
@@ -135,6 +135,7 @@ doMessage(logger,msg.DBG,'done')
 start_mjd = get_start_mjd(indexfile)
 opacity_coefficients_filename = False
 opacity_files = glob.glob('/users/rmaddale/Weather/ArchiveCoeffs/CoeffsOpacityFreqList_avrg_*.txt')
+
 for opacity_candidate_file in opacity_files:
     dates = opacity_candidate_file.split('_')[-2:]
     mydate = []
@@ -174,7 +175,7 @@ infile = pyfits.open(opt.infile,memmap=1,mode='readonly')
 
 # we need to set allscans, refscan1 and refscan2 for each map
 #    and continue
-maps_and_samplers = list_samplers(opt.allmaps,indexfile)
+maps_and_samplers = get_maps_and_samplers(opt.allmaps,indexfile)
 
 samplerlist = []
 if opt.allmaps:
@@ -250,7 +251,7 @@ if not opt.allmaps:
 
 doMessage(logger,msg.INFO,'Processing',len(mymaps),'map(s):')
 for idx,mm in enumerate(mymaps):
-    doMessage(logger,msg.INFO,'Map',idx+1)
+    doMessage(logger,msg.INFO,'\nMap',idx+1)
     doMessage(logger,msg.INFO,'-----')
     if mm[4] == 'PS':
         doMessage(logger,msg.INFO,'Reference scan.. ',mm[0])

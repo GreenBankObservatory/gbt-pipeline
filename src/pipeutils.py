@@ -31,7 +31,7 @@ def doMessage(logger,level,*args):
     Keyword arguments:
     logger -- the log handler object
     level -- the level of the message (ERR,WARN,INFO,etc.)
-    args -- the message text
+    args -- the message text; this is a variable lengh list
 
     """
     message = ' '.join(map(str,(args)))
@@ -102,6 +102,8 @@ def gd2jd(day,month,year,hour,minute,second):
     minute -- 2 digit minute string
     second -- N digit second string
 
+    Returns:
+    a floating point value which is the julian date
     """
 
     dd=int(day)
@@ -125,7 +127,7 @@ def gd2jd(day,month,year,hour,minute,second):
     return JD
 
 def dateToMjd(dateString):
-    """Convert a FITS date string to Modified Julian Date
+    """Convert a FITS DATE string to Modified Julian Date
 
     Keyword arguments:
     dateString -- a FITS format date string, ie. '2009-02-10T21:09:00.08'
@@ -203,6 +205,8 @@ def etaA(etaA0,freqHz):
     Returns:
     etaA -- output point source efficiency (range 0 to 1)
     
+    EtaA model is from memo by Jim Condon, provided by Ron Maddalena
+
     """
 
     BB = .0132 # Ruze equation parameter
@@ -218,11 +222,10 @@ def etaMB(etaA0,freqHz):
     freqHz -- input frequency in Hz
 
     Returns:
-    etaA -- output point source efficiency (range 0 to 1)
     etaMB -- output extended source efficiency (range 0 to 1)
              main beam efficiency
 
-    EtaA,MB model is from memo by Jim Condon, provided by Ron Maddalena
+    EtaMB model is from memo by Jim Condon, provided by Ron Maddalena
 
     """
     etaMB = float(1.37) * etaA(etaA0,freqHz)
@@ -244,34 +247,25 @@ def gbtbeamsize(hz):
     # return diffraction limit in arc seconds
     return ((1.22*wavelength)/diameter)*206265
    
-def interpolate_tsys(tsyss,dates,tt):
-    """Interpolate the system temperature along the time axis
-    
-    Keywords:
-    tsyss -- system temps to interpolate from
-    dates -- times of each tsys
-    tt -- time of current scan
-    
-    Returns:
-    vector of time interpolated system temperatures
-    
-    """
-
-    return np.interp(tt,dates,tsyss)
-    
 def interpolate_reference(refs,dates,tskys,tsyss, mjds):
     """Compute time-interpolated reference spectrum, tsky and tsys
     
     Keywords:
-    refs -- vector of beginning and ending reference spectra
-    dates -- times of each spectr
-    tt -- time of current scan
+    refs -- (list 2 masked numpy arrays) each one a reference spectrum
+    dates -- (list) of two mjd dates, each associated with a reference spectrum
+    tskys -- (list 2 numpy arrays) holding sky model temperature values to
+        subtract from each channel, one array for each reference spectrum
+    tsyss -- (list) of two reference system temperatures, one for each spectrum
+    mjds -- (numpy 1d array) of mjd values for each integration.  we will
+        interpolate the other (y) values from these from these (x) input points
     
     Returns:
-    time interpolated spectrum, tsky vector of spectrum and tsys
+    Interpolated spectrum, sky model temperature values (tsky) and system
+    temperatures (tsys) at each date (mjd) between the refrences, inclusive.
+    
+    This is used when there are two off source refrence scans with PS maps.
     
     """
-    
     # we want a stack of interpolated spectra
     # dumb way
     # do each freq channel separately
@@ -452,7 +446,7 @@ def corrected_opacity(zenith_opacities,elevation):
     
     Keywords:
     zenith_opacities -- opacity based only on time
-    elevation -- used to apply correction
+    elevation -- (float) elevation angle of integration or scan
 
     """
     n_atmos = natm(elevation)
@@ -460,16 +454,20 @@ def corrected_opacity(zenith_opacities,elevation):
 
     return corrected_opacities
 
-def interpolated_zenith_opacity(coeffs, freqs):
+def zenith_opacity(coeffs, freqs):
     """Iterpolate low and high opacities across a vector of frequencies
 
     Keywords:
-    coeffs -- opacitiy coefficients
-    freqs -- frequency vector
+    coeffs -- (list) opacitiy coefficients from archived text file, produced by
+        GBT weather prediction code
+    freqs -- (list) of frequency values
+
+    Returns:
+    A (numpy 1d array) of a zenith opacity at each requested frequency.
     
     """
     # interpolate between the coefficients based on time for a given frequency
-    def zenith_opacity(f):
+    def interpolated_zenith_opacity(f):
         result=0
         for idx,term in enumerate(coeffs):
             if idx>0: result = result + term*f**idx
@@ -477,7 +475,7 @@ def interpolated_zenith_opacity(coeffs, freqs):
                 result=term
         return result
 
-    zenith_opacities = [ zenith_opacity(f) for f in freqs ]
+    zenith_opacities = [ interpolated_zenith_opacity(f) for f in freqs ]
     return np.array(zenith_opacities)
 
 def _gain(gain_coeff,elevation):
@@ -497,15 +495,30 @@ def ta_correction(gain_coeff,spillover,\
     Correction is for atmospheric attenuation, rear spillover, ohmic loss
     and blockage efficiency.
     
+    Keywords:
+    gain_coeff -- (list) of gain coefficients set with default values or
+        overriden by the user
+    spillover -- (float) constant set by default or overriden by the user
+    opacity_coefficients -- a (list) of coefficent values read from GBT
+        weather files stored on the GB network
+    mjds -- (numpy 1d array) of dates, one for each output row
+        read from the FITS input table as DATE
+    elevations -- (numpy 1d array) of elevations, either one for each output
+        row or a single value if all integrations are at the same elevation
+        read from the FITS input table at ELEVATION
+    freq -- (numpy 2d array) of first and last channel frequency values, one
+        pair for each output row
+    
+    All of this equates to the right part of equation 13 in the PS document
+    and equation 15 in the FS document.
+    
     Returns:
     Ta correction factor at every frequency for every time and elevation
     
     """
-   
     opacities = []
     
     if opacity_coefficients:
-
         for idx,mjd in enumerate(mjds):
             if len(elevations)>1:
                 elevation = elevations[idx]
@@ -515,7 +528,11 @@ def ta_correction(gain_coeff,spillover,\
                 for coeffs_line in opacity_coefficients:
                     if mjd > coeffs_line[0]:
                         coeffs = coeffs_line[1]
-                zenith_opacities = interpolated_zenith_opacity(coeffs,freq)
+                # get the zenith opacity of the first and last frequency for
+                #    every integration of the scan
+                zenith_opacities = zenith_opacity(coeffs,freq)
+                # get a more accurate list of opacities by correcting for
+                #    elevation
                 opacities.append(corrected_opacity(zenith_opacities[idx],elevation))
 
             else:
@@ -526,10 +543,11 @@ def ta_correction(gain_coeff,spillover,\
                 for coeffs_line in opacity_coefficients:
                     if mjd > coeffs_line[0]:
                         coeffs = coeffs_line[1]
-                zenith_opacities = interpolated_zenith_opacity(coeffs,freq)
+                zenith_opacities = zenith_opacity(coeffs,freq)
                 opacities.append(corrected_opacity(zenith_opacities,elevation))
 
         opacities = np.array(opacities)
+
         if opacities.ndim == opacities.size:
             opacities = opacities[0]
 
@@ -544,10 +562,16 @@ def tsky(ambient_temp,freq,opacities):
     """Determine the sky temperature contribution at each frequency
     
     Keywords:
-    ambient_temp --
-    freq -- 
-    opacities -- opacities for once time
+    ambient_temp -- (float) mean ambient temperature value for scan, as read
+        from the TAMBIENT column in the SDFITS input file
+    freq -- (numpy 1d array) with the first and last frequency values on an
+        axis
+    opacities -- (numpy 1d array) with an opacity value for each frequency
+        channel
     
+    Returns:
+    the sky model temperature contribution at every frequncy channel of then
+    spectrum
     """
     freq_lo = freq[0]
     freq_hi = freq[-1]
@@ -567,7 +591,13 @@ def tsky(ambient_temp,freq,opacities):
     return tskys
 
 def masked_array(array):
-    """Mask nans in array
+    """Mask nans in an array
+    
+    Keywords:
+    array -- (numpy nd array)
+    
+    Returns:
+    numpy masked array with nans masked out
     
     """
     return np.ma.masked_array(array,np.isnan(array))
@@ -579,6 +609,18 @@ def check_for_sdfits_file( infile, sdfitsdir, beginscan, endscan,\
     
     If the SDFITS input file exists, then use it. Otherwise,
     recreate it from the project directory, if it is provided.
+    
+    Keywords:
+    infile -- an SDFITS file path
+    sdfitsdir -- an archive directory path as an alternative to an SDFITS file
+    beginscan -- optional begin scan number for filling by sdfits
+    endscan -- optional end scan number for filling by sdfits
+    refscan1 -- optional reference scan number for filling by sdfits
+    refscan2 -- optional reference scan number for filling by sdfits
+    VERBOSE -- verbosity level
+    
+    Returns:
+    SDFITS input file path
     
     """
     # if the SDFITS input file doesn't exist, generate it
@@ -647,6 +689,9 @@ def get_start_mjd(indexfile,verbose=0):
     indexfile -- file which contains integrations with time stamps
     verbose -- optional verbosity level
 
+    Returns:
+    The session start date (mjd) as an integer
+    
     """
     myFile = open(indexfile,'rU')
 
@@ -663,21 +708,27 @@ def get_start_mjd(indexfile,verbose=0):
     myFile.close()
     return int(start_mjd)
 
-def index_it(indexfile,fitsfile=None,table_length=0,samplers=[],verbose=0):
+def get_masks(indexfile,fitsfile=None,samplers=[],verbose=0):
     """Create a mask on the input file for each sampler
+
 
     Keywords:
     indexfile -- used to find integrations for each sampler
-    fitsfile -- backup when indexfile is not accessible
-    table_length -- needed to create the mask when using an index file
-    samplers -- set when only masks for some samplers are desired
+    fitsfile -- used to get length of table
+    samplers -- (list) of samplers which is set when only masks for some
+        samplers are desired
     verbose -- optional verbosity on output
+
+    Returns:
+    a (dictionary) of the form:
+    mask[fits block][sampler name] = boolean mask on block table
 
     """
     myFile = open(indexfile,'rU')
+    table_length = []
     if fitsfile:
         fd = pyfits.open(fitsfile,memmap=1,mode='readonly')
-        table_length = []
+
         # one set of masks per FITS extension
         # each set of masks has a mask for each sampler
         mask = []
@@ -734,14 +785,24 @@ def index_it(indexfile,fitsfile=None,table_length=0,samplers=[],verbose=0):
     
     return mask
 
-def list_samplers(allmaps,indexfile,debug=False):
+def get_maps_and_samplers(allmaps,indexfile,debug=False):
     """Find mapping blocks.  Also find samplers used in each map
 
     Keywords:
-    allmaps -- when set, mapping block discovery is enabled
+    allmaps -- when this flag is set, mapping block discovery is enabled
     indexfile -- input required to search for maps and samplers
     debug -- optional debug flag
 
+    Returns:
+    a (list) of map blocks, with each entry a (tuple) of the form:
+    (int) reference 1,
+    (list of ints) mapscans,
+    (int) reference 2,
+    samplermap,
+        (dictionary) [sampler] = (int)feed, (string)pol, (float)centerfreq
+    'PS' -- default representing Position-switched
+            this will change to when FS-mode is supported with map discovery
+    
     """
 
     myFile = open(indexfile,'rU')
@@ -859,6 +920,7 @@ def sampler_summary(logger,samplermap):
     Keywords:
     logger -- where to send output
     samplermap -- data structure holding sampler information
+
     """
     
     import operator
@@ -880,6 +942,9 @@ def parserange(rangelist):
 
     Keywords:
     rangelist -- a range string with inclusive ranges and exclusive integers
+
+    Returns:
+    a (list) of integers
 
     """
 
@@ -941,10 +1006,14 @@ def parserange(rangelist):
 def is_inclusive_range(rangelist):
     """Determine if a range is not an excluded integer
 
-    For example, if '-5' is the range then return False.  If 1:3 is the range, return True.
+    For example, if '-5' is the range then return False.
+    If 1:6,-5 is the range, return True because it is really 1:4,6
 
     Keywords:
     rangelist -- a string with integers to check
+
+    Returns:
+    (boolean) stating whether or not the range has exlusive values
 
     """
     rangelist = rangelist.replace(' ','')
@@ -1029,6 +1098,9 @@ def string_to_floats(string_list):
 
     Keywords:
     string_list -- a comma-seperated list of numbers
+    
+    Returns:
+    a (list) of floats
 
     """
     string_list = string_list.replace(' ','')
@@ -1045,6 +1117,12 @@ def maptype(firstscan,indexfile,debug=False):
     firstscan -- the first scan number of the map
     indexfile -- used to determine the number of switching states
     debug -- optional debug flag
+
+    Returns:
+    a string describing the type of the mapping block
+    'PS' == position-switched
+    'FS' == frequency-switched
+    'UNKNOWN' == other
 
     """
     myFile = open(indexfile,'rU')
@@ -1093,6 +1171,9 @@ def gainfactor(logger,opt,samplermap,sampler):
     opt -- structure which holds gain factors
     samplermap -- lists samplers for each mapping block
     sampler -- sampler representing beam and polarization which needs gain adjustment
+
+    Returns:
+    (float) gain for a given feed number and sampler name
 
     """
     # set relative gain factors for each beam/pol

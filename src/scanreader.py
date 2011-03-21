@@ -2,7 +2,6 @@ import smoothing
 import pipeutils
 from pipeutils import *
 
-from pylab import *
 import numpy as np
 import math
 import sys
@@ -530,6 +529,9 @@ class ScanReader():
         # split the data into to states, one for SIG and one for REF
         self.split_fs_states()
 
+        # smooth the reference spectra using a median filter of this size
+        WINDOW = 16
+        
         # --------------------------------- calibrate to Ta for the first state
         
         # identify which spectra are signal and which are reference
@@ -542,6 +544,10 @@ class ScanReader():
         # get reference spectra
         ref = self.calonoff_ave(state=ref_state)
         
+        # smooth reference spectra
+        for idx,spectrum in enumerate(ref):
+            ref[idx] = smoothing.median(spectrum,WINDOW)
+
         # compute the reference tsys values
         tsys = self.tsys(state=ref_state)
         
@@ -561,6 +567,10 @@ class ScanReader():
 
         # get reference spectra
         ref = self.calonoff_ave(state=ref_state)
+
+        # smooth reference spectra
+        for idx,spectrum in enumerate(ref):
+            ref[idx] = smoothing.median(spectrum,WINDOW)
 
         # compute the reference tsys values
         tsys = self.tsys(state=ref_state)
@@ -583,42 +593,7 @@ class ScanReader():
         elif channel_shift < 0:
             ta1[:,channel_shift:]=0
 
-        # do fractional channel shift
-        delta_f = math.modf(channel_shift)[0]
-        doMessage(logger,msg.DBG,'Fractional channel shift is',delta_f)
-        #if 1==0:# and abs(delta_f) > 0.01:
-            ## inverse fft of spetrum, 0
-            #num_channels = len(ta0[0])
-            #ta1_ifft = np.fft.ifft(ta1,n=num_channels*2,axis=1)
-            #real_part = ta1_ifft.real
-            #imag_part = ta1_ifft.imag
-            ## eqn. 7
-            #amplitude = np.sqrt(real_part**2 + imag_part**2)
-            ## eqn. 8
-            #phase = np.arctan(imag_part,real_part)
-            ## eqn. 9
-            #delta_p = (2.0 * np.pi * delta_f) / (num_channels*2)
-            ## eqn. 10
-            #kk = [ np.mod(ii,num_channels) for ii in range(num_channels) ]
-            #kk.extend(kk)
-            #kk0 = np.array(kk)
-            #for idx in range(len(ta1)-1):
-                #kk = np.vstack((kk,kk0))
-            ## eqn. 11
-            #amplitude = amplitude*(1-(kk/num_channels))**2
-            ## eqn. 12
-            #phase = phase + (kk * delta_p)
-            ## eqn. 13
-            #real_part = amplitude * np.cos(phase)
-            ## eqn. 14
-            #image_part = amplitude * np.sin(phase)
-
-            ## finally fft to get back to spectra
-            #ta1_shifted = np.fft.fft(real_part+image_part,n=num_channels,axis=1)
-            #ta1 = ta1_shifted
-
         # average shifted spectra
-        
         Ta = (ta0+ta1)/2.
         Units = Ta
 
@@ -649,8 +624,8 @@ class ScanReader():
                 all_ta_correction = np.zeros(sig.shape)
                 dOpacity = (ta_correction[:,1]-ta_correction[:,0])/float(sig.shape[1])
                 for idx in range(sig.shape[1]):
-                    ta_correction[:,idx] = ta_correction[:,0]+(idx*dOpacity)
-                
+                    all_ta_correction[:,idx] = ta_correction[:,0]+(idx*dOpacity)
+                ta_correction = all_ta_correction
                 temps = self.attr['tambient'][sigstate][calmask]
                 ambient_temp = temps.mean()
 
@@ -668,41 +643,42 @@ class ScanReader():
                 doMessage(self.logger,msg.DBG,'TSKY SIG (interpolated):',\
                         all_tsky_sig[0][0],'to',all_tsky_sig[0][-1],\
                         'for first integration')
+                        
+                Ta_adjusted = Units * ta_correction
+                Units = Ta_adjusted
+
             else:
                 if not units=='ta':
                     doMessage(self.logger,msg.WARN,'WARNING: Opacities not available, calibrating to units of Ta')
                     units = 'ta'
-            
-            Ta_adjusted = Ta * ta_correction
-            Units = Ta_adjusted
 
-        #if units=='tmb' or units=='tb*':
-            ## calculate main beam efficiency approx. = 1.37 * etaA
-            ##   where etaA is aperture efficiency
-            ## note to self: move to the top level so as to only call once?
+        if units=='tmb' or units=='tb*':
+            # calculate main beam efficiency approx. = 1.37 * etaA
+            #   where etaA is aperture efficiency
+            # note to self: move to the top level so as to only call once?
 
-            ##etaMB = np.array([pipeutils.etaMB(ff) for ff in freq]) # all frequencies
-            #allfreq = self.freq_axis()
-            #midfreq = allfreq[len(allfreq)/2] #reference freq of first integration
-            #etaMB = pipeutils.etaMB(aperture_eff,midfreq) # idl-like version
-            #doMessage(logger,msg.DBG,"main beam efficiency",etaMB)
+            #etaMB = np.array([pipeutils.etaMB(ff) for ff in freq]) # all frequencies
+            allfreq = self.freq_axis()
+            midfreq = allfreq[len(allfreq)/2] #reference freq of first integration
+            etaMB = pipeutils.etaMB(aperture_eff,midfreq) # idl-like version
+            doMessage(logger,msg.DBG,"main beam efficiency",etaMB)
 
-            ## PS specification section 4.11
-            #Tmb = Ta_adjusted / etaMB
-            #Units = Tmb
+            # PS specification section 4.11
+            Tmb = Ta_adjusted / etaMB
+            Units = Tmb
 
-        #if units=='jy':
-            #allfreq = self.freq_axis()
-            #midfreq = allfreq[len(allfreq)/2] #reference freq of first integration
-            #etaA = pipeutils.etaA(aperture_eff,midfreq)
-            #doMessage(logger,msg.DBG,"aperture efficiency",etaA)
-            #Jy = Ta_adjusted / (2.85 * etaA)
-            #Units = Jy
+        if units=='jy':
+            allfreq = self.freq_axis()
+            midfreq = allfreq[len(allfreq)/2] #reference freq of first integration
+            etaA = pipeutils.etaA(aperture_eff,midfreq)
+            doMessage(logger,msg.DBG,"aperture efficiency",etaA)
+            Jy = Ta_adjusted / (2.85 * etaA)
+            Units = Jy
 
-        #if not (units=='ta' or units=='tatsky' or units=='ta*' or units=='tmb'\
-                #or units=='tb*' or units=='jy'):
-            #doMessage(self.logger,msg.WARN,'Unable to calibrate to units of',units)
-            #doMessage(self.logger,msg.WARN,'  calibrated to Ta')
+        if not (units=='ta' or units=='tatsky' or units=='ta*' or units=='tmb'\
+                or units=='tb*' or units=='jy'):
+            doMessage(self.logger,msg.WARN,'Unable to calibrate to units of',units)
+            doMessage(self.logger,msg.WARN,'  calibrated to Ta')
 
 
 
@@ -713,7 +689,6 @@ class ScanReader():
             row.setfield('DATA',Units[idx])
             row.setfield('TSYS',tsys[idx].mean())
 
-        # return calibrated spectra
         return input_rows
     
     def calibrate_to(self,logger,refs,ref_dates,ref_tsyss,\
