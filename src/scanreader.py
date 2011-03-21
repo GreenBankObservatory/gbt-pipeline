@@ -667,9 +667,6 @@ class ScanReader():
             doMessage(self.logger,msg.WARN,'Unable to calibrate to units of',units)
             doMessage(self.logger,msg.WARN,'  calibrated to Ta')
 
-
-
-
         # set the calibrated data into the output structure
         input_rows = self.attr['row'][sig_state][calmask]
         for idx,row in enumerate(input_rows):

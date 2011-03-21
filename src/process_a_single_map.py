@@ -401,13 +401,10 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,\
                 
         for sampler in samplergroup:
             # create a process for each sampler
-            do_sampler( dd,sampler,logger,block_found,blockid,samplermap,\
+            process_ids.append(multiprocessing.Process(target=do_sampler,
+                args=(dd,sampler,logger,block_found,blockid,samplermap,\
                 allscans,refscans,scans,masks,opt,infile,\
-                opacity_coeffs,maptype )
-            #process_ids.append(multiprocessing.Process(target=do_sampler,
-                #args=(dd,sampler,logger,block_found,blockid,samplermap,\
-                #allscans,refscans,scans,masks,opt,infile,\
-                #opacity_coeffs,maptype)) )
+                opacity_coeffs,maptype)) )
         
         for pp in process_ids:
             pp.start()
