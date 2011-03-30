@@ -1,7 +1,7 @@
 import numpy as np
 from math import *
 from numpy import *
-from scipy import signal
+import signal # from scipy
 
 debug = False
 
