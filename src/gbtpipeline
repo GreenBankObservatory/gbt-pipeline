@@ -72,11 +72,6 @@ else
 
 fi
 
-# for scipy until I can get a good local install
-PYTHONPATH="$PYTHONPATH":/usr/lib64/casapy/lib/python2.6/site-packages
-# 32-bit
-PYTHONPATH="$PYTHONPATH":/usr/lib/casapy/lib/python2.6/site-packages
-
 export PATH
 export PYTHONPATH
 
