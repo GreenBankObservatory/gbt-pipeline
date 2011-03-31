@@ -1,8 +1,5 @@
 #! /usr/bin/env python
 import sys
-sys.path.append('/usr/lib64/casapy/lib64/python2.6/site-packages/scipy')
-sys.path.append('/usr/lib64/casapy/lib/python2.6/site-packages/scipy')
-sys.path.append('/usr/lib/casapy/lib/python2.6/site-packages/scipy')
 import os
 import pyfits
 import multiprocessing
