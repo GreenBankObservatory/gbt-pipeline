@@ -26,7 +26,7 @@ if [ $me = "/home/gbtpipeline/integration" ]; then
 		fi
 	fi
 
-elif
+elif [ $me = "/home/gbtpipeline/release" ]; then
 
 	if [[ "$PATH" != */home/gbtpipeline/release* ]]
 	then
@@ -48,7 +48,7 @@ elif
 		fi
 	fi
 
-else
+elif [ $me = "/home/gbtpipeline/old" ]; then
 
     if [[ "$PATH" != */home/gbtpipeline/old* ]]
     then
