@@ -600,6 +600,7 @@ class ScanReader():
         # average shifted spectra
         Ta = (ta0+ta1)/2.
         Units = Ta
+        calmask = self.attr['calmask'][sig_state]
 
         # apply a relative gain factor, if not 1
         # this is the same as fbeampol in eqn. 13 of the PS document
