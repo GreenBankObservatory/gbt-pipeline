@@ -24,6 +24,11 @@ if not opt.allmaps:
         print 'ERROR: could not parse range:',opt.mapscans
         sys.exit(10)
 
+# numerically sort the map scans
+opt.mapscans = [ int(xx) for xx in opt.mapscans ]
+opt.mapscans.sort()
+opt.mapscans = [ str(xx) for xx in opt.mapscans ]
+
 # define begin and end map scans if range set by user
 beginscan = False
 endscan = False
