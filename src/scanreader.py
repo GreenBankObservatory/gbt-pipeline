@@ -526,7 +526,8 @@ class ScanReader():
     def calibrate_fs(self, logger, opacity_coefficients, gain_coeff, spillover,\
                      aperture_eff, units, gain_factor, verbose):
         
-        # split the data into to states, one for SIG and one for REF
+        # split the data into to states
+        # SIG is element [0] and REF is element [1]
         self.split_fs_states()
 
         # smooth the reference spectra using a median filter of this size
@@ -580,6 +581,9 @@ class ScanReader():
             ta1[idx] = tsys[idx] * ((sig[idx]-ref[idx])/ref[idx])
 
         # --------------------------------- shift spectra to match in frequency
+
+        sig_state = 0
+        ref_state = 1
 
         sig_centerfreq = self.centerfreq(state=sig_state)
         ref_centerfreq = self.centerfreq(state=ref_state)
