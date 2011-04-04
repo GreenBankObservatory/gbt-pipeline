@@ -813,7 +813,7 @@ class ScanReader():
         # apply a relative gain factor, if not 1
         # this is the same as fbeampol in eqn. 13 of the PS document
         if float(1) != gain_factor:
-            Units = Units * gain_factor
+            Ta = Ta * gain_factor
 
         if units=='tatsky' or units=='ta*' or units=='tmb' or \
            units=='tb*' or units=='jy':
