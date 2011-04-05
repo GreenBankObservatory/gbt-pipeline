@@ -228,7 +228,7 @@ def etaMB(etaA0,freqHz):
     EtaMB model is from memo by Jim Condon, provided by Ron Maddalena
 
     """
-    etaMB = float(1.37) * etaA(etaA0,freqHz)
+    etaMB = float(1.281) * etaA(etaA0,freqHz)
 
     return etaMB
     
