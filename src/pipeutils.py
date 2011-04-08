@@ -191,7 +191,10 @@ def hz2wavelength(f):
     
     Returns:
     wavelength in meters
-    
+
+    >>> hz2wavelength(23e9)
+    0.013034454695652174
+
     """
     c = 299792458  # speed of light in m/s
     return (c/f)
@@ -206,6 +209,9 @@ def etaA(etaA0,freqHz):
     etaA -- output point source efficiency (range 0 to 1)
     
     EtaA model is from memo by Jim Condon, provided by Ron Maddalena
+
+    >>> etaA(.71,23e9)
+    0.64748265789117276
 
     """
 
@@ -227,6 +233,9 @@ def etaMB(etaA0,freqHz):
 
     EtaMB model is from memo by Jim Condon, provided by Ron Maddalena
 
+    >>> etaMB(0.71,23e9)
+    0.82942528475859223
+
     """
     etaMB = float(1.281) * etaA(etaA0,freqHz)
 
@@ -241,11 +250,17 @@ def gbtbeamsize(hz):
     Returns:
     beam size in arc seconds
     
+    >>> gbtbeamsize(23e9)
+    32.800331933144086
+
     """
-    wavelength = hz2wavelength(hz)
-    diameter = 10000 # estimate of telescope diameter in cm
+    wavelength = hz2wavelength(hz) # in meters
+    diameter = 100 # estimate of telescope diameter in meters
+    rayleigh_criterion_factor = 1.22
+    arcseconds_per_radian = 206265
     # return diffraction limit in arc seconds
-    return ((1.22*wavelength)/diameter)*206265
+    return ((rayleigh_criterion_factor * wavelength)/diameter) \
+            * arcseconds_per_radian
    
 def interpolate_reference(refs,dates,tskys,tsyss, mjds):
     """Compute time-interpolated reference spectrum, tsky and tsys
@@ -479,6 +494,11 @@ def zenith_opacity(coeffs, freqs):
     return np.array(zenith_opacities)
 
 def _gain(gain_coeff,elevation):
+    """
+    >>> _gain((.91,.00434,-5.22e-5),60)
+    0.99321999999999999
+
+    """
     # comput gain based on elevation, eqn. 12 in PS specification
     gain = 0
     zz = 90. - elevation
@@ -1102,6 +1122,9 @@ def string_to_floats(string_list):
     Returns:
     a (list) of floats
 
+    >>> string_to_floats('1.1,-5.55555,6e6')
+    [1.1000000000000001, -5.5555500000000002, 6000000.0]
+
     """
     string_list = string_list.replace(' ','')
     string_list = string_list.split(',')
@@ -1190,3 +1213,7 @@ def gainfactor(logger,opt,samplermap,sampler):
         gain_factor = float(1)
 
     return gain_factor
+
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
