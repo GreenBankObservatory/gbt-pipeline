@@ -609,7 +609,7 @@ class ScanReader():
         
         if units=='ta*' or units=='tmb' or units=='tb*' or units=='jy':
             # calculate correction to ta* for each frequency, time and elevation
-            if (6<= sig_centerfreq.mean()/1e9 <=50 or 70<= sig_centerfreq.mean()/1e9 <=116):
+            if (sig_centerfreq.mean()/1e9 <=50 or 70<= sig_centerfreq.mean()/1e9 <=116):
                 sigstate = 0
                 calmask = self.attr['calmask'][sigstate]
                 elevations = self.attr['elevation'][sigstate][calmask]
@@ -744,7 +744,7 @@ class ScanReader():
         
         # calculate correction to ta* for each frequency, time and elevation
         if not units=='ta' and \
-          (6<= freq.mean()/1e9 <=50 or 70<= freq.mean()/1e9 <=116):
+          (freq.mean()/1e9 <=50 or 70<= freq.mean()/1e9 <=116):
             ta_correction = pipeutils.ta_correction(gain_coeff,spillover,\
                         opacity_coefficients,mjds,elevations,freq/1e9)
         else:

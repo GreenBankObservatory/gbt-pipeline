@@ -312,9 +312,16 @@ def opacity_coefficients(opacity_coefficients_filename):
     coeffs = []
     if FILE:
         for line in FILE:
-            # find the most recent forecast and parse out the coefficients for K-band
+            # find the most recent forecast and parse out the coefficients for 
+            # each band
+            # coeffs[0] is the mjd timestamp
+            # coeffs[1] are the coefficients for 2-22 GHz
+            # coeffs[2] are the coefficients for 22-50 GHz
+            # coeffs[3] are the coefficients for 70-116 GHz
             coeffs.append((float(line.split('{{')[0]),\
-                [float(xx) for xx in line.split('{{')[2].split('}')[0].split(' ')]))
+                [float(xx) for xx in line.split('{{')[1].split('}')[0].split(' ')],\
+                [float(xx) for xx in line.split('{{')[2].split('}')[0].split(' ')],\
+                [float(xx) for xx in line.split('{{')[3].split('}')[0].split(' ')]))
                
     else:
         if opt.verbose > 1:
@@ -467,7 +474,7 @@ def zenith_opacity(coeffs, freqs):
     # interpolate between the coefficients based on time for a given frequency
     def interpolated_zenith_opacity(f):
         # for frequencies < 2 GHz, return a default zenith opacity
-        if f < 2:
+        if np.array(f).mean() < 2:
             return 0.008
         result=0
         for idx,term in enumerate(coeffs):
@@ -523,17 +530,29 @@ def ta_correction(gain_coeff,spillover,\
     
     """
     opacities = []
-    
-    if opacity_coefficients:
+    meanfreq = freq[0].mean()
+
+    if meanfreq >= 2 and not opacity_coefficients:
+        return False
+    else:
         for idx,mjd in enumerate(mjds):
             if len(elevations)>1:
                 elevation = elevations[idx]
                 gain = _gain(gain_coeff,elevation)
 
                 # get the correct set of coefficients for this time
-                for coeffs_line in opacity_coefficients:
-                    if mjd > coeffs_line[0]:
-                        coeffs = coeffs_line[1]
+                if meanfreq < 2:
+                    coeffs = ()
+                else:
+                    for coeffs_line in opacity_coefficients:
+                        if mjd > coeffs_line[0]:
+                            if (meanfreq >= 2 and meanfreq <= 22):
+                                coeffs = coeffs_line[1]
+                            elif (meanfreq > 22 and meanfreq <= 50):
+                                coeffs = coeffs_line[2]
+                            elif (meanfreq > 50 and meanfreq <= 116):
+                                coeffs = coeffs_line[3]
+
                 # get the zenith opacity of the first and last frequency for
                 #    every integration of the scan
                 zenith_opacities = zenith_opacity(coeffs,freq)
@@ -546,9 +565,18 @@ def ta_correction(gain_coeff,spillover,\
                 gain = _gain(gain_coeff,elevation)
 
                 # get the correct set of coefficients for this time
-                for coeffs_line in opacity_coefficients:
-                    if mjd > coeffs_line[0]:
-                        coeffs = coeffs_line[1]
+                if meanfreq < 2:
+                    coeffs = ()
+                else:
+                    for coeffs_line in opacity_coefficients:
+                            if mjd > coeffs_line[0]:
+                                if (meanfreq >= 2 and meanfreq <= 22):
+                                    coeffs = coeffs_line[1]
+                                elif (meanfreq > 22 and meanfreq <= 50):
+                                    coeffs = coeffs_line[2]
+                                elif (meanfreq > 50 and meanfreq <= 116):
+                                    coeffs = coeffs_line[3]
+
                 zenith_opacities = zenith_opacity(coeffs,freq)
                 opacities.append(corrected_opacity(zenith_opacities,elevation))
 
@@ -559,10 +587,6 @@ def ta_correction(gain_coeff,spillover,\
 
         # return right part of equation 13
         return (np.array(opacities)) / (spillover * gain)
-
-    else:
-    
-        return False
     
 def tsky(ambient_temp,freq,opacities):
     """Determine the sky temperature contribution at each frequency
@@ -1070,6 +1094,7 @@ def commandSummary(logger,opt):
     doMessage(logger,msg.INFO,"display idlToSdfits plots ....",opt.display_idlToSdfits)
     doMessage(logger,msg.INFO,"spillover factor (eta_l)......",str(opt.spillover))
     doMessage(logger,msg.INFO,"aperture efficiency (eta_A0)..",str(opt.aperture_eff))
+    doMessage(logger,msg.INFO,"main beam efficiency (eta_B0)..",str(opt.mainbeam_eff))
     
     if opt.gaincoeffs:
         pretty_gaincoeffs = map(prettyfloat, opt.gaincoeffs)
