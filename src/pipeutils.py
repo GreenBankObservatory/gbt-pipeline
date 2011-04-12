@@ -475,7 +475,8 @@ def zenith_opacity(coeffs, freqs):
     def interpolated_zenith_opacity(f):
         # for frequencies < 2 GHz, return a default zenith opacity
         if np.array(f).mean() < 2:
-            return 0.008
+            result = np.ones(np.array(f).shape)*0.008
+            return result
         result=0
         for idx,term in enumerate(coeffs):
             if idx>0: result = result + term*f**idx

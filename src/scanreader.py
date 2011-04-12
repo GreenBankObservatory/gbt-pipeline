@@ -924,7 +924,7 @@ class ScanReader():
         ambient_temp = temps.mean()
 
         # idl-like version uses a single avg elevation
-        if not units=='ta' and (6<= freq.mean()/1e9 <=50 or 70<= freq.mean()/1e9 <=116):
+        if not units=='ta' and (freq.mean()/1e9 <=50 or 70<= freq.mean()/1e9 <=116):
             ta_correction = pipeutils.ta_correction(gain_coeff,spillover,\
                         opacity_coefficients,\
                         [mjds.mean()],[self.elevation_ave()],freq/1e9,verbose)
