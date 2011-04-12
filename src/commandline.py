@@ -63,6 +63,8 @@ class CommandLine:
                         help="rear spillover factor (eta-l)", metavar="N")
         self.parser.add_argument("--apperture-efficiency",dest="aperture_eff", default=.71, type=float,
                         help="aperture efficiency for freq.=0 (eta-A)", metavar="N")
+        self.parser.add_argument("--main-beam-efficiency",dest="mainbeam_eff", default=.91, type=float,
+                        help="main beam efficiency for freq.=0 (eta-B)", metavar="N")
         self.parser.add_argument("--gain-coefficients",dest="gaincoeffs", default=".91,.00434,-5.22e-5",
                         help="comma-separated gain coefficients", metavar="N")
         self.parser.add_argument("-v", "--verbose", dest="verbose", default=0,
@@ -81,6 +83,9 @@ class CommandLine:
                         help="comma-separated gain factors for each right-polarized feed", metavar="G[,G]")
         self.parser.add_argument("--max-processors",dest="process_max", default=False, type=int,
                         help="optional max number of processors, to reduce resource usage", metavar="N")
+        self.parser.add_argument("--fs-as-ps", dest="psmap",
+                        action='store_true', default=False,
+                        help="optionaly process a FS map as PS")
 
     def read(self,sys):
         """Read and parse the command line arguments

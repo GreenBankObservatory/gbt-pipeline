@@ -199,48 +199,31 @@ def hz2wavelength(f):
     c = 299792458  # speed of light in m/s
     return (c/f)
 
-def etaA(etaA0,freqHz):
+def eta(eta0,freqHz):
     """Determine aperture efficiency
     
     Keyword attributes:
     freqHz -- input frequency in Hz
 
     Returns:
-    etaA -- output point source efficiency (range 0 to 1)
+    eta -- point or main beam efficiency (range 0 to 1)
     
     EtaA model is from memo by Jim Condon, provided by Ron Maddalena
 
-    >>> etaA(.71,23e9)
+    >>> eta(.71,23e9)
     0.64748265789117276
+
+    >>> eta(.91,23e9)
+    0.82987213898727774
 
     """
 
     BB = .0132 # Ruze equation parameter
     freqGHz = float(freqHz)/1e9
-    etaA = etaA0 * math.e**-((BB * freqGHz)**2)
+    eta = eta0 * math.e**-((BB * freqGHz)**2)
     
-    return etaA
-
-def etaMB(etaA0,freqHz):
-    """Determine source efficiency
-
-    Keyword attributes:
-    freqHz -- input frequency in Hz
-
-    Returns:
-    etaMB -- output extended source efficiency (range 0 to 1)
-             main beam efficiency
-
-    EtaMB model is from memo by Jim Condon, provided by Ron Maddalena
-
-    >>> etaMB(0.71,23e9)
-    0.82942528475859223
-
-    """
-    etaMB = float(1.281) * etaA(etaA0,freqHz)
-
-    return etaMB
-    
+    return eta
+   
 def gbtbeamsize(hz):
     """Estimate the GBT beam size at a given frequency
     
@@ -475,7 +458,7 @@ def zenith_opacity(coeffs, freqs):
     Keywords:
     coeffs -- (list) opacitiy coefficients from archived text file, produced by
         GBT weather prediction code
-    freqs -- (list) of frequency values
+    freqs -- (list) of frequency values in GHz
 
     Returns:
     A (numpy 1d array) of a zenith opacity at each requested frequency.
@@ -483,6 +466,9 @@ def zenith_opacity(coeffs, freqs):
     """
     # interpolate between the coefficients based on time for a given frequency
     def interpolated_zenith_opacity(f):
+        # for frequencies < 2 GHz, return a default zenith opacity
+        if f < 2:
+            return 0.008
         result=0
         for idx,term in enumerate(coeffs):
             if idx>0: result = result + term*f**idx
@@ -527,7 +513,7 @@ def ta_correction(gain_coeff,spillover,\
         row or a single value if all integrations are at the same elevation
         read from the FITS input table at ELEVATION
     freq -- (numpy 2d array) of first and last channel frequency values, one
-        pair for each output row
+        pair for each output row in GHz
     
     All of this equates to the right part of equation 13 in the PS document
     and equation 15 in the FS document.

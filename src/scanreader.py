@@ -524,7 +524,7 @@ class ScanReader():
         return cdelt1
 
     def calibrate_fs(self, logger, opacity_coefficients, gain_coeff, spillover,\
-                     aperture_eff, units, gain_factor, verbose):
+                     aperture_eff, mainbeam_eff, units, gain_factor, verbose):
         
         # split the data into to states
         # SIG is element [0] and REF is element [1]
@@ -660,7 +660,7 @@ class ScanReader():
         if units=='tmb' or units=='tb*':
             # PS specification section 4.11
             midfreq = sig_centerfreq.mean()
-            etaMB = pipeutils.etaMB(aperture_eff,midfreq) # idl-like version
+            etaMB = pipeutils.eta(mainbeam_eff,midfreq) # idl-like version
             doMessage(logger,msg.DBG,"main beam efficiency",etaMB)
             Tmb = Ta_adjusted / etaMB
             Units = Tmb
@@ -668,7 +668,7 @@ class ScanReader():
         if units=='jy':
             # PS specification section 4.12
             midfreq = sig_centerfreq.mean()
-            etaA = pipeutils.etaA(aperture_eff,midfreq)
+            etaA = pipeutils.eta(aperture_eff,midfreq)
             doMessage(logger,msg.DBG,"aperture efficiency",etaA)
             Jy = Ta_adjusted / (2.85 * etaA)
             Units = Jy
@@ -688,7 +688,7 @@ class ScanReader():
     
     def calibrate_to(self,logger,refs,ref_dates,ref_tsyss,\
         k_per_count,opacity_coefficients,gain_coeff,spillover,aperture_eff,\
-        ref_tskys,units,gain_factor,verbose):
+        mainbeam_eff,ref_tskys,units,gain_factor,verbose):
         """
 
         Keyword arguments:
@@ -835,7 +835,7 @@ class ScanReader():
             #etaMB = np.array([pipeutils.etaMB(ff) for ff in freq]) # all frequencies
             allfreq = self.freq_axis_mean()
             midfreq = allfreq[len(allfreq)/2] #reference freq of first integration
-            etaMB = pipeutils.etaMB(aperture_eff,midfreq) # idl-like version
+            etaMB = pipeutils.eta(mainbeam_eff,midfreq) # idl-like version
             doMessage(logger,msg.DBG,"main beam efficiency",etaMB)
             
             # PS specification section 4.11
@@ -845,7 +845,7 @@ class ScanReader():
         if units=='jy':
             allfreq = self.freq_axis_mean()
             midfreq = allfreq[len(allfreq)/2] #reference freq of first integration
-            etaA = pipeutils.etaA(aperture_eff,midfreq)
+            etaA = pipeutils.eta(aperture_eff,midfreq)
             doMessage(logger,msg.DBG,"aperture efficiency",etaA)
             Jy = Ta_adjusted / (2.85 * etaA)
             Units = Jy
@@ -870,7 +870,7 @@ class ScanReader():
 
         return input_rows
 
-    def average_reference(self,logger,units,gain_coeff,spillover,aperture_eff,\
+    def average_reference(self,logger,units,gain_coeff,spillover,\
             opacity_coefficients,verbose):
         """
 

@@ -85,10 +85,14 @@ def do_sampler(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
         ref1.setLogger(logger)
 
         ref1.get_scan(scan,sdfitsdata,opt.verbose)
+        if not ref1.noise_diode:
+            doMessage(logger,msg.ERR,'ERROR: The noise diode is not ',
+                        'firing in reference scan:',scan)
+            sys.exit(9)
 
         ref1spec,ref1_max_tcal,ref1_mean_date,freq,tskys_ref1,ref1_tsys = \
             ref1.average_reference(logger,opt.units,opt.gaincoeffs,opt.spillover,\
-            opt.aperture_eff,opacity_coeffs,opt.verbose)
+            opacity_coeffs,opt.verbose)
 
         refdate.append(ref1_mean_date)
         ref_tsky.append(tskys_ref1)
@@ -170,10 +174,14 @@ def do_sampler(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
             ref2.setLogger(logger)
             
             ref2.get_scan(scan,sdfitsdata,opt.verbose)
+            if not ref2.noise_diode:
+                doMessage(logger,msg.ERR,'ERROR: The noise diode is not ',
+                          'firing in reference scan:',scan)
+                sys.exit(9)
 
             ref2spec,ref2_max_tcal,ref2_mean_date,freq,tskys_ref2,ref2_tsys = \
                 ref2.average_reference(logger,opt.units,opt.gaincoeffs,opt.spillover,\
-                opt.aperture_eff,opacity_coeffs,opt.verbose)
+                    opacity_coeffs,opt.verbose)
             refdate.append(ref2_mean_date)
             ref_tsky.append(tskys_ref2)
 
@@ -220,14 +228,15 @@ def do_sampler(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
         if 'PS' == maptype:
             cal_ints = mapscan.calibrate_to(logger,refspec,refdate,ref_tsys,\
                 k_per_count,opacity_coeffs,opt.gaincoeffs,opt.spillover,\
-                opt.aperture_eff,ref_tsky,opt.units,gain_factor,opt.verbose)
+                opt.aperture_eff,opt.mainbeam_eff,ref_tsky,opt.units,\
+                gain_factor,opt.verbose)
         else:
             # a FS reference scan integration (1st pass) is the F part of the SIG
             # data. a FS reference scan (2nd pass) is the T part of the SIG data
             # on each pass the signal/map scan is the remainder of the data
             cal_ints = mapscan.calibrate_fs(logger, opacity_coeffs,\
-                opt.gaincoeffs, opt.spillover, opt.aperture_eff, opt.units,\
-                gain_factor, opt.verbose)
+                opt.gaincoeffs, opt.spillover, opt.aperture_eff, \
+                opt.mainbeam_eff, opt.units, gain_factor, opt.verbose)
 
         if len(calibrated_integrations):
             calibrated_integrations = np.concatenate((calibrated_integrations,cal_ints))

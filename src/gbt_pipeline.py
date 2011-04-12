@@ -242,7 +242,14 @@ else:
             if str(feed) in opt.feed and pol in opt.pol:
                 samplerlist.append(sampler)
 
-    maptype = maptype(allscans[0],indexfile,debug=False)
+    if opt.psmap:
+        if opt.refscan1:
+            maptype = 'PS'
+        else:
+            doMessage(logger,msg.ERR,'ERROR: PS map but missing 1st reference scan.')
+    else:
+        maptype = maptype(allscans[0],indexfile,debug=False)
+
     mymaps = [(opt.refscan1,allscans,opt.refscan2,samplermap,maptype)]
 
 # -------------------------------------------- print map and samplers summary
