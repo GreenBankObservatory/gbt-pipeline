@@ -597,6 +597,11 @@ class ScanReader():
         elif channel_shift < 0:
             ta1[:,channel_shift:]=0
 
+        # do fractional channel shift
+        delta_f = math.modf(channel_shift)
+        doMessage(logger,msg.DBG,'Fractional channel shift is',delta_f)
+        ta1 = pipeutils.fractional_shift(ta1,delta_f)
+
         # average shifted spectra
         Ta = (ta0+ta1)/2.
         Units = Ta

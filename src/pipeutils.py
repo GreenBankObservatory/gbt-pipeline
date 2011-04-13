@@ -1226,6 +1226,70 @@ def gainfactor(logger,opt,samplermap,sampler):
 
     return gain_factor
 
+def fractional_shift(spectra,delta_f):
+    """Returns gain factor set for a given beam and polarization
+
+    Keywords:
+    spectra -- (numpy 2d array) of one or more spectra to be shifted
+    delta_f -- (float) the channel amount to shift the spectra (< 1)
+
+    Returns:
+    (numpy 2d array) of shifted spectra
+
+    """
+    N_CHANNELS_start = spectra.shape[-1]
+    N_CHANNELS_doubled = N_CHANNELS_start*2
+
+    # double the size of the array
+    spectra = np.append(spectra, np.zeros(shape=spectra.shape),axis=1)
+
+    # shift the spectra to the center, with zeros padding either end
+    ROLLDISTANCE = N_CHANNELS_start/2
+    spectra = np.roll(np.array(spectra),ROLLDISTANCE)
+
+    # pad out spectrum on both sides with end values
+    for idx,row in enumerate(spectra):
+        spectra[idx][:ROLLDISTANCE] = spectra[idx][ROLLDISTANCE]
+        spectra[idx][-ROLLDISTANCE:] = spectra[idx][-ROLLDISTANCE-1]
+
+    # inverse fft of spetrum, 0
+    ifft = np.fft.ifft(spectra)
+    real = ifft.real
+    imag = ifft.imag
+
+    # eqn. 9
+    delta_p = 2.0 * np.pi * delta_f / N_CHANNELS_doubled
+
+    # eqn. 7
+    amplitude = np.sqrt(real**2 + imag**2)
+
+    # eqn. 8
+    phase = np.arctan2(imag,real)
+
+    # eqn. 10
+    kk = [np.mod(ii,N_CHANNELS_doubled/2) for ii in range(N_CHANNELS_doubled)]
+    kk = np.array(kk,dtype=float)
+
+    ## eqn. 11
+    amplitude = amplitude * (1 - (kk/N_CHANNELS_doubled)**2)
+
+    ## eqn. 12
+    phase = phase + delta_p * kk
+
+    # eqn. 13
+    real = amplitude * np.cos(phase)
+
+    # eqn. 14
+    imag = amplitude * np.sin(phase)
+
+    # finally fft to get back to spectra
+    shifted = np.fft.fft(real+imag*1j)
+
+    shifted = np.roll(shifted,-ROLLDISTANCE)
+    shifted = shifted[:,:N_CHANNELS_start]
+
+    return abs(shifted)
+
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
