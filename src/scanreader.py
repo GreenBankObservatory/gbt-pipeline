@@ -598,7 +598,7 @@ class ScanReader():
             ta1[:,channel_shift:]=0
 
         # do fractional channel shift
-        delta_f = math.modf(channel_shift)
+        delta_f = math.modf(channel_shift)[0]
         doMessage(logger,msg.DBG,'Fractional channel shift is',delta_f)
         ta1 = pipeutils.fractional_shift(ta1,delta_f)
 
