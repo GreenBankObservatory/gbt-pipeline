@@ -541,45 +541,31 @@ class ScanReader():
         ref_state = 1
         
         # get signal spectra
-        sig = self.calonoff_ave(state=sig_state)
+        sig0 = self.calonoff_ave(state=sig_state)
         
         # get reference spectra
-        ref = self.calonoff_ave(state=ref_state)
+        sig1 = self.calonoff_ave(state=ref_state)
         
         # smooth reference spectra
-        for idx,spectrum in enumerate(ref):
-            ref[idx] = smoothing.median(spectrum,WINDOW)
+        ref0 = np.zeros(sig0.shape)
+        ref1 = np.zeros(sig0.shape)
+        for idx,spectrum in enumerate(sig1):
+            ref0[idx] = smoothing.median(spectrum,WINDOW)
+        for idx,spectrum in enumerate(sig0):
+            ref1[idx] = smoothing.median(spectrum,WINDOW)
 
         # compute the reference tsys values
-        tsys = self.tsys(state=ref_state)
+        tsys0 = self.tsys(state=ref_state)
+        tsys1 = self.tsys(state=sig_state)
+        tsys = tsys1
         
         # calculate Ta for first SIG/REF set
-        ta0 = np.ones(sig.shape)
-        for idx,ee in enumerate(tsys):
-            ta0[idx] = tsys[idx] * ((sig[idx]-ref[idx])/ref[idx])
-
-        # ------------------------------ calibrate to Ta for the second state
+        ta0 = np.ones(sig0.shape)
+        ta1 = np.ones(sig0.shape)
         
-        # identify which spectra are signal and which are reference
-        sig_state = 1
-        ref_state = 0
-
-        # get signal spectra
-        sig = self.calonoff_ave(state=sig_state)
-
-        # get reference spectra
-        ref = self.calonoff_ave(state=ref_state)
-
-        # smooth reference spectra
-        for idx,spectrum in enumerate(ref):
-            ref[idx] = smoothing.median(spectrum,WINDOW)
-
-        # compute the reference tsys values
-        tsys = self.tsys(state=ref_state)
-
-        ta1 = np.ones(sig.shape)
-        for idx,ee in enumerate(tsys):
-            ta1[idx] = tsys[idx] * ((sig[idx]-ref[idx])/ref[idx])
+        for idx,ee in enumerate(tsys0):
+            ta0[idx] = tsys0[idx] * ((sig0[idx]-ref0[idx])/ref0[idx])
+            ta1[idx] = tsys1[idx] * ((sig1[idx]-ref1[idx])/ref1[idx])
 
         # --------------------------------- shift spectra to match in frequency
 
@@ -589,22 +575,22 @@ class ScanReader():
         sig_centerfreq = self.centerfreq(state=sig_state)
         ref_centerfreq = self.centerfreq(state=ref_state)
         sig_delta = self.freqdelta(state=sig_state)
-        channel_shift = ((sig_centerfreq-ref_centerfreq)/sig_delta).mean()
+        channel_shift = -((sig_centerfreq-ref_centerfreq)/sig_delta).mean()
 
         # do integer channel shift to second spectrum
-        ta1 = np.roll(ta1,int(channel_shift),axis=1)
+        ta1_ishifted = np.roll(ta1,int(channel_shift),axis=1)
         if channel_shift > 0:
-            ta1[:,:channel_shift]=0
+            ta1_ishifted[:,:channel_shift]=0
         elif channel_shift < 0:
-            ta1[:,channel_shift:]=0
+            ta1_ishifted[:,channel_shift:]=0
 
         # do fractional channel shift
-        delta_f = math.modf(channel_shift)[0]
-        doMessage(logger,msg.DBG,'Fractional channel shift is',delta_f)
-        ta1 = pipeutils.fractional_shift(ta1,delta_f)
+        #delta_f = math.modf(channel_shift)[0]
+        #doMessage(logger,msg.DBG,'Fractional channel shift is',delta_f)
+        #ta1_fshifted = pipeutils.fractional_shift(ta1_ishifted,delta_f)
 
         # average shifted spectra
-        Ta = (ta0+ta1)/2.
+        Ta = (ta0+ta1_ishifted)/2.
         Units = Ta
         calmask = self.attr['calmask'][sig_state]
 
@@ -632,9 +618,9 @@ class ScanReader():
             # compute sky temperatures (tsky) at ends of bands and interpolate
             #   in between the low and high frequency channels
             if np.any(ta_correction):
-                all_ta_correction = np.zeros(sig.shape)
-                dOpacity = (ta_correction[:,1]-ta_correction[:,0])/float(sig.shape[1])
-                for idx in range(sig.shape[1]):
+                all_ta_correction = np.zeros(sig0.shape)
+                dOpacity = (ta_correction[:,1]-ta_correction[:,0])/float(sig0.shape[1])
+                for idx in range(sig0.shape[1]):
                     all_ta_correction[:,idx] = ta_correction[:,0]+(idx*dOpacity)
                 ta_correction = all_ta_correction
                 temps = self.attr['tambient'][sigstate][calmask]
@@ -646,9 +632,9 @@ class ScanReader():
                 allfreq = self.freq_axis_mean()
                 
                 # tsky interpolation over frequency band (idl-like)
-                all_tsky_sig = np.zeros(sig.shape)
-                dT = (tsky_sig[:,1]-tsky_sig[:,0])/float(sig.shape[1])
-                for idx in range(sig.shape[1]):
+                all_tsky_sig = np.zeros(sig0.shape)
+                dT = (tsky_sig[:,1]-tsky_sig[:,0])/float(sig0.shape[1])
+                for idx in range(sig0.shape[1]):
                     all_tsky_sig[:,idx] = tsky_sig[:,0]+(idx*dT)
                 
                 doMessage(self.logger,msg.DBG,'TSKY SIG (interpolated):',\
