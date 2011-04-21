@@ -502,7 +502,7 @@ def _gain(gain_coeff,elevation):
         
     return gain
 
-def ta_correction(gain_coeff,spillover,\
+def ta_correction(zenithtau,gain_coeff,spillover,\
         opacity_coefficients,mjds,elevations,freq,verbose=0):
     """Compute correction to Ta for determining Ta*
     
@@ -510,6 +510,8 @@ def ta_correction(gain_coeff,spillover,\
     and blockage efficiency.
     
     Keywords:
+    zenithtau -- (float) zenith opacity value set by user; it overrides the
+        use of zenith values obtained from GB weather forecasting scripts
     gain_coeff -- (list) of gain coefficients set with default values or
         overriden by the user
     spillover -- (float) constant set by default or overriden by the user
@@ -533,7 +535,7 @@ def ta_correction(gain_coeff,spillover,\
     opacities = []
     meanfreq = freq[0].mean()
 
-    if meanfreq >= 2 and not opacity_coefficients:
+    if meanfreq >= 2 and not opacity_coefficients and not zenithtau:
         return False
     else:
         for idx,mjd in enumerate(mjds):
@@ -541,35 +543,14 @@ def ta_correction(gain_coeff,spillover,\
                 elevation = elevations[idx]
                 gain = _gain(gain_coeff,elevation)
 
-                # get the correct set of coefficients for this time
-                if meanfreq < 2:
-                    coeffs = ()
+                if zenithtau:
+                    zenith_opacities = np.ones(freq.shape) * zenithtau
                 else:
-                    for coeffs_line in opacity_coefficients:
-                        if mjd > coeffs_line[0]:
-                            if (meanfreq >= 2 and meanfreq <= 22):
-                                coeffs = coeffs_line[1]
-                            elif (meanfreq > 22 and meanfreq <= 50):
-                                coeffs = coeffs_line[2]
-                            elif (meanfreq > 50 and meanfreq <= 116):
-                                coeffs = coeffs_line[3]
-
-                # get the zenith opacity of the first and last frequency for
-                #    every integration of the scan
-                zenith_opacities = zenith_opacity(coeffs,freq)
-                # get a more accurate list of opacities by correcting for
-                #    elevation
-                opacities.append(corrected_opacity(zenith_opacities[idx],elevation))
-
-            else:
-                elevation = elevations[0]
-                gain = _gain(gain_coeff,elevation)
-
-                # get the correct set of coefficients for this time
-                if meanfreq < 2:
-                    coeffs = ()
-                else:
-                    for coeffs_line in opacity_coefficients:
+                    # get the correct set of coefficients for this time
+                    if meanfreq < 2:
+                        coeffs = ()
+                    else:
+                        for coeffs_line in opacity_coefficients:
                             if mjd > coeffs_line[0]:
                                 if (meanfreq >= 2 and meanfreq <= 22):
                                     coeffs = coeffs_line[1]
@@ -578,7 +559,34 @@ def ta_correction(gain_coeff,spillover,\
                                 elif (meanfreq > 50 and meanfreq <= 116):
                                     coeffs = coeffs_line[3]
 
-                zenith_opacities = zenith_opacity(coeffs,freq)
+                    # get the zenith opacity of the first and last frequency for
+                    #    every integration of the scan
+                    zenith_opacities = zenith_opacity(coeffs,freq)
+                    # get a more accurate list of opacities by correcting for
+                    #    elevation
+                opacities.append(corrected_opacity(zenith_opacities[idx],elevation))
+
+            else:
+                elevation = elevations[0]
+                gain = _gain(gain_coeff,elevation)
+
+                if zenithtau:
+                    zenith_opacities = np.ones(freq.shape) * zenithtau
+                else:
+                    # get the correct set of coefficients for this time
+                    if meanfreq < 2:
+                        coeffs = ()
+                    else:
+                        for coeffs_line in opacity_coefficients:
+                                if mjd > coeffs_line[0]:
+                                    if (meanfreq >= 2 and meanfreq <= 22):
+                                        coeffs = coeffs_line[1]
+                                    elif (meanfreq > 22 and meanfreq <= 50):
+                                        coeffs = coeffs_line[2]
+                                    elif (meanfreq > 50 and meanfreq <= 116):
+                                        coeffs = coeffs_line[3]
+
+                    zenith_opacities = zenith_opacity(coeffs,freq)
                 opacities.append(corrected_opacity(zenith_opacities,elevation))
 
         opacities = np.array(opacities)
@@ -817,7 +825,7 @@ def get_masks(indexfile,fitsfile=None,samplers=[],verbose=0):
     return mask
 
 def get_maps_and_samplers(allmaps,indexfile,debug=False):
-    """Find mapping blocks.  Also find samplers used in each map
+    """Find mapping blocks. Also find samplers used in each map
 
     Keywords:
     allmaps -- when this flag is set, mapping block discovery is enabled
@@ -923,7 +931,7 @@ def get_maps_and_samplers(allmaps,indexfile,debug=False):
 
         # see if this scan is the last one in the relevant scan list
         # or see if we have a ref2
-        #    if so, close out    
+        # if so, close out
         if ref2 or idx==len(mapkeys)-1:
             maps.append((ref1,mapscans,ref2,samplermap,'PS'))
             ref1 = False

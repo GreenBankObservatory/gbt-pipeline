@@ -524,7 +524,8 @@ class ScanReader():
         return cdelt1
 
     def calibrate_fs(self, logger, opacity_coefficients, gain_coeff, spillover,\
-                     aperture_eff, mainbeam_eff, units, gain_factor, verbose):
+                     aperture_eff, mainbeam_eff, units, gain_factor, \
+                     zenithtau, verbose):
         
         # split the data into to states
         # SIG is element [0] and REF is element [1]
@@ -623,7 +624,7 @@ class ScanReader():
                 freqs = self.freq_axis(sigstate)
                 # get first and last frequency of each frequency axis
                 hiandlofreqs = freqs[:,[0,-1]]
-                ta_correction = pipeutils.ta_correction(gain_coeff,spillover,\
+                ta_correction = pipeutils.ta_correction(zenithtau,gain_coeff,spillover,\
                             opacity_coefficients,mjds,elevations,hiandlofreqs/1e9)
             else:
                 ta_correction = False
@@ -693,7 +694,7 @@ class ScanReader():
     
     def calibrate_to(self,logger,refs,ref_dates,ref_tsyss,\
         k_per_count,opacity_coefficients,gain_coeff,spillover,aperture_eff,\
-        mainbeam_eff,ref_tskys,units,gain_factor,verbose):
+        mainbeam_eff,ref_tskys,units,gain_factor,zenithtau,verbose):
         """
 
         Keyword arguments:
@@ -750,7 +751,7 @@ class ScanReader():
         # calculate correction to ta* for each frequency, time and elevation
         if not units=='ta' and \
           (freq.mean()/1e9 <=50 or 70<= freq.mean()/1e9 <=116):
-            ta_correction = pipeutils.ta_correction(gain_coeff,spillover,\
+            ta_correction = pipeutils.ta_correction(zenithtau,gain_coeff,spillover,\
                         opacity_coefficients,mjds,elevations,freq/1e9)
         else:
             ta_correction = False
@@ -876,7 +877,7 @@ class ScanReader():
         return input_rows
 
     def average_reference(self,logger,units,gain_coeff,spillover,\
-            opacity_coefficients,verbose):
+            opacity_coefficients,zenithtau,verbose):
         """
 
         Keyword arguments:
@@ -930,7 +931,7 @@ class ScanReader():
 
         # idl-like version uses a single avg elevation
         if not units=='ta' and (freq.mean()/1e9 <=50 or 70<= freq.mean()/1e9 <=116):
-            ta_correction = pipeutils.ta_correction(gain_coeff,spillover,\
+            ta_correction = pipeutils.ta_correction(zenithtau,gain_coeff,spillover,\
                         opacity_coefficients,\
                         [mjds.mean()],[self.elevation_ave()],freq/1e9,verbose)
         else:

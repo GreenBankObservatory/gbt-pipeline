@@ -83,6 +83,8 @@ class CommandLine:
                         help="comma-separated gain factors for each right-polarized feed", metavar="G[,G]")
         self.parser.add_argument("--max-processors",dest="process_max", default=False, type=int,
                         help="optional max number of processors, to reduce resource usage", metavar="N")
+        self.parser.add_argument("-t", "--zenith-opacity",dest="zenithtau", type=float,
+                        help="zenith opacity value (tau-z)", metavar="N", default=False)
         self.parser.add_argument("--fs-as-ps", dest="psmap",
                         action='store_true', default=False,
                         help="optionaly process a FS map as PS")
