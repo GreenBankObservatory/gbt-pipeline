@@ -479,12 +479,13 @@ def corrected_opacity(zenith_opacities,elevation):
 
     """
     n_atmos = natm(elevation)
-    corrected_opacities = [math.exp(xx/n_atmos) for xx in zenith_opacities]
+
+    corrected_opacities = [math.exp(-xx/n_atmos) for xx in zenith_opacities]
 
     return corrected_opacities
 
 def zenith_opacity(coeffs, freqs):
-    """Iterpolate low and high opacities across a vector of frequencies
+    """Interpolate low and high opacities across a vector of frequencies
 
     Keywords:
     coeffs -- (list) opacitiy coefficients from archived text file, produced by
@@ -621,7 +622,7 @@ def ta_correction(zenithtau,gain_coeff,spillover,\
         # return right part of equation 13
         return (np.array(opacities)) / (spillover * gain)
     
-def tsky(ambient_temp,freq,opacities):
+def tsky(ambient_temp,freq,opacity_factors):
     """Determine the sky temperature contribution at each frequency
     
     Keywords:
@@ -629,11 +630,10 @@ def tsky(ambient_temp,freq,opacities):
         from the TAMBIENT column in the SDFITS input file
     freq -- (numpy 1d array) with the first and last frequency values on an
         axis
-    opacities -- (numpy 1d array) with an opacity value for each frequency
-        channel
-    
+    opacity_factors -- (numpy 1d array) with an opacity value (e^-tau) for
+         each frequency
     Returns:
-    the sky model temperature contribution at every frequncy channel of then
+    the sky model temperature contribution at every frequncy channel of the
     spectrum
     """
     freq_lo = freq[0]
@@ -642,8 +642,8 @@ def tsky(ambient_temp,freq,opacities):
     airTemp_lo = tatm(freq_lo,ambient_temp-273.15)
     airTemp_hi = tatm(freq_hi,ambient_temp-273.15)
     
-    tsky_lo = airTemp_lo * (opacities[0]-1)
-    tsky_hi = airTemp_hi * (opacities[-1]-1)
+    tsky_lo = airTemp_lo * (1-opacity_factors[0])
+    tsky_hi = airTemp_hi * (1-opacity_factors[-1])
     
     nchan = len(freq)
     delta_tsky = (tsky_hi - tsky_lo) / float(nchan)
