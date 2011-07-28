@@ -275,6 +275,25 @@ def do_sampler(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
     primary = pyfits.PrimaryHDU()
     primary.header = infile[0].header
     
+    # look for the appropriate pipeline version number and write it to
+    #   the primary header history.  if it can't be found, print Unknown.
+    version = 'Unknown'
+    RELEASE_DIR = '/home/gbtpipeline/release'
+    TEST_DIR = '/home/gbtpipeline/integration'
+    VERSION_FILE = '/' + 'VERSION'
+
+    if TEST_DIR in sys.path and os.path.isfile(TEST_DIR + VERSION_FILE):
+        versionfile = open(TEST_DIR + VERSION_FILE)
+        version = versionfile.readline()
+        versionfile.close()
+    elif RELEASE_DIR in sys.path and os.path.isfile(RELEASE_DIR + VERSION_FILE):
+        versionfile = open(RELEASE_DIR + VERSION_FILE)
+        version = versionfile.readline()
+        versionfile.close()
+
+    pipeline_version = 'Pipeline Version: ' + version
+    primary.header.add_history(pipeline_version)
+
     sdfits = pyfits.new_table(pyfits.ColDefs(infile[blockid].columns),nrows=len(calibrated_integrations),fill=1)
 
     # add in virtual columns (keywords)
