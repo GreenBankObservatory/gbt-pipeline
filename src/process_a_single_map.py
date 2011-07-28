@@ -323,7 +323,7 @@ def do_sampler(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
     if opt.idlToSdfits_baseline_subtract:
         options = options + ' -w ' + opt.idlToSdfits_baseline_subtract + ' '
         
-    idlcmd = '/opt/local/bin/idlToSdfits -o ' + aipsinname + options + \
+    idlcmd = '/home/gbtpipeline/bin/idlToSdfits -o ' + aipsinname + options + \
              outfilename
 
     doMessage(logger,msg.DBG,idlcmd)
