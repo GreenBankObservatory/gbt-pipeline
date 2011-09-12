@@ -40,4 +40,4 @@ PYTHONSTARTUP=/home/gbt1/gbtpipeline/share/parseltongue/python/ParselTongue.py
 export PYTHONPATH PYTHONSTARTUP
 
 echo $PYTHONPATH
-/opt/local/bin/python $*
+/opt/local/stow/Python-2.5.1/bin/python2.5 $*
