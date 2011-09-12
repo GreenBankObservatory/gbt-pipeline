@@ -1,3 +1,27 @@
+# Copyright (C) 2007 Associated Universities, Inc. Washington DC, USA.
+# 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+# 
+# Correspondence concerning GBT software should be addressed as follows:
+#       GBT Operations
+#       National Radio Astronomy Observatory
+#       P. O. Box 2
+#       Green Bank, WV 24944-0002 USA
+
+# $Id$
+
 import argparse
 import pipeutils
 
@@ -63,6 +87,8 @@ class CommandLine:
                         help="rear spillover factor (eta-l)", metavar="N")
         self.parser.add_argument("--apperture-efficiency",dest="aperture_eff", default=.71, type=float,
                         help="aperture efficiency for freq.=0 (eta-A)", metavar="N")
+        self.parser.add_argument("--main-beam-efficiency",dest="mainbeam_eff", default=.91, type=float,
+                        help="main beam efficiency for freq.=0 (eta-B)", metavar="N")
         self.parser.add_argument("--gain-coefficients",dest="gaincoeffs", default=".91,.00434,-5.22e-5",
                         help="comma-separated gain coefficients", metavar="N")
         self.parser.add_argument("-v", "--verbose", dest="verbose", default=0,
@@ -81,6 +107,11 @@ class CommandLine:
                         help="comma-separated gain factors for each right-polarized feed", metavar="G[,G]")
         self.parser.add_argument("--max-processors",dest="process_max", default=False, type=int,
                         help="optional max number of processors, to reduce resource usage", metavar="N")
+        self.parser.add_argument("-t", "--zenith-opacity",dest="zenithtau", type=float,
+                        help="zenith opacity value (tau-z)", metavar="N", default=False)
+        self.parser.add_argument("--fs-as-ps", dest="psmap",
+                        action='store_true', default=False,
+                        help="optionaly process a FS map as PS")
 
     def read(self,sys):
         """Read and parse the command line arguments

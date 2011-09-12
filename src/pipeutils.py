@@ -1,3 +1,27 @@
+# Copyright (C) 2007 Associated Universities, Inc. Washington DC, USA.
+# 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+# 
+# Correspondence concerning GBT software should be addressed as follows:
+#       GBT Operations
+#       National Radio Astronomy Observatory
+#       P. O. Box 2
+#       Green Bank, WV 24944-0002 USA
+
+# $Id$
+
 import math
 import os
 import subprocess
@@ -191,47 +215,39 @@ def hz2wavelength(f):
     
     Returns:
     wavelength in meters
-    
+
+    >>> hz2wavelength(23e9)
+    0.013034454695652174
+
     """
     c = 299792458  # speed of light in m/s
     return (c/f)
 
-def etaA(etaA0,freqHz):
+def eta(eta0,freqHz):
     """Determine aperture efficiency
     
     Keyword attributes:
     freqHz -- input frequency in Hz
 
     Returns:
-    etaA -- output point source efficiency (range 0 to 1)
+    eta -- point or main beam efficiency (range 0 to 1)
     
     EtaA model is from memo by Jim Condon, provided by Ron Maddalena
+
+    >>> eta(.71,23e9)
+    0.64748265789117276
+
+    >>> eta(.91,23e9)
+    0.82987213898727774
 
     """
 
     BB = .0132 # Ruze equation parameter
     freqGHz = float(freqHz)/1e9
-    etaA = etaA0 * math.e**-((BB * freqGHz)**2)
+    eta = eta0 * math.e**-((BB * freqGHz)**2)
     
-    return etaA
-
-def etaMB(etaA0,freqHz):
-    """Determine source efficiency
-
-    Keyword attributes:
-    freqHz -- input frequency in Hz
-
-    Returns:
-    etaMB -- output extended source efficiency (range 0 to 1)
-             main beam efficiency
-
-    EtaMB model is from memo by Jim Condon, provided by Ron Maddalena
-
-    """
-    etaMB = float(1.37) * etaA(etaA0,freqHz)
-
-    return etaMB
-    
+    return eta
+   
 def gbtbeamsize(hz):
     """Estimate the GBT beam size at a given frequency
     
@@ -241,11 +257,17 @@ def gbtbeamsize(hz):
     Returns:
     beam size in arc seconds
     
+    >>> gbtbeamsize(23e9)
+    32.800331933144086
+
     """
-    wavelength = hz2wavelength(hz)
-    diameter = 10000 # estimate of telescope diameter in cm
+    wavelength = hz2wavelength(hz) # in meters
+    diameter = 100 # estimate of telescope diameter in meters
+    rayleigh_criterion_factor = 1.22
+    arcseconds_per_radian = 206265
     # return diffraction limit in arc seconds
-    return ((1.22*wavelength)/diameter)*206265
+    return ((rayleigh_criterion_factor * wavelength)/diameter) \
+            * arcseconds_per_radian
    
 def interpolate_reference(refs,dates,tskys,tsyss, mjds):
     """Compute time-interpolated reference spectrum, tsky and tsys
@@ -314,9 +336,16 @@ def opacity_coefficients(opacity_coefficients_filename):
     coeffs = []
     if FILE:
         for line in FILE:
-            # find the most recent forecast and parse out the coefficients for K-band
+            # find the most recent forecast and parse out the coefficients for 
+            # each band
+            # coeffs[0] is the mjd timestamp
+            # coeffs[1] are the coefficients for 2-22 GHz
+            # coeffs[2] are the coefficients for 22-50 GHz
+            # coeffs[3] are the coefficients for 70-116 GHz
             coeffs.append((float(line.split('{{')[0]),\
-                [float(xx) for xx in line.split('{{')[2].split('}')[0].split(' ')]))
+                [float(xx) for xx in line.split('{{')[1].split('}')[0].split(' ')],\
+                [float(xx) for xx in line.split('{{')[2].split('}')[0].split(' ')],\
+                [float(xx) for xx in line.split('{{')[3].split('}')[0].split(' ')]))
                
     else:
         if opt.verbose > 1:
@@ -450,17 +479,18 @@ def corrected_opacity(zenith_opacities,elevation):
 
     """
     n_atmos = natm(elevation)
-    corrected_opacities = [math.exp(xx/n_atmos) for xx in zenith_opacities]
+
+    corrected_opacities = [math.exp(-xx/n_atmos) for xx in zenith_opacities]
 
     return corrected_opacities
 
 def zenith_opacity(coeffs, freqs):
-    """Iterpolate low and high opacities across a vector of frequencies
+    """Interpolate low and high opacities across a vector of frequencies
 
     Keywords:
     coeffs -- (list) opacitiy coefficients from archived text file, produced by
         GBT weather prediction code
-    freqs -- (list) of frequency values
+    freqs -- (list) of frequency values in GHz
 
     Returns:
     A (numpy 1d array) of a zenith opacity at each requested frequency.
@@ -468,6 +498,10 @@ def zenith_opacity(coeffs, freqs):
     """
     # interpolate between the coefficients based on time for a given frequency
     def interpolated_zenith_opacity(f):
+        # for frequencies < 2 GHz, return a default zenith opacity
+        if np.array(f).mean() < 2:
+            result = np.ones(np.array(f).shape)*0.008
+            return result
         result=0
         for idx,term in enumerate(coeffs):
             if idx>0: result = result + term*f**idx
@@ -479,6 +513,11 @@ def zenith_opacity(coeffs, freqs):
     return np.array(zenith_opacities)
 
 def _gain(gain_coeff,elevation):
+    """
+    >>> _gain((.91,.00434,-5.22e-5),60)
+    0.99321999999999999
+
+    """
     # comput gain based on elevation, eqn. 12 in PS specification
     gain = 0
     zz = 90. - elevation
@@ -488,7 +527,7 @@ def _gain(gain_coeff,elevation):
         
     return gain
 
-def ta_correction(gain_coeff,spillover,\
+def ta_correction(zenithtau,gain_coeff,spillover,\
         opacity_coefficients,mjds,elevations,freq,verbose=0):
     """Compute correction to Ta for determining Ta*
     
@@ -496,6 +535,8 @@ def ta_correction(gain_coeff,spillover,\
     and blockage efficiency.
     
     Keywords:
+    zenithtau -- (float) zenith opacity value set by user; it overrides the
+        use of zenith values obtained from GB weather forecasting scripts
     gain_coeff -- (list) of gain coefficients set with default values or
         overriden by the user
     spillover -- (float) constant set by default or overriden by the user
@@ -507,7 +548,7 @@ def ta_correction(gain_coeff,spillover,\
         row or a single value if all integrations are at the same elevation
         read from the FITS input table at ELEVATION
     freq -- (numpy 2d array) of first and last channel frequency values, one
-        pair for each output row
+        pair for each output row in GHz
     
     All of this equates to the right part of equation 13 in the PS document
     and equation 15 in the FS document.
@@ -517,33 +558,60 @@ def ta_correction(gain_coeff,spillover,\
     
     """
     opacities = []
-    
-    if opacity_coefficients:
+    meanfreq = freq[0].mean()
+
+    if meanfreq >= 2 and not opacity_coefficients and not zenithtau:
+        return False
+    else:
         for idx,mjd in enumerate(mjds):
             if len(elevations)>1:
                 elevation = elevations[idx]
                 gain = _gain(gain_coeff,elevation)
 
-                # get the correct set of coefficients for this time
-                for coeffs_line in opacity_coefficients:
-                    if mjd > coeffs_line[0]:
-                        coeffs = coeffs_line[1]
-                # get the zenith opacity of the first and last frequency for
-                #    every integration of the scan
-                zenith_opacities = zenith_opacity(coeffs,freq)
-                # get a more accurate list of opacities by correcting for
-                #    elevation
+                if zenithtau:
+                    zenith_opacities = np.ones(freq.shape) * zenithtau
+                else:
+                    # get the correct set of coefficients for this time
+                    if meanfreq < 2:
+                        coeffs = ()
+                    else:
+                        for coeffs_line in opacity_coefficients:
+                            if mjd > coeffs_line[0]:
+                                if (meanfreq >= 2 and meanfreq <= 22):
+                                    coeffs = coeffs_line[1]
+                                elif (meanfreq > 22 and meanfreq <= 50):
+                                    coeffs = coeffs_line[2]
+                                elif (meanfreq > 50 and meanfreq <= 116):
+                                    coeffs = coeffs_line[3]
+
+                    # get the zenith opacity of the first and last frequency for
+                    #    every integration of the scan
+                    zenith_opacities = zenith_opacity(coeffs,freq)
+                    # get a more accurate list of opacities by correcting for
+                    #    elevation
                 opacities.append(corrected_opacity(zenith_opacities[idx],elevation))
 
             else:
                 elevation = elevations[0]
                 gain = _gain(gain_coeff,elevation)
 
-                # get the correct set of coefficients for this time
-                for coeffs_line in opacity_coefficients:
-                    if mjd > coeffs_line[0]:
-                        coeffs = coeffs_line[1]
-                zenith_opacities = zenith_opacity(coeffs,freq)
+                if zenithtau:
+                    zenith_opacities = np.ones(freq.shape) * zenithtau
+                else:
+                    # get the correct set of coefficients for this time
+                    if meanfreq < 2:
+                        coeffs = ()
+                    else:
+                        for coeffs_line in opacity_coefficients:
+                                if mjd > coeffs_line[0]:
+                                    if (meanfreq >= 2 and meanfreq <= 22):
+                                        coeffs = coeffs_line[1]
+                                    elif (meanfreq > 22 and meanfreq <= 50):
+                                        coeffs = coeffs_line[2]
+                                    elif (meanfreq > 50 and meanfreq <= 116):
+                                        coeffs = coeffs_line[3]
+
+                    zenith_opacities = zenith_opacity(coeffs,freq)
                 opacities.append(corrected_opacity(zenith_opacities,elevation))
 
         opacities = np.array(opacities)
@@ -553,12 +621,8 @@ def ta_correction(gain_coeff,spillover,\
 
         # return right part of equation 13
         return (np.array(opacities)) / (spillover * gain)
-
-    else:
     
-        return False
-    
-def tsky(ambient_temp,freq,opacities):
+def tsky(ambient_temp,freq,opacity_factors):
     """Determine the sky temperature contribution at each frequency
     
     Keywords:
@@ -566,11 +630,10 @@ def tsky(ambient_temp,freq,opacities):
         from the TAMBIENT column in the SDFITS input file
     freq -- (numpy 1d array) with the first and last frequency values on an
         axis
-    opacities -- (numpy 1d array) with an opacity value for each frequency
-        channel
-    
+    opacity_factors -- (numpy 1d array) with an opacity value (e^-tau) for
+         each frequency
     Returns:
-    the sky model temperature contribution at every frequncy channel of then
+    the sky model temperature contribution at every frequncy channel of the
     spectrum
     """
     freq_lo = freq[0]
@@ -579,8 +642,8 @@ def tsky(ambient_temp,freq,opacities):
     airTemp_lo = tatm(freq_lo,ambient_temp-273.15)
     airTemp_hi = tatm(freq_hi,ambient_temp-273.15)
     
-    tsky_lo = airTemp_lo * (opacities[0]-1)
-    tsky_hi = airTemp_hi * (opacities[-1]-1)
+    tsky_lo = airTemp_lo * (1-opacity_factors[0])
+    tsky_hi = airTemp_hi * (1-opacity_factors[-1])
     
     nchan = len(freq)
     delta_tsky = (tsky_hi - tsky_lo) / float(nchan)
@@ -786,7 +849,7 @@ def get_masks(indexfile,fitsfile=None,samplers=[],verbose=0):
     return mask
 
 def get_maps_and_samplers(allmaps,indexfile,debug=False):
-    """Find mapping blocks.  Also find samplers used in each map
+    """Find mapping blocks. Also find samplers used in each map
 
     Keywords:
     allmaps -- when this flag is set, mapping block discovery is enabled
@@ -892,7 +955,7 @@ def get_maps_and_samplers(allmaps,indexfile,debug=False):
 
         # see if this scan is the last one in the relevant scan list
         # or see if we have a ref2
-        #    if so, close out    
+        # if so, close out
         if ref2 or idx==len(mapkeys)-1:
             maps.append((ref1,mapscans,ref2,samplermap,'PS'))
             ref1 = False
@@ -1064,6 +1127,7 @@ def commandSummary(logger,opt):
     doMessage(logger,msg.INFO,"display idlToSdfits plots ....",opt.display_idlToSdfits)
     doMessage(logger,msg.INFO,"spillover factor (eta_l)......",str(opt.spillover))
     doMessage(logger,msg.INFO,"aperture efficiency (eta_A0)..",str(opt.aperture_eff))
+    doMessage(logger,msg.INFO,"main beam efficiency (eta_B0)..",str(opt.mainbeam_eff))
     
     if opt.gaincoeffs:
         pretty_gaincoeffs = map(prettyfloat, opt.gaincoeffs)
@@ -1101,6 +1165,9 @@ def string_to_floats(string_list):
     
     Returns:
     a (list) of floats
+
+    >>> string_to_floats('1.1,-5.55555,6e6')
+    [1.1000000000000001, -5.5555500000000002, 6000000.0]
 
     """
     string_list = string_list.replace(' ','')
@@ -1190,3 +1257,71 @@ def gainfactor(logger,opt,samplermap,sampler):
         gain_factor = float(1)
 
     return gain_factor
+
+def fractional_shift(spectra,delta_f):
+    """Returns gain factor set for a given beam and polarization
+
+    Keywords:
+    spectra -- (numpy 2d array) of one or more spectra to be shifted
+    delta_f -- (float) the channel amount to shift the spectra (< 1)
+
+    Returns:
+    (numpy 2d array) of shifted spectra
+
+    """
+    N_CHANNELS_start = spectra.shape[-1]
+    N_CHANNELS_doubled = N_CHANNELS_start*2
+
+    # double the size of the array
+    spectra = np.append(spectra, np.zeros(shape=spectra.shape),axis=1)
+
+    # shift the spectra to the center, with zeros padding either end
+    ROLLDISTANCE = N_CHANNELS_start/2
+    spectra = np.roll(np.array(spectra),ROLLDISTANCE)
+
+    # pad out spectrum on both sides with end values
+    for idx,row in enumerate(spectra):
+        spectra[idx][:ROLLDISTANCE] = spectra[idx][ROLLDISTANCE]
+        spectra[idx][-ROLLDISTANCE:] = spectra[idx][-ROLLDISTANCE-1]
+
+    # inverse fft of spetrum, 0
+    ifft = np.fft.ifft(spectra)
+    real = ifft.real
+    imag = ifft.imag
+
+    # eqn. 9
+    delta_p = 2.0 * np.pi * delta_f / N_CHANNELS_doubled
+
+    # eqn. 7
+    amplitude = np.sqrt(real**2 + imag**2)
+
+    # eqn. 8
+    phase = np.arctan2(imag,real)
+
+    # eqn. 10
+    kk = [np.mod(ii,N_CHANNELS_doubled/2) for ii in range(N_CHANNELS_doubled)]
+    kk = np.array(kk,dtype=float)
+
+    ## eqn. 11
+    amplitude = amplitude * (1 - (kk/N_CHANNELS_doubled)**2)
+
+    ## eqn. 12
+    phase = phase + delta_p * kk
+
+    # eqn. 13
+    real = amplitude * np.cos(phase)
+
+    # eqn. 14
+    imag = amplitude * np.sin(phase)
+
+    # finally fft to get back to spectra
+    shifted = np.fft.fft(real+imag*1j)
+
+    shifted = np.roll(shifted,-ROLLDISTANCE)
+    shifted = shifted[:,:N_CHANNELS_start]
+
+    return abs(shifted)
+
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()

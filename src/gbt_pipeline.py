@@ -1,8 +1,30 @@
 #! /usr/bin/env python
+
+# Copyright (C) 2007 Associated Universities, Inc. Washington DC, USA.
+# 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+# 
+# Correspondence concerning GBT software should be addressed as follows:
+#       GBT Operations
+#       National Radio Astronomy Observatory
+#       P. O. Box 2
+#       Green Bank, WV 24944-0002 USA
+
+# $Id$
+
 import sys
-sys.path.append('/usr/lib64/casapy/lib64/python2.6/site-packages/scipy')
-sys.path.append('/usr/lib64/casapy/lib/python2.6/site-packages/scipy')
-sys.path.append('/usr/lib/casapy/lib/python2.6/site-packages/scipy')
 import os
 import pyfits
 import multiprocessing
@@ -26,6 +48,11 @@ if not opt.allmaps:
     except:
         print 'ERROR: could not parse range:',opt.mapscans
         sys.exit(10)
+
+# numerically sort the map scans
+opt.mapscans = [ int(xx) for xx in opt.mapscans ]
+opt.mapscans.sort()
+opt.mapscans = [ str(xx) for xx in opt.mapscans ]
 
 # define begin and end map scans if range set by user
 beginscan = False
@@ -136,31 +163,51 @@ doMessage(logger,msg.DBG,'done')
 # ----------------------------------------------- look for opacity coefficients
 
 start_mjd = get_start_mjd(indexfile)
+
 opacity_coefficients_filename = False
 opacity_files = glob.glob('/users/rmaddale/Weather/ArchiveCoeffs/CoeffsOpacityFreqList_avrg_*.txt')
+opacity_files.sort()
 
-for opacity_candidate_file in opacity_files:
+if opt.zenithtau and (opt.zenithtau < 0  or opt.zenithtau > 1):
+    doMessage(logger,msg.ERR,'ERROR: zenith tau must be between 0 and 1.')
+    sys.exit(9)
+
+tooearly = False # True when start_mjd is older than available ranges
+for idx,opacity_candidate_file in enumerate(opacity_files):
     dates = opacity_candidate_file.split('_')[-2:]
     mydate = []
     for date in dates:
         mydate.append(int(date.split('.')[0]))
 
+    # set tooearly=True when start_mjd is older than available ranges
+    if idx == 0 and start_mjd < mydate[0]:
+        tooearly = True
+        break
+
     if start_mjd >= mydate[0] and start_mjd < mydate[1]:
         opacity_coefficients_filename = opacity_candidate_file
         break
 
-if not opacity_coefficients_filename:
-    opacity_coefficients_filename = \
-        '/users/rmaddale/Weather/ArchiveCoeffs/CoeffsOpacityFreqList_avrg.txt'
+if not opt.zenithtau and not opacity_coefficients_filename:
+    if tooearly and opt.units != 'ta':
+        doMessage(logger,msg.ERR,'ERROR: Date is too early for opacities.')
+        doMessage(logger,msg.ERR,'  Try setting zenith tau at command line')
+        doMessage(logger,msg.ERR,'  or changing units to Ta.')
+        sys.exit(9)
+    else:
+        opacity_coefficients_filename = \
+          '/users/rmaddale/Weather/ArchiveCoeffs/CoeffsOpacityFreqList_avrg.txt'
 
 # opacities coefficients filename
-if os.path.exists(opacity_coefficients_filename):
+if opacity_coefficients_filename and \
+   os.path.exists(opacity_coefficients_filename):
     doMessage(logger,msg.DBG,'Using coefficients from',\
               opacity_coefficients_filename)
     opacity_coeffs = \
         pipeutils.opacity_coefficients(opacity_coefficients_filename)
 else:
-    doMessage(logger,msg.WARN,'WARNING: No opacity coefficients file')
+    if not opt.zenithtau and not opt.units == 'ta':
+        doMessage(logger,msg.WARN,'WARNING: No opacity coefficients file')
     opacity_coeffs = False
 
 aips_input_files = []
@@ -240,7 +287,14 @@ else:
             if str(feed) in opt.feed and pol in opt.pol:
                 samplerlist.append(sampler)
 
-    maptype = maptype(allscans[0],indexfile,debug=False)
+    if opt.psmap:
+        if opt.refscan1:
+            maptype = 'PS'
+        else:
+            doMessage(logger,msg.ERR,'ERROR: PS map but missing 1st reference scan.')
+    else:
+        maptype = maptype(allscans[0],indexfile,debug=False)
+
     mymaps = [(opt.refscan1,allscans,opt.refscan2,samplermap,maptype)]
 
 # -------------------------------------------- print map and samplers summary

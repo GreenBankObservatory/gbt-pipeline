@@ -26,7 +26,7 @@ if [ $me = "/home/gbtpipeline/integration" ]; then
 		fi
 	fi
 
-else
+elif [ $me = "/home/gbtpipeline/release" ]; then
 
 	if [[ "$PATH" != */home/gbtpipeline/release* ]]
 	then
@@ -47,6 +47,28 @@ else
 			PYTHONPATH=/home/gbtpipeline/release:"$PYTHONPATH"
 		fi
 	fi
+
+elif [ $me = "/home/gbtpipeline/old" ]; then
+
+    if [[ "$PATH" != */home/gbtpipeline/old* ]]
+    then
+        PATH=/home/gbt7/norman/bin:"$PATH"
+        PATH=/home/gbtpipeline/old/tools:"$PATH"
+        PATH=/home/gbtpipeline/old:"$PATH"
+    fi
+
+    if [ -z "$PYTHONPATH" ]
+    then
+        PYTHONPATH=/home/gbtpipeline/old/contrib
+        PYTHONPATH=/home/gbtpipeline/old:"$PYTHONPATH"
+    else
+        lclpythonpath="$PYTHONPATH"
+        if [[ $lclpythonpath != */home/gbtpipeline/old* ]]
+        then
+            PYTHONPATH=/home/gbtpipeline/old/contrib:"$PYTHONPATH"
+            PYTHONPATH=/home/gbtpipeline/old:"$PYTHONPATH"
+        fi
+    fi
 
 fi
 

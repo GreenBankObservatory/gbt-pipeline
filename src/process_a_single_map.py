@@ -1,3 +1,27 @@
+# Copyright (C) 2007 Associated Universities, Inc. Washington DC, USA.
+# 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+# 
+# Correspondence concerning GBT software should be addressed as follows:
+#       GBT Operations
+#       National Radio Astronomy Observatory
+#       P. O. Box 2
+#       Green Bank, WV 24944-0002 USA
+
+# $Id$
+
 import os
 import sys
 import getpass
@@ -85,10 +109,14 @@ def do_sampler(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
         ref1.setLogger(logger)
 
         ref1.get_scan(scan,sdfitsdata,opt.verbose)
+        if not ref1.noise_diode:
+            doMessage(logger,msg.ERR,'ERROR: The noise diode is not ',
+                        'firing in reference scan:',scan)
+            sys.exit(9)
 
         ref1spec,ref1_max_tcal,ref1_mean_date,freq,tskys_ref1,ref1_tsys = \
             ref1.average_reference(logger,opt.units,opt.gaincoeffs,opt.spillover,\
-            opt.aperture_eff,opacity_coeffs,opt.verbose)
+            opacity_coeffs,opt.zenithtau,opt.verbose)
 
         refdate.append(ref1_mean_date)
         ref_tsky.append(tskys_ref1)
@@ -170,10 +198,14 @@ def do_sampler(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
             ref2.setLogger(logger)
             
             ref2.get_scan(scan,sdfitsdata,opt.verbose)
+            if not ref2.noise_diode:
+                doMessage(logger,msg.ERR,'ERROR: The noise diode is not ',
+                          'firing in reference scan:',scan)
+                sys.exit(9)
 
             ref2spec,ref2_max_tcal,ref2_mean_date,freq,tskys_ref2,ref2_tsys = \
                 ref2.average_reference(logger,opt.units,opt.gaincoeffs,opt.spillover,\
-                opt.aperture_eff,opacity_coeffs,opt.verbose)
+                    opacity_coeffs,opt.zenithtau,opt.verbose)
             refdate.append(ref2_mean_date)
             ref_tsky.append(tskys_ref2)
 
@@ -220,14 +252,16 @@ def do_sampler(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
         if 'PS' == maptype:
             cal_ints = mapscan.calibrate_to(logger,refspec,refdate,ref_tsys,\
                 k_per_count,opacity_coeffs,opt.gaincoeffs,opt.spillover,\
-                opt.aperture_eff,ref_tsky,opt.units,gain_factor,opt.verbose)
+                opt.aperture_eff,opt.mainbeam_eff,ref_tsky,opt.units,\
+                gain_factor,opt.zenithtau,opt.verbose)
         else:
             # a FS reference scan integration (1st pass) is the F part of the SIG
             # data. a FS reference scan (2nd pass) is the T part of the SIG data
             # on each pass the signal/map scan is the remainder of the data
             cal_ints = mapscan.calibrate_fs(logger, opacity_coeffs,\
-                opt.gaincoeffs, opt.spillover, opt.aperture_eff, opt.units,\
-                gain_factor, opt.verbose)
+                opt.gaincoeffs, opt.spillover, opt.aperture_eff, \
+                opt.mainbeam_eff, opt.units, gain_factor, opt.zenithtau,\
+                opt.verbose)
 
         if len(calibrated_integrations):
             calibrated_integrations = np.concatenate((calibrated_integrations,cal_ints))
@@ -241,6 +275,25 @@ def do_sampler(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
     primary = pyfits.PrimaryHDU()
     primary.header = infile[0].header
     
+    # look for the appropriate pipeline version number and write it to
+    #   the primary header history.  if it can't be found, print Unknown.
+    version = 'Unknown'
+    RELEASE_DIR = '/home/gbtpipeline/release'
+    TEST_DIR = '/home/gbtpipeline/integration'
+    VERSION_FILE = '/' + 'VERSION'
+
+    if TEST_DIR in sys.path and os.path.isfile(TEST_DIR + VERSION_FILE):
+        versionfile = open(TEST_DIR + VERSION_FILE)
+        version = versionfile.readline()
+        versionfile.close()
+    elif RELEASE_DIR in sys.path and os.path.isfile(RELEASE_DIR + VERSION_FILE):
+        versionfile = open(RELEASE_DIR + VERSION_FILE)
+        version = versionfile.readline()
+        versionfile.close()
+
+    pipeline_version = 'Pipeline Version: ' + version
+    primary.header.add_history(pipeline_version)
+
     sdfits = pyfits.new_table(pyfits.ColDefs(infile[blockid].columns),nrows=len(calibrated_integrations),fill=1)
 
     # add in virtual columns (keywords)
@@ -289,7 +342,7 @@ def do_sampler(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
     if opt.idlToSdfits_baseline_subtract:
         options = options + ' -w ' + opt.idlToSdfits_baseline_subtract + ' '
         
-    idlcmd = '/opt/local/bin/idlToSdfits -o ' + aipsinname + options + \
+    idlcmd = '/home/gbtpipeline/bin/idlToSdfits -o ' + aipsinname + options + \
              outfilename
 
     doMessage(logger,msg.DBG,idlcmd)
