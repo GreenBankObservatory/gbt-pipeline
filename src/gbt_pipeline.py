@@ -148,15 +148,17 @@ if not os.path.exists(opt.infile):
 
 # -------------------------------------------------  name index file
 
-projdir = "/".join(opt.infile.split('/')[:-1])
-projfile = opt.infile.split('/')[-1]
-projhead = projfile.split('.')[0]
-projname = projdir + "/" + projhead
-indexfile=projname+'.raw.acs.index'
+if opt.infile.endswith('.acs.fits') or opt.infile.endswith('.vegas.fits'):
+    # reverse the filename to only replace '.fits' at the end of the string
+    indexfile = opt.infile[::-1].replace('stif.','xedni.')
+    indexfile = indexfile[::-1]
+else:
+    doMessage(logger,msg.ERR,'input file not recognized as acs or vegas',indexfile)
+    sys.exit(9)
 
 # ------------------------------------------- get sampler mask using index file
 
-doMessage(logger,msg.DBG,'getting mask index',projname+'.raw.acs.index')
+doMessage(logger,msg.DBG,'getting mask index',indexfile)
 masks = get_masks(indexfile,opt.infile)
 doMessage(logger,msg.DBG,'done')
 
