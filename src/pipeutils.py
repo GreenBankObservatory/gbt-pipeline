@@ -1177,7 +1177,7 @@ def string_to_floats(string_list):
 def maptype(firstscan,indexfile,debug=False):
     """Return a string describing the type of the mapping block
 
-    Typically, this will say whether a map if used position-switched (PS) calibration
+    Typically, this will say whether a map used position-switched (PS) calibration
     or frequency-switched (FS) calibration.
 
     Keywords:
