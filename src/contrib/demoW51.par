@@ -1,0 +1,27 @@
+#gbtpipeline parameter file to calibrate a W51 exampl data session
+#HISTORY
+# 111019 GIL use reference data in pipeline release
+
+#setup all commands to completely map a small data set
+-i /home/gbtpipeline/reference-data/TKFPA_29.raw.acs.fits 
+# range of scans to include in map
+-m 14:24 
+# first scan to include as a calibration reference
+--refscan1=13 
+# second scan to include as a calibration reference
+--refscan2=26 
+# calibrate to T main beam
+--units='Tmb' 
+# start with high verbosity
+-v 4
+#  
+#--nodisplay
+--imaging-off
+# flag integrations with RMS excessive RMS noise
+-n 4.0
+#optionally calibrate only selected beams 
+#-f 1,2,3,5,6,7
+#optionally calibrate only selected polarizations
+-p RR
+# --allmaps
+--max-processors 4
