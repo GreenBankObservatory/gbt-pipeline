@@ -43,7 +43,8 @@ opt = cl.read(sys)
 # try to interpret the range of scans provided by the user.
 # automatic map detection works by using scan annotations.
 # for example, reference scans are labeled 'OFF' and map scans
-# are labeled 'MAP'
+# are labeled 'MAP'.  if the scans are not annotated properly,
+# the allmaps option will not work
 if not opt.allmaps:
     try:
         opt.mapscans = pipeutils.parserange(opt.mapscans)
@@ -52,7 +53,7 @@ if not opt.allmaps:
         sys.exit(10)
 
 # numerically sort the map scans, which start as a list of strings,
-# are sorted as integers, then cast back into strings
+# cast as integers, are sorted, then cast back into strings
 opt.mapscans = [ int(xx) for xx in opt.mapscans ]
 opt.mapscans.sort()
 opt.mapscans = [ str(xx) for xx in opt.mapscans ]
@@ -79,7 +80,7 @@ logger = pipeutils.configure_logfile(opt,pipeline_logfile_name)
 
 # ------------------------------------------------- identify imaging script
 
-# look in integration and release contrib directories for imaging script
+# look in integration or release contrib directories for imaging script
 # if no script is found, turn imaging off
 
 RELCONTRIBDIR = '/home/gbtpipeline/release/contrib'

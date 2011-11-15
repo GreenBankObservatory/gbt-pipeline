@@ -393,7 +393,7 @@ def process_a_single_map(scans,masks,opt,infile,samplerlist,\
     for blockid in range(1,len(infile)):
         if allscans[-1] <= infile[blockid].data[-1].field('SCAN'):
             block_found = True
-            doMessage(logger,msg.DBG,'scan',allscans[-1],'found in extension',\
+            doMessage(logger,msg.DBG,'scan',allscans[-1],'expected in extension',\
                       blockid)
             break
     if not block_found:
