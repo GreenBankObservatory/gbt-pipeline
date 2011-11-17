@@ -44,11 +44,13 @@ class CommandLine:
     """
     def __init__(self):
         self.parser = myparser(fromfile_prefix_chars='@',
-            description='Create maps from GBT observations.',
+            description='Calibrate spectra and create maps from GBT observations.',
             formatter_class=argparse.ArgumentDefaultsHelpFormatter,
             epilog="Use @filename.par as a command line parameter to\
             use options from a file.  Any options set on the command\
-            line will override whatever is stored in the file.",)
+            line will override whatever is stored in the file.",
+            prog='gbtpipeline',
+            usage='%(prog)s [options]')
         self.parser.add_argument("-i", "--infile", dest="infile", default='',
                         help="SDFITS file name containing map scans", metavar="FILE")
         self.parser.add_argument("-m", "--map-scans", dest="mapscans", default=[],
@@ -58,7 +60,7 @@ class CommandLine:
         self.parser.add_argument("--imaging-off", dest="imagingoff", action='store_true',
                         default=False, help="If set, will not create images.")
         self.parser.add_argument("-u", "--units", dest="units", default='Ta*',
-                        help="calibration units")                        
+                        help="calibration units")
         self.parser.add_argument("-d", "--sdfits-dir", dest="sdfitsdir", default='',
                         help="SDFITS input directory; used if infile option is not usable",
                         metavar="DIR")
