@@ -2,42 +2,9 @@
 
 AIPS_ROOT=/home/aips
 . $AIPS_ROOT/LOGIN.SH
-$CDNEW
+$CDOLD # use OLD version
 
-. $AIPS_VERSION/SYSTEM/UNIX/DADEVS.SH
+# $CDNEW # use NEW version
+# $CDTST # use TST version
 
-# Check whether AIPS is available.
-if test -z "$AIPS_ROOT"; then
-    echo "$0: cannot proceed, AIPS_ROOT not defined"
-    exit 1
-fi
-
-# Make AIPS data disks and printers available.
-if test -z "$DADEVS_QUIET"; then
-    DADEVS_QUIET=YES
-    export DADEVS_QUIET
-fi
-
-# Make sure Python can find the ParselTongue modules.
-if test -z "$PYTHONPATH"; then
-    PYTHONPATH=/home/gbt1/gbtpipeline/share/parseltongue/python
-else
-    PYTHONPATH=$PYTHONPATH:/home/gbt1/gbtpipeline/share/parseltongue/python
-fi
-
-# Make sure Python can find the Obit modules.
-if test -z "$OBIT_PYTHONPATH"; then
-    OBIT_PYTHONPATH=/home/gbt1/gbtpipeline/Obit/python
-else
-    OBIT_PYTHONPATH=$OBIT_PYTHONPATH:/home/gbt1/gbtpipeline/Obit/python
-fi
-if test -n "${OBIT_PYTHONPATH+set}"; then
-    PYTHONPATH=$PYTHONPATH:$OBIT_PYTHONPATH
-fi
-
-# Run Parseltongue.py for interactive sessions
-PYTHONSTARTUP=/home/gbt1/gbtpipeline/share/parseltongue/python/ParselTongue.py
-export PYTHONPATH PYTHONSTARTUP
-
-echo $PYTHONPATH
-/home/gbt1/gbtpipeline/scratch/build/bin/python $*
+/home/gbt1/gbtpipeline/bin/ParselTongue $*

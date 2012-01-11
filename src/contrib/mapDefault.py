@@ -52,7 +52,6 @@ from Wizardry.AIPSData import AIPSImage as WizAIPSImage
 import sys
 import os
 import math
-import pyfits
 
 argc = len(sys.argv)
 if argc < 2:
@@ -299,7 +298,6 @@ fittp.dataout='PWD:'+outimage
 fittp.go()
 
 gridType = image.header.ctype[0]
-image.zap()
 
 #transfer coordinate back after gridding
 print 'Data Coordinate type: ', xType, yType
@@ -322,24 +320,14 @@ xType = xType + gridType[4:]
 yType = yType + gridType[4:]
 print 'Map Coordinate type: ', xType, yType
 
-#Need to update header on output data file (parselTongue Limitation)
-#update rest frequency 
-fd = pyfits.open(outimage,memmap=1, mode='update')
-hdr = fd[0].header
-hdr.update('RESTFREQ', restFreqHz,'Updated Keyword')
-hdr.update('BUNIT', 'JY/BEAM', 'Calibration units')
-hdr.update('BMAJ', newBmaj, 'Major axis (deg)')
-hdr.update('BMIN', newBmaj, 'Minor axis (deg)')
-hdr.update('CTYPE1', xType, 'X coordinate type')
-hdr.update('CTYPE2', yType, 'Y coordinate type')
-#NITER=1 tells AIPS that flux is measured in appropriate Units
-hdr.update('NITER', 1, 'Number of iterations')
-fd.flush()
-
-#Now reload data with header fixed and put in the same slot
-imlod.outdisk=mydisk
-imlod.datain = fittp.dataout
-imlod.go()
+image.header.restfreq=restFreqHz
+image.header.bunit='JY/BEAM'
+image.header.bmaj=newBmaj
+image.header.bmin=newBmaj
+image.header.ctype[0]=xType
+image.header.ctype[1]=yType
+image.header.niter=1
+image.header.update()
 
 # squash the frequency axis to make a continuum image
 sqash.indisk=mydisk
