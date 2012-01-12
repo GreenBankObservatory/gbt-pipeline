@@ -85,7 +85,7 @@ def do_sampler(cc,sampler,logger,block_found,blockid,samplermap,allscans,\
     obj,centerfreq,feed = mapscan.map_name_vals(scan,sdfitsdata,opt.verbose)
     outfilename = obj + '_' + str(feed) + '_' + \
                 str(allscans[0]) + '_' + str(allscans[-1]) + '_' + \
-                str(centerfreq)[:6] + '_' + sampler + '.fits'
+                str(int(centerfreq * 1.E-6)) + '_MHz_' + sampler + '.fits'
     import warnings
     def send_warnings_to_logger(message, category, filename, lineno, file=None, line=None):
         doMessage(logger,msg.WARN,message)
