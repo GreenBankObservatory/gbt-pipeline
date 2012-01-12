@@ -1,9 +1,12 @@
 #!/bin/bash
 
+echo $0  # identify this script in log files
+
+# initialize AIPS
 AIPS_ROOT=/home/aips
 . $AIPS_ROOT/LOGIN.SH
-$CDOLD # use OLD version
 
+$CDOLD # use OLD version
 # $CDNEW # use NEW version
 # $CDTST # use TST version
 
