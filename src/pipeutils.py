@@ -28,6 +28,7 @@ import subprocess
 import sys
 import logging
 import time
+import glob
 
 import pyfits
 import numpy as np
@@ -449,6 +450,13 @@ def tatm(freqHz, tmpC):
 
     tatm model is provided by Ron Maddalena
 
+    >>> tatm(23e9,40)
+    298.88517422006998
+    >>> tatm(23e9,30)
+    289.78060278466995
+    >>> tatm(1.42e9,30)
+    271.97866556636637
+
     """
 
     # where TMPC = ground-level air temperature in C and Freq is in GHz.
@@ -725,7 +733,7 @@ def check_for_sdfits_file( infile, sdfitsdir, beginscan, endscan,\
         else:
             scanrange = ''
 
-        sdfitsstr = '/opt/local/bin/sdfits -fixbadlags -backends=acs ' + \
+        sdfitsstr = '/opt/local/bin/sdfits -fixbadlags ' + \
                     scanrange + sdfitsdir
 
         if VERBOSE > 0:
@@ -733,7 +741,18 @@ def check_for_sdfits_file( infile, sdfitsdir, beginscan, endscan,\
 
         os.system(sdfitsstr)
         
-        infile = os.path.basename(sdfitsdir) + ".raw.acs.fits"
+        filelist = glob.glob(os.path.basename(sdfitsdir)+'.raw.*fits')
+        if 1==len(filelist):
+            infile = filelist[0]
+        elif len(filelist) > 1:
+            print "ERROR: too many possible SDFITS input files for pipeline"
+            print "    please check input directory for a single"
+            print "    raw fits file with matching index file"
+            sys.exit(3)
+        else:
+            print "ERROR: could not identify an input SDFITS file for the"
+            print "    pipeline.  Please check input directory."
+            sys.exit(5)
 
         # if the SDFITS input file exists, then use it to create the map
         if os.path.isfile(infile):
