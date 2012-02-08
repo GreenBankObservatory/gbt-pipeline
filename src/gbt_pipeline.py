@@ -36,31 +36,37 @@ from process_a_single_map import *
 
 # -----------------------------------  interpret the command line parameters
 
+# create instance of CommandLine object to parse input
 cl = commandline.CommandLine()
+
+# parse all the input parameters and store them as attributes in opt structure
 opt = cl.read(sys)
 
 # if not using automatic map detection
-# try to interpret the range of scans provided by the user.
-# automatic map detection works by using scan annotations.
+# try to interpret the range of scans provided by the user. automatic map
+# detection works by using scan annotations in the 'OBSID' column.
 # for example, reference scans are labeled 'OFF' and map scans
 # are labeled 'MAP'.  if the scans are not annotated properly,
-# the allmaps option will not work
+# the allmaps option will not work.
 if not opt.allmaps:
     try:
+        # if we're not doing auto map detection, parse the list of map scans
         opt.mapscans = pipeutils.parserange(opt.mapscans)
+
     except:
-        print 'ERROR: could not parse range:',opt.mapscans
+        print 'ERROR: could not parse range of map scans (-m):',opt.mapscans
         sys.exit(10)
 
 # numerically sort the map scans, which start as a list of strings,
-# cast as integers, are sorted, then cast back into strings
+# are cast as integers, are sorted, then cast back into strings
 opt.mapscans = [ int(xx) for xx in opt.mapscans ]
 opt.mapscans.sort()
 opt.mapscans = [ str(xx) for xx in opt.mapscans ]
 
-# define the begin and end map scan numbers if the range was set by the user
 beginscan = False
 endscan = False
+
+# define the begin and end map scan numbers
 if opt.mapscans:
     beginscan = opt.mapscans[0]
     endscan = opt.mapscans[-1]
