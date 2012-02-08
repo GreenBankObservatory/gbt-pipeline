@@ -1,0 +1,157 @@
+%%% Preamble
+\documentclass[paper=a4, fontsize=11pt]{scrartcl}	% Article class of KOMA-script with 11pt font and a4 format
+
+\usepackage[english]{babel}															% English language/hyphenation
+\usepackage[protrusion=true,expansion=true]{microtype}				% Better typography
+\usepackage{amsmath,amsfonts,amsthm}										% Math packages
+\usepackage[pdftex]{graphicx}														% Enable pdflatex
+%\usepackage{color,transparent}													% If you use color and/or transparency
+\usepackage[hang, small,labelfont=bf,up,textfont=it,up]{caption}	% Custom captions under/above floats
+\usepackage{epstopdf}																	% Converts .eps to .pdf
+\usepackage{subfig}																		% Subfigures
+\usepackage{booktabs}																	% Nicer tables
+
+
+%%% Advanced verbatim environment
+\usepackage{verbatim}
+\usepackage{fancyvrb}
+\DefineShortVerb{\|}								% delimiter to display inline verbatim text
+
+
+%%% Custom sectioning (sectsty package)
+\usepackage{sectsty}								% Custom sectioning (see below)
+\allsectionsfont{%									% Change font of al section commands
+	\usefont{OT1}{bch}{b}{n}%					% bch-b-n: CharterBT-Bold font
+%	\hspace{15pt}%									% Uncomment for indentation
+	}
+
+\sectionfont{%										% Change font of \section command
+	\usefont{OT1}{bch}{b}{n}%					% bch-b-n: CharterBT-Bold font
+	\sectionrule{0pt}{0pt}{-5pt}{0.8pt}%	% Horizontal rule below section
+	}
+
+
+%%% Custom headers/footers (fancyhdr package)
+\usepackage{fancyhdr}
+\pagestyle{fancyplain}
+\fancyhead{}														% No page header
+\fancyfoot[C]{\thepage}										% Pagenumbering at center of footer
+\fancyfoot[R]{\small \texttt{Version 1.0, \date{2012-02-08}}}	% You can remove/edit this line 
+\renewcommand{\headrulewidth}{0pt}				% Remove header underlines
+\renewcommand{\footrulewidth}{0pt}				% Remove footer underlines
+\setlength{\headheight}{13.6pt}
+
+%%% Equation and float numbering
+\numberwithin{equation}{section}															% Equationnumbering: section.eq#
+\numberwithin{figure}{section}																% Figurenumbering: section.fig#
+\numberwithin{table}{section}																% Tablenumbering: section.tab#
+
+
+%%% Title	
+\title{ \vspace{-1in} 	\usefont{OT1}{bch}{b}{n}
+		\huge \strut GBT Pipeline Requirements and Planning \strut %\\
+%		\Large \bfseries \strut Version 1.0 \strut
+}
+\author{ 									\usefont{OT1}{bch}{m}{n}
+        Joe Masters, Jim Braatz\\		\usefont{OT1}{bch}{m}{n}
+        \texttt{[jmasters,jbraatz]@nrao.edu}
+}
+\date{}
+
+%%% Begin document
+\begin{document}
+\maketitle
+\section{Wish List}
+\begin{enumerate}
+\item Documentation
+  \begin{itemize}
+    \item gbtpipeline online help
+    \item update KFPA Users's guide
+    \item update Pipeline info on GBT Science web
+  \end{itemize}
+\item Data Inspection and Flagging
+  \begin{itemize}
+    \item Autoflag option
+    \item Data Quality feedback (waterfall display?)
+  \end{itemize}
+\item Real time display
+  \begin{itemize}
+    \item Initial check of configuration
+    \item Map display as data comes in
+  \end{itemize}
+\item Baseline Fitting
+  \begin{itemize}
+    \item Specify line-free regions and order of fit in pipeline command
+    \item Auto detection of baseline regions
+  \end{itemize}
+\item Combining Maps
+  \begin{itemize}
+    \item (Weight maps)
+    \item Incremental additions to existing maps
+  \end{itemize}
+\item Accomodating VEGAS
+  \begin{itemize}
+    \item Estimation of required hardware
+  \end{itemize}
+\item Post-imaging analysis tools (priority TBD)
+\item Non-Mapping Observations
+  \begin{itemize}
+    \item Outline what product are needed for various type of observing
+    \begin{itemize}
+      \item Single-position target, deep observations
+      \item Single-position target, spectral scan
+      \item Multi-position target viewable as a point map
+    \end{itemize}
+    \item Prototype in GBTIDL?
+  \end{itemize}
+\item Real-time generation of Processed data
+\item Accomodating L-band maps
+  \begin{itemize}
+    \item Stray radiation; other corrections?
+  \end{itemize}
+\end {enumerate}
+
+Additional mapping ideas for large maps (GIL)
+
+\begin{enumerate}
+\item Some basketweaving strategies fo windowed adjustments of gain and/or baseline level
+  \begin{itemize}
+    \item method for adjusting map zero level for average agreement between different beams and polarizations
+    \item Statistical summaries of final data cubes
+  \end{itemize}
+\item Drift Scan KFPA map
+  \begin {itemize}
+    \item automated summaries of the locations and intensities of map extrema.
+  \end {itemize}
+\end{enumerate}
+
+\section{Requirements}
+Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, sem. 
+
+\section{Timeline}
+Nulla consequat massa quis enim. Donec pede justo, fringilla vel, aliquet nec, vulputate eget, arcu. In enim justo, rhoncus ut, imperdiet a, venenatis vitae, justo. Nullam dictum felis eu pede mollis pretium. Integer tincidunt. Cras dapibus. Vivamus elementum semper nisi. Aenean vulputate eleifend tellus. Aenean leo ligula, porttitor eu, consequat vitae, eleifend ac, enim.
+
+\paragraph{Heading on level 4 (paragraph)}
+Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, sem. Nulla consequat massa quis enim. 
+
+
+\section{Mathematics}
+Let's display some math:
+\begin{align} 
+	\begin{split}
+	(x+y)^3 	&= (x+y)^2(x+y)\\
+					&=(x^2+2xy+y^2)(x+y)\\
+					&=(x^3+2x^2y+xy^2) + (x^2y+2xy^2+y^3)\\
+					&=x^3+3x^2y+3xy^2+y^3
+	\end{split}					
+\end{align}
+
+\begin{align}
+	A = 
+	\begin{bmatrix}
+	A_{11} & A_{21} \\
+  	A_{21} & A_{22}
+	\end{bmatrix}
+\end{align}
+
+\end{document}
