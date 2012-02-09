@@ -24,11 +24,10 @@
 
 # $Id$
 
-import sys
+import sys # for exit and reading command line args
 import os
 import pyfits
-import multiprocessing
-import glob
+import glob # to retrieve list of opacity files from network
 
 import commandline
 import pipeutils
@@ -84,7 +83,7 @@ opt.infile = check_for_sdfits_file(opt.infile, opt.sdfitsdir, beginscan,\
 pipeline_logfile_name = 'pipeline_' + timestamp() + '.log'
 logger = pipeutils.configure_logfile(opt,pipeline_logfile_name)
 
-# ------------------------------------------------- identify imaging script
+# ------------------------------------------------- identify imaging scripts
 
 # look in integration or release contrib directories for imaging script
 # if no script is found, turn imaging off
@@ -168,14 +167,14 @@ if not os.path.exists(opt.infile):
 
 # -------------------------------------------------  name index file
 
-if opt.infile.endswith('.acs.fits') or opt.infile.endswith('.vegas.fits'):
+if opt.infile.endswith('.fits'):
     # reverse the filename to only replace '.fits' at the end of the string
     # the python string replace method works from left to right
     indexfile = opt.infile[::-1].replace('stif.','xedni.',1)
     indexfile = indexfile[::-1]
 else:
-    doMessage(logger,msg.ERR,'input file not recognized as acs or vegas',\
-      indexfile)
+    doMessage(logger,msg.ERR,'input file not recognized as a fits file.',\
+      ' Please check the file extension and change to \'fits\' if necessary.')
     sys.exit(9)
 
 # ------------------------------------------- get sampler mask using index file

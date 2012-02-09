@@ -1028,6 +1028,11 @@ def parserange(rangelist):
     Returns:
     a (list) of integers
 
+    >>> parserange('1:4,6:8,10')
+    ['1', '10', '2', '3', '4', '6', '7', '8']
+    >>> parserange('1:4,-2')
+    ['1', '3', '4']
+
     """
 
     oklist = set([])
@@ -1096,6 +1101,11 @@ def is_inclusive_range(rangelist):
 
     Returns:
     (boolean) stating whether or not the range has exlusive values
+
+    >>> is_inclusive_range('-5')
+    False
+    >>> is_inclusive_range('1:6,-5')
+    True
 
     """
     rangelist = rangelist.replace(' ','')
