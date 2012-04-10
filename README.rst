@@ -12,7 +12,7 @@ observations.
 Project website
 ---------------
 
-https://safe.nrao.edu/wiki/bin/view/Kbandfpa/WebHome
+https://safe.nrao.edu/wiki/bin/view/GB/Gbtpipeline/WebHome
 
 All pipeline code is written in Python.
 
@@ -27,4 +27,4 @@ computer.
 
 jmasters@nrao.edu
 
-*Last modified*:  14 October 2011
+*Last modified*:  10 April 2012
