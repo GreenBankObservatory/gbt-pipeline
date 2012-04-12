@@ -1,0 +1,319 @@
+commit de4dad2954652ce6974c39034b20ad394710add4
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Thu Feb 9 17:02:18 2012 -0500
+
+    Removed explicit backend id from infile check. Added doctests.
+    
+    Previously the input fits file had to end in acs.fits or vegas.fits,
+    but now it just eneds to end in fits.
+    
+    A couple comments were updated.  An error message was updated.
+    An imported and unused module (multiprocessing) was removed from
+    gbt_pipeline.py.  Doctests were added to a couple functions in
+    pipeutils.
+
+commit 2779d5d1e7c7e274b5ed4e1d90e49f8e080aa581
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Wed Feb 8 15:50:59 2012 -0500
+
+    Updated to allow sdfits to run on non-acs data, added doctest for tatm.
+    
+    If necessary, the pipeline can be used to invoke the sdfits filler when
+    SDFITS input is not available.  Previously, when the filler wass run, it explicitly
+    set backend=acs. This was updated to allow vegas (and any other) SDFITS files to be
+    filled as well.
+    
+    We could make it more sophisticated later, but what I just coded up was to not
+    use -backends, then after sdfits is done look to see if there is more than one
+    output SDFITS file.  If so, there is an error and the user is asked to check
+    the input directory and provide only one input to the pipeline.
+
+commit 89e14461e480a9f3c2a9c159f2c7d7678ea3e614
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Wed Feb 8 15:50:27 2012 -0500
+
+    Updated a few comments in gbt_pipeline.py
+
+commit 4e6e62c77c95cc227851bcf3c829e9b5c1b51cd5
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Wed Feb 8 15:49:09 2012 -0500
+
+    Removed extra section from pipeline-report.
+
+commit 8b3c0a3bcdf8e7f44f96aa11dbb3be0e8a3481e8
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Wed Feb 8 12:57:43 2012 -0500
+
+    Added start of pipeline requirements and timeline document.
+    
+    A long-desired document, and one of the recommendations of
+    the OSO Data Management report for GBSO.
+
+commit 325cbae1021122ede60fe62521fa30e6c8ec8e27
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Thu Jan 12 15:45:15 2012 -0500
+
+    Add the full path of doImage to the log files.
+    
+    This way we can know if we used the one in
+    release or test.
+
+commit e97f81fb8a93e2c6c886065412feae629ffa94fb
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Thu Jan 12 14:45:27 2012 -0500
+
+    Updated the frequency in output files to MHz.
+    
+    The calibrated spectra are now formatted as follows:
+    <object>_<feed>_<start map scan>_<end map scan>_<centerfreq>_MHz_<sampler>.fits
+    
+    The output images now include 'MHz' after the frequency.
+
+commit eefe8b7643730182c99d9dd9cf52c513aef23b25
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Wed Jan 11 15:27:13 2012 -0500
+
+    Updated to use system Obit installation, ParselTongue2, old AIPS.
+    
+    ParselTongue2 can be used with the system-side Obit install,
+    although it uses Python2.4.  I removed the pyfits lines from the
+    imaging scripts because they were not needed in the contrib
+    python scripts.  The AIPS sqash task revealed a but after the new
+    year change to a new version.  I changed the doImage script to use
+    the OLD AIPS version for stability and to aviod this problem.
+
+commit e9814cfa4a136ba9718efa76bf9a4d8810a9670f
+Merge: 8b3aede 1996bc2
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Thu Nov 17 16:08:04 2011 -0500
+
+    Merge branch 'master' of github.com:jmasters/gbt-pipeline
+
+commit 1996bc2f3c2f611d3d3da40e3067c2148a027b25
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Thu Nov 17 15:58:04 2011 -0500
+
+    Updated the help output for command line options.
+    
+    The program name is now gbtpipeline instead of
+    gbtpipeline.py and the summary of all the command
+    line options is succinctly presented as [options].
+
+commit 8b3aeded278ff0ccfaaf15f52262e756604a44cc
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Tue Nov 15 16:17:33 2011 -0500
+
+    Added comments, changed one log message.
+
+commit 8c5d953e1800f7d3c8c3a0a1145c1305f9e903fc
+Author: Glen Langston <glangsto@43m-map.(none)>
+Date:   Wed Oct 19 14:19:02 2011 -0400
+
+    Add example pipeline input parameter file for demo W51 data
+
+commit 1d87bceeef79f923b6ba601296c34f94a376a376
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Tue Oct 18 15:44:42 2011 -0400
+
+    Removed duplicate README in source directory
+    
+    There is already a README file one level up the tree.
+
+commit 2636be24e38171587552b6da06c95926d4e3c824
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Fri Oct 14 11:42:24 2011 -0400
+
+    Removed idlToSdfits and dependency directory from repository.
+    
+    It would be better to keep this repository lightwight with pipeline
+    code only.  I previously only wanted to capture the idlToSdits code
+    *somewhere*, but it is better stored elsewhere.
+
+commit 30aed083396f2e125990a071017a2efeb792575f
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Fri Oct 14 11:22:21 2011 -0400
+
+    Updated README to better reflect the current status.
+    
+    The biggest change since the old version is that the pipeline
+    is no longer specific to the KFPA project and both the FS and PS
+    observing modes are supported.
+
+commit bb57e30418a2ca023db614f7346f0041991ead97
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Thu Oct 13 17:40:51 2011 -0400
+
+    Added lots of comments and performed a small amount of cleanup.
+    
+    This is essentially all in the gbt_pipeline file and should
+    improve code readability.
+
+commit 00ce79b36e3fc3e1dffecca598dfb7a0fa8da7c3
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Wed Oct 12 11:47:05 2011 -0400
+
+    Removed obsolete source files
+
+commit 4bcc7405247e7dda82b4d88f32a86a8f756cfa2c
+Merge: 8f4dc02 47d6aa9
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Tue Oct 11 16:39:13 2011 -0400
+
+    Merge branch 'master' of github.com:jmasters/KFPA-Pipeline
+
+commit 8f4dc02eacbf0f5e9511dd5f73eb098d999e9ee4
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Tue Oct 11 16:37:24 2011 -0400
+
+    Update to read input sdfits with 'acs' or 'vegas' in filename.
+    
+    We are going with the assumption that input fits files follow
+    the current naming scheme of <project id>.raw.<backend>.fits
+
+commit 47d6aa92c2d2cce0dcf0dc97ade79e69f0a3fbb3
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Mon Sep 12 21:08:02 2011 -0400
+
+    Bugfix #2 to get the imaging step working again for 32-bit python.
+    
+    This time I'm using a seperate pipeline 32-bit python build until
+    we can get a proper 64-bit install for obit and parseltongue.  This
+    will require some more work, but is the next logical step to have
+    a standalone environment.
+
+commit 9143cc296dc9529624bcea06e779ed6ffa343bf9
+Merge: 29b3b12 59937fe
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Mon Sep 12 14:12:25 2011 -0400
+
+    Merge branch 'master' of github.com:jmasters/KFPA-Pipeline
+
+commit 29b3b129a92d409b75931c0bc8dbe649cc36324f
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Mon Sep 12 14:07:27 2011 -0400
+
+    Bugfix to point to 32-bit version of python for imaging step.
+    
+    When the GB /opt/local/bin/python was upgraded to 64-bit, this step
+    broke because it was expecting a 32-bit build compatible with this Obit
+    32-bit libraries.  I change the step to point to the older, 32-bit version
+    of python, but a more elegant solution is in order.
+
+commit 59937fef95ccd18e033d14b3d487c2551d4e3683
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Thu Jul 28 14:48:03 2011 -0400
+
+    Write pipeline version to primary header history.
+    
+    This shows up in the header of each FITS file containing
+    calibrated spectra but it does not appear in the header of
+    the image cube.
+
+commit c875e52012b4436500e0fcb94ef5e6bc97c78ef2
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Thu Jul 28 14:22:07 2011 -0400
+
+    Use local stable version of idlToSdfits.
+    
+    There is a single version in /home/gbtpipeline/bin/
+
+commit 8428420d6f2821f478555d11052134ee2c493e42
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Mon Jul 11 10:56:32 2011 -0400
+
+    Bug fix to sky model contribution (tsky).
+
+commit 7de20bb8daa746efd2436468a4cbf4529335548d
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Mon Jun 13 14:29:38 2011 -0400
+
+    Updated GPL to NRAO-GB standard from addBoilerPlate script.
+
+commit ccf6f173933d9c330dabec64a4f27393791bede9
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Mon Jun 13 14:13:00 2011 -0400
+
+    Removed files accidentally added in the last commit.
+
+commit a07c5bf35013dfd5f883ce61ef05793906dcdb54
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Mon Jun 13 14:10:25 2011 -0400
+
+    Added GPL to source files.  Added full GPL as COPYING.
+
+commit a5b616d61c9f2dc994bfd5321f42e53f66667b7d
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Mon Jun 13 14:07:57 2011 -0400
+
+    Added GPL to source files.  Added full GPL as COPYING.
+
+commit 5b7e3fb890c54877b3e6f73e2bc5a5d9b448b0a9
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Thu Apr 21 17:34:58 2011 -0400
+
+    Bugfix for FS mode to flip spectra.
+    
+    Need to resolve outstanding fractional shift issue.
+
+commit 48af6228fa3a90a8197c6f098e7d8bdbedf88c1f
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Thu Apr 21 15:02:30 2011 -0400
+
+    Allow setting of zentih opacity value at command line.
+
+commit e804bde00a8599ebb6fcc3908722945f99c40376
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Wed Apr 13 11:38:28 2011 -0400
+
+    Bugfix for last commit.
+    
+    Passed integer and remainder for shift instead of only remainder.
+
+commit 2bdf71b5737baf94ad43c84aeb8028a1027bdb59
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Wed Apr 13 11:25:39 2011 -0400
+
+    Fixed fractional channel shift.
+    
+    It should work on multiple spectra as well as a
+    single spectrum.
+
+commit fe27dc5b5ccb67535c0765180f18917f0a9ae5ef
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Tue Apr 12 17:27:38 2011 -0400
+
+    Fixed a line I missed in the last commit to fix a bug.
+    
+    The low frequency observations were being cut out of tsky
+    calculation.
+
+commit ff502a2caf9025ba4be7ce520e781f1d9d8e1492
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Tue Apr 12 16:46:39 2011 -0400
+
+    Allow calibration above Ta for low frequencies < 6 GHz.
+    
+    Frequencies less than 2 GHz have a zenith opacity of .008.
+
+commit 41e9af78c32b4c3204e2198ccef6d8a189a2afa3
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Tue Apr 12 12:30:46 2011 -0400
+
+    Added several new options, noise diode check and low freq opacity.
+    
+    The user can now set the 0 frequency channel main beam efficiency
+    so that etaMB is computed seperately from aperture efficiency, etaA.
+    
+    The user can also for a FS map to be calibrated as PS.
+    
+    The default zenith opacity for frequencies < 2 GHz is now to
+    to .008.
+    
+    There is a new check to make sure the noise diode is firing for
+    the refscans.
+
+commit 344551baa0123ed182a4f77f5e1cb22140fd3bcc
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Fri Apr 8 12:22:29 2011 -0400
+
+    Added a couple doctest strings.
