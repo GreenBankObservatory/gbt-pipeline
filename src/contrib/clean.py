@@ -38,7 +38,6 @@ from Wizardry.AIPSData import AIPSImage as WizAIPSImage
 import sys
 import os
 import math
-import pyfits
 
 argc = len(sys.argv)
 if argc < 2:
