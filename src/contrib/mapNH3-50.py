@@ -25,7 +25,7 @@ from Wizardry.AIPSData import AIPSImage as WizAIPSImage
 import sys
 import os
 import math
-import pyfits
+import subprocess
 
 argc = len(sys.argv)
 if argc < 2:
@@ -250,12 +250,12 @@ fittp.dataout='PWD:'+outimage
 fittp.go()
 
 #update rest frequency 
-fd = pyfits.open(outimage,memmap=1, mode='update')
-hdr = fd[0].header
-hdr.update('RESTFREQ', restFreqHz,'Updated Keyword')
-hdr.update('BMAJ', newBmaj, 'Major axis (deg)')
-hdr.update('BMIN', newBmaj, 'Minor axis (deg)')
-fd.flush()
+subprocess.call(['fthedit',outimage,'RESTFREQ','add',str(restFreqHz),\
+    "comment='Updated Keyword'"])
+subprocess.call(['fthedit',outimage,'BMAJ','add',str(newBmaj),\
+    "comment='Major axis (deg)'"])
+subprocess.call(['fthedit',outimage,'BMIN','add',str(newBmaj),\
+    "comment='Minor axis (deg)'"])
 
 # squash the frequency axis to make a continuum image
 sqash.indisk=mydisk
@@ -281,12 +281,13 @@ fittp.dataout='PWD:'+outimage
 fittp.go()
 
 #write KEYWORD parameters to output file
-fd = pyfits.open(outimage,memmap=1, mode='update')
-hdr = fd[0].header
-hdr.update('RESTFREQ', restFreqHz,'Updated Keyword')
-hdr.update('BMAJ', newBmaj, 'Major axis (deg)')
-hdr.update('BMIN', newBmaj, 'Minor axis (deg)')
-fd.flush()
+subprocess.call(['fthedit',outimage,'RESTFREQ','add',str(restFreqHz),\
+    "comment='Updated Keyword'"])
+subprocess.call(['fthedit',outimage,'BMAJ','add',str(newBmaj),\
+    "comment='Major axis (deg)'"])
+subprocess.call(['fthedit',outimage,'BMIN','add',str(newBmaj),\
+    "comment='Minor axis (deg)'"])
+
 
 #Run trans task on sdgrd file to prepare for the Moment map
 trans.indisk=mydisk
@@ -346,10 +347,11 @@ fittp.dataout='PWD:'+outimage
 fittp.go()
 
 #write KEYWORD parameters to output file
-fd = pyfits.open(outimage,memmap=1, mode='update')
-hdr = fd[0].header
-hdr.update('RESTFREQ', restFreqHz,'Updated Keyword')
-hdr.update('BMAJ', newBmaj, 'Major axis (deg)')
-hdr.update('BMIN', newBmaj, 'Minor axis (deg)')
-fd.flush()
+subprocess.call(['fthedit',outimage,'RESTFREQ','add',str(restFreqHz),\
+    "comment='Updated Keyword'"])
+subprocess.call(['fthedit',outimage,'BMAJ','add',str(newBmaj),\
+    "comment='Major axis (deg)'"])
+subprocess.call(['fthedit',outimage,'BMIN','add',str(newBmaj),\
+    "comment='Minor axis (deg)'"])
+
 

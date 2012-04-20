@@ -13,7 +13,7 @@ from Wizardry.AIPSData import AIPSImage as WizAIPSImage
 import sys
 import os
 import math
-import pyfits
+import subprocess
 
 argc = len(sys.argv)
 if argc < 2:
@@ -27,9 +27,8 @@ if argc < 2:
 myImage = sys.argv[1]
 
 #update rest frequency 
-fd = pyfits.open(myImage, memmap=1, mode='update')
-hdr = fd[0].header
-hdr.update('CTYPE1', 'GLON-GLS', 'X-Coordinate Type: Galactic')
-hdr.update('CTYPE2', 'GLAT-GLS', 'X-Coordinate Type: Galactic')
-fd.flush()
+subprocess.call(['fthedit',myImage,'CTYPE1','add','GLON-GLS',\
+    "comment='X-Coordinate Type: Galactic'"])
+subprocess.call(['fthedit',myImage,'CTYPE2','add','GLAT-GLS',\
+    "comment='X-Coordinate Type: Galactic'"])
 

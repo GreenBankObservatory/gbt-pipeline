@@ -6,6 +6,9 @@ echo $0  # identify this script in log files
 AIPS_ROOT=/home/aips
 . $AIPS_ROOT/LOGIN.SH
 
+# initialize futils
+source /home/apps/headas-linux/lhea-init.sh
+
 $CDOLD # use OLD version
 # $CDNEW # use NEW version
 # $CDTST # use TST version
