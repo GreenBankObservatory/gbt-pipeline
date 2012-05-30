@@ -52,23 +52,24 @@ AIPS.userno=int(sys.argv[1])    # retrieve AIPS pipeline user number
 mydisk=2                        # choose a good default work disk
 baddisk=1                       # list a disk to avoid (0==no avoidance)
 
-#AIPSCat().zap()                 # empty the catalog
+catalog = AIPSCat()[mydisk]
+catalog_size = len(catalog)
 
-kount = 100
-for i in range(2,kount):
-    aname = AIPSCat()[mydisk][-1].name
-    aclass = AIPSCat()[mydisk][-1].klass
-    aseq = AIPSCat()[mydisk][-1].seq
-    # print i, j, aname, aclass, aseq
+print 'catalog_size',catalog_size
+
+for xx in range(catalog_size):
+
+    aname = AIPSCat()[mydisk][xx].name
+    aclass = AIPSCat()[mydisk][xx].klass
+    aseq = AIPSCat()[mydisk][xx].seq
+
     spectra = AIPSUVData( aname, aclass, mydisk, aseq)
+    image = AIPSImage( aname, aclass, mydisk, aseq)
+
     if spectra.exists():
         spectra.clrstat()
-        spectra.zap()
-    else:
-        image = AIPSImage( aname, aclass, mydisk, aseq)
-        if image.exists():
-            image.clrstat()
-            image.zap()
-        else:
-            exit()
+    elif image.exists():
+        image.clrstat()
+
+AIPSCat().zap()                 # empty the catalog
 
