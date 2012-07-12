@@ -9,6 +9,7 @@ from scipy import signal
 import sys
 from collections import OrderedDict
 import os
+import argparse
 
 ONEPLOT = False
 DEBUG = False
@@ -23,26 +24,26 @@ POL ={  -1:'RR',-2:'LL',
 def polnum2char(num):
     return POL[num]
 
-def flag_rfi(spectrum):
+def flag_rfi(spectrum,niter,nsigma,medfilt_size):
     """
     flag channels with narrow band RFI
     
-    """
-    NITER = 10 # number of iterations
+    nsigma  # number of standard deviations
+    niter   # number of iterations
+    medfilt_size # median filter window
     
-    NSIGMA = 3  # number of standard deviations
-    FILTWIN = 15 # median filter window
+    """
     
     sig = np.ma.array(spectrum)
-    sig_smoothed = signal.medfilt(sig,FILTWIN)
+    sig_smoothed = signal.medfilt(sig,medfilt_size)
 
-    while NITER>0:
+    while niter>0:
 
         sd = (sig-sig_smoothed).std()
         spikes = abs(sig-sig_smoothed)
-        mask = (spikes > (NSIGMA*sd)).data 
+        mask = (spikes > (nsigma*sd)).data 
         sig.mask = np.logical_or( sig.mask, mask)
-        NITER-=1
+        niter-=1
     
     return sig.mask
 
@@ -177,11 +178,28 @@ def mask(data,args):
 
 if __name__ == "__main__":
 
-    FILENAME = sys.argv[1]
+    parser = argparse.ArgumentParser(description='Run the spectral pipeline')
+    parser.add_argument('-i','--infile', dest="FILENAME",help='input file name')
+    parser.add_argument('--rfi-iterations', dest="niter", metavar='N',default=10,
+                       help='number of iterations for narrow-band RFI smoothing')
+    parser.add_argument('--rfi-spike-threshold',dest='nsigma',default=3,
+                        help='number of sigma threshold for narrow RFI spikes')
+    parser.add_argument('--median-filter-size', dest='medfilt_size',default=15,
+                       help='median filter window size for narrow-band rfi flagging')
+    parser.add_argument('--hanning-window-size', dest='hanning_win',default=5,
+                       help='hanning window size for smoothing ')
+    parser.add_argument('--aperture-efficiency',dest='eta_a',default=.71,
+                        help='aperture efficiency')
+    parser.add_argument('--etal-correction',dest='eta_l',default=.99,
+                        help='correction factor for rear spillover, ohmic loss and blockage efficiency')
+    parser.add_argument('--atmospheric-opacity',dest='tau',default=.008,
+                        help='atmospheric opacity')
+    #parser.add_argument('--baseline-region',dest='baseline_reg',
+    #                    help='baseline region')
     
-    HANNING_WIN = 5
+    args = parser.parse_args()
 
-    raw = pyfits.open(FILENAME)
+    raw = pyfits.open(args.FILENAME)
     targets = {}
     for target_name in set(raw[1].data['OBJECT']):
         targets[target_name] = mask_data(raw[1].data, {'OBJECT':target_name })
@@ -263,8 +281,8 @@ if __name__ == "__main__":
                 TargOff = mask_data(TargData,{ 'CAL':'F' })
                 # spectrum for each integration averaged calON and calOFF
                 # for Target
-                TargOnData = smooth_hanning(TargOn['DATA'],HANNING_WIN)
-                TargOffData = smooth_hanning(TargOff['DATA'],HANNING_WIN)
+                TargOnData = smooth_hanning(TargOn['DATA'],args.hanning_win)
+                TargOffData = smooth_hanning(TargOff['DATA'],args.hanning_win)
                 Targ = (TargOnData+TargOffData)/2.
 
                 # pyfits data object for 
@@ -273,14 +291,14 @@ if __name__ == "__main__":
                 RefOff = mask_data(RefData,{ 'CAL':'F' })
                 # spectrum for each integration averaged calON and calOFF
                 # for Reference
-                RefOnData = smooth_hanning(RefOn['DATA'],HANNING_WIN)
-                RefOffData = smooth_hanning(RefOff['DATA'],HANNING_WIN)
+                RefOnData = smooth_hanning(RefOn['DATA'],args.hanning_win)
+                RefOffData = smooth_hanning(RefOff['DATA'],args.hanning_win)
                 Ref = (RefOnData+RefOffData)/2.
                 
                 # flag channels with narrow band RFI
                 # This produces a single RFI mask, to be applied later
-                targ_rfi_mask = flag_rfi(Targ.mean(0))
-                ref_rfi_mask = flag_rfi(Ref.mean(0))
+                targ_rfi_mask = flag_rfi(Targ.mean(0),args.niter,args.nsigma,args.medfilt_size)
+                ref_rfi_mask = flag_rfi(Ref.mean(0),args.niter,args.nsigma,args.medfilt_size)
                 rfi_mask = np.logical_or(targ_rfi_mask,ref_rfi_mask)
                 
                 Tcal = RefData['TCAL'].mean()
@@ -302,9 +320,9 @@ if __name__ == "__main__":
                 Ta = Tsys * ( (Targ - Ref) / Ref )
                 
                 elevation = TargData['ELEVATIO'].mean()
-                eta_a = .71
-                eta_l = .99
-                tau = .008
+                eta_a = args.eta_a
+                eta_l = args.eta_l
+                tau = args.tau
                 Jy = Ta/2.85 * (np.e**(tau/np.sin(elevation)))/(eta_a*eta_l)
                 
                 cal = Jy
@@ -348,7 +366,7 @@ if __name__ == "__main__":
                 rebinned = rebin_1d(cal_masked.mean(0),binsize=binsize)
                 # reshape the velocity axis as well
                 vel = rebin_1d(velo,binsize=binsize)
-                rebinned.mask = flag_rfi(rebinned)
+                rebinned.mask = flag_rfi(rebinned,args.niter,args.nsigma,args.medfilt_size)
                 
                 #!!!!!!!!!!!!!!!!!!!!!!!  don't assume order
                 yfit = fit_baseline(rebinned,order=3)
@@ -388,7 +406,7 @@ if __name__ == "__main__":
             at = AnchoredText(target_id,loc=2, frameon=False,\
                 prop=dict(size=22))
             ax.add_artist(at)
-            title(FILENAME+ '\n' + target_id)
+            title(args.FILENAME+ '\n' + target_id)
             xlabel('velocity (km/s)')
             ylabel('Jy')
             tick_params(labelsize=22)
@@ -407,13 +425,13 @@ if __name__ == "__main__":
     
     # -------------------------------------- one figure for all spectra
     if ONEPLOT:
-        pylab.suptitle(FILENAME)
+        pylab.suptitle(args.FILENAME)
         pylab.figtext(.5,.02,'velocity (km/s)')
         pylab.figtext(.02,.5,'Jy',rotation='vertical')
-        pylab.savefig(os.path.basename(FILENAME)+'.svg')
+        pylab.savefig(os.path.basename(args.FILENAME)+'.svg')
  
     hdulist = pyfits.HDUList([primary,sdfits])
-    hdulist.writeto(os.path.basename(FILENAME)+'.reduced.fits',clobber=True)
+    hdulist.writeto(os.path.basename(args.FILENAME)+'.reduced.fits',clobber=True)
     hdulist.close()
     del hdulist
 
