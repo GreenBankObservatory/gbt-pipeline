@@ -24,14 +24,37 @@ class Calibration:
         return calON - calOFF
 
     def Csig(self,calON,calOFF):  # part of eqn. (5) in PS spec
-        return np.mean((calON,calOFF),axis=0)
+        if 0 == len(calON) and len(calOFF) > 0:
+            return calOFF
+        elif 0 == len(calON) and 0 == len(calOFF):
+            print 'No integrations provided to Csig method'
+            raise
+        else:
+            return np.mean((calON,calOFF),axis=0)
 
     # eqn. (11) in PS spec
     def aperture_efficiency(self,reference_etaA,freqHz):
+        """Determine aperture efficiency
+        
+        Keyword attributes:
+        freqHz -- input frequency in Hz
+    
+        Returns:
+        eta -- point or main beam efficiency (range 0 to 1)
+        
+        EtaA model is from memo by Jim Condon, provided by Ron Maddalena
+    
+        >>> aperture_efficiency(.71, 23e9)
+        0.64748265789117276
+    
+        >>> aperture_efficiency(.91, 23e9)
+        0.82987213898727774
+        """
+      
         freqGHz = float(freqHz)/1e9
         return reference_etaA * math.e**-((self.BB * freqGHz)**2)
         
-    def gain(self,gain_coeff,elevation):
+    def gain(self, gain_coeff, elevation):
         # comput gain based on elevation, eqn. (12) in PS specification
         gain = 0
         zz = 90. - elevation
@@ -240,7 +263,72 @@ class Calibration:
         shifted = shifted[:,:N_CHANNELS_start]
     
         return abs(shifted)
+
+    def retrieve_opacity_coefficients(self, opacity_coefficients_filename):
+        """Return opacities (taus) derived from a list of coeffients
+        
+        These coefficients are produced from Ron Madalenna's getForecastValues script
+        
+        Keywords:
+        infilename -- input file name needed for project name
+        mjd -- date for data
+        freq -- list of frequencies for which we seek an opacity
+        
+        Returns:
+        a list of opacity coefficients for the time range of the dataset
+        
+        """
+        FILE = open(opacity_coefficients_filename,'r')
     
+        coeffs = []
+        if FILE:
+            for line in FILE:
+                # find the most recent forecast and parse out the coefficients for 
+                # each band
+                # coeffs[0] is the mjd timestamp
+                # coeffs[1] are the coefficients for 2-22 GHz
+                # coeffs[2] are the coefficients for 22-50 GHz
+                # coeffs[3] are the coefficients for 70-116 GHz
+                coeffs.append((float(line.split('{{')[0]),\
+                    [float(xx) for xx in line.split('{{')[1].split('}')[0].split(' ')],\
+                    [float(xx) for xx in line.split('{{')[2].split('}')[0].split(' ')],\
+                    [float(xx) for xx in line.split('{{')[3].split('}')[0].split(' ')]))
+                   
+        else:
+            if opt.verbose > 1:
+                print "WARNING: Could not read coefficients for Tau in",opacity_coefficients_filename
+            return False
+    
+        return coeffs
+
+    def zenith_opacity_per_frequency(self, coeffs, freqs):
+        """Interpolate low and high opacities across a vector of frequencies
+    
+        Keywords:
+        coeffs -- (list) opacitiy coefficients from archived text file, produced by
+            GBT weather prediction code
+        freqs -- (list) of frequency values in GHz
+    
+        Returns:
+        A (numpy 1d array) of a zenith opacity at each requested frequency.
+        
+        """
+        # interpolate between the coefficients based on time for a given frequency
+        def interpolated_zenith_opacity(f):
+            # for frequencies < 2 GHz, return a default zenith opacity
+            if np.array(f).mean() < 2:
+                result = np.ones(np.array(f).shape)*0.008
+                return result
+            result=0
+            for idx,term in enumerate(coeffs):
+                if idx>0: result = result + term*f**idx
+                else:
+                    result=term
+            return result
+    
+        zenith_opacities = [ interpolated_zenith_opacity(f) for f in freqs ]
+        return np.array(zenith_opacities)
+        
     # -------------- Functional methods: depend on underlying methods
     
     # same as Tsys for the reference scan
@@ -251,8 +339,9 @@ class Calibration:
         return Tref * ((Csig-Cref)/Cref)
     
     # eqn. (13) in PS spec
-    def TaStar(self,Tsrc,beam_scaling,opacity,gain,elevation):
-        gain = self.gain(self.GAIN_COEFFICIENTS,elevation)
+    def TaStar(self, Tsrc, beam_scaling, opacity, gain, elevation):
+        if not gain:
+            gain = self.gain(self.GAIN_COEFFICIENTS, elevation)
         return Tsrc*((beam_scaling*(math.e**opacity))/(self.SPILLOVER*gain))
         
     def jansky(self,TaStar,aperture_efficiency): # eqn. (16) in PS spec
@@ -260,7 +349,7 @@ class Calibration:
     
     
     # eqn. (6) and eqn. (7) is PS spec
-    def refInterp(self,reference1, reference2,
+    def interpolate_by_time(self,reference1, reference2,
                    firstRef_timestamp, secondRef_timestamp,
                    integration_timestamp):
         
@@ -268,3 +357,27 @@ class Calibration:
         a1 =  (secondRef_timestamp-integration_timestamp) / time_btwn_ref_scans
         a2 =  (integration_timestamp-firstRef_timestamp)  / time_btwn_ref_scans
         return a1*reference1 + a2*reference2
+
+    def getReferenceAverage(self, crefs, trefs, exposures, timestamps):
+        
+        # middle 80%
+        number_of_data_channels = len(crefs[0])
+        lo = int(.1*number_of_data_channels)
+        hi = int(.9*number_of_data_channels)
+        
+        # convert to numpy arrays
+        crefs = np.array(crefs)
+        trefs = np.array(trefs)
+        exposures = np.array(exposures)
+        timestamps = np.array(timestamps)
+        
+        tref80s = trefs[:,lo:hi].mean(axis=1)
+        weights = exposures / tref80s**2
+        avgTref = np.average(trefs[:,lo:hi],axis=0,weights=weights)
+        
+        avgTref80 = avgTref.mean(0) # single value for mid 80% of band
+        avgCref = np.average(crefs,axis=0,weights=weights)
+        
+        avgTimestamp = timestamps.mean()
+        
+        return avgCref, avgTref80, avgTimestamp

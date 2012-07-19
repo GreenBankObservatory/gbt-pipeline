@@ -5,10 +5,10 @@ from Calibration import Calibration
 
 class CalibrationUnitTests(unittest.TestCase):
     
-    # -------------------------------------------------------- Unit Tests
-    
     def setUp(self):
 
+        # values to be used for testing
+        
         self.calONSig = np.array([0.6152100923665527, 0.500503480229196,
                                   0.14375595767163507])
         self.calOFFSig = np.array([0.8536594292721693, 0.968031662525558,
@@ -126,6 +126,63 @@ class CalibrationUnitTests(unittest.TestCase):
              0.9767073343655476, 0.7113385132940765, 0.8574580502212051,
              0.5579028921151957]])
         np.testing.assert_equal(result, expected_result)
+
+class Weather(unittest.TestCase):
+    
+    def setUp(self):
         
+        # create a fake weather file here?
+        pass
+    
+    def test_retrieve_opacity_coefficients(self):
+        
+        #result = retrieve_opacity_coefficients(opacity_coefficients_filename)
+        #expected result = 
+        assert True == False
+        
+    def test_zenith_opacity_per_frequency(self):
+        #zenith_opacity_per_frequency(self, coeffs, freqs)
+        assert True == False
+        
+class FitsIO(unittest.TestCase):
+    
+    def setUp(self):
+        
+        #create or use a sdfits index file and FITS file
+        pass
+    
+    def test_check_for_sdfits_file( self ):
+        #check_for_sdfits_file( self, infile, sdfitsdir, beginscan, endscan,\
+                               #refscan1, refscan2, VERBOSE )
+        assert True == False
+        
+    def test_get_start_mjd(self):
+        #get_start_mjd(self, indexfile,verbose=0)
+        assert True == False
+        
+    def test_get_masks(self):
+        #get_masks(self, indexfile,fitsfile=None,samplers=[],verbose=0)
+        assert True == False
+        
+    def test_get_maps_and_samplers(self):
+        #get_maps_and_samplers(self, allmaps,indexfile,debug=False)
+        assert True == False
+    
+class LoggingTests(unittest.TestCase):
+    
+    
+    def test_timestamp(self):
+        #timestamp(self)
+        assert True == False
+        
+    def test_doMessage(self):
+        #doMessage(self,logger,level,*args)
+        assert True == False
+        
+    def test_configure_logfile(self):
+        
+        #configure_logfile(self, opt,logfilename,toconsole=True):
+        assert True == False
+            
 if __name__ == '__main__':
     unittest.main()

@@ -101,9 +101,11 @@ class CalibrationFunctionalTests(unittest.TestCase):
         
         integration_timestamp = 1350.
         
-        result = self.calibration.refInterp(reference_scan1, reference_scan2,
-                                      firstRef_timestamp, secondRef_timestamp,
-                                      integration_timestamp)
+        result = self.calibration.interpolate_by_time(reference_scan1,
+                                                      reference_scan2,
+                                                      firstRef_timestamp,
+                                                      secondRef_timestamp,
+                                                      integration_timestamp)
         expected_result = np.array((13.5,13.5,13.5))
         np.testing.assert_equal(result, expected_result)
 
@@ -117,9 +119,11 @@ class CalibrationFunctionalTests(unittest.TestCase):
         
         integration_timestamp = 1500.
         
-        result = self.calibration.refInterp(reference_Tref1, reference_Tref2,
-                                      firstRef_timestamp, secondRef_timestamp,
-                                      integration_timestamp)
+        result = self.calibration.interpolate_by_time(reference_Tref1,
+                                                      reference_Tref2,
+                                                      firstRef_timestamp,
+                                                      secondRef_timestamp,
+                                                      integration_timestamp)
         expected_result = 45.
         assert result == expected_result
 
