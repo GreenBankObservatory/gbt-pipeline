@@ -27,6 +27,6 @@ if __name__ == '__main__':
 
     # -------------- calibrate signal scans
     for scan in (14,15,16,17,18,19,20):
-        pipe.CalibrateSdfitsScanToTaStar( scan, feed, window, pol, \
+        pipe.CalibrateSdfitsScan( scan, feed, window, pol, \
                refSpectrum1, refTimestamp1, refTsys1, \
-               refSpectrum2, refTimestamp2, refTsys2 )
+               refSpectrum2, refTimestamp2, refTsys2, units='ta*' )

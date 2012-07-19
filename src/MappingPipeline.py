@@ -62,9 +62,9 @@ class MappingPipeline:
         
         return avgCref,avgTref,avgTimestamp
         
-    def CalibrateSdfitsScanToTa(self, scan, feed, window, pol, \
+    def CalibrateSdfitsScan(self, scan, feed, window, pol, \
                           avgCref1, crefTime1, avgTref1, \
-                          avgCref2, crefTime2, avgTref2):
+                          avgCref2, crefTime2, avgTref2, units):
         
         signalRows = self.rowList.get(scan, feed, window, pol)
     
@@ -72,68 +72,10 @@ class MappingPipeline:
         rows = signalRows['ROW']
         
         tas = []
-        calON = None
-        calOFF = None
-        count = 0
-        for idx in rows:
-            row = self.fd[ext].data[idx]
-            
-            if row.field('CAL') == 'T':
-                calON = row
-            else:
-                calOFF = row
-            
-            if calOFF and calON:
-                
-                csig = self.cal.Csig(calON.field('DATA'), calOFF.field('DATA'))
-                intTime = self.pu.dateToMjd( calOFF.field('DATE-OBS') )
-
-                # used these, so clear for the next iteration
-                calOFF = None
-                calON = None
-
-                if avgCref2!=None and crefTime2!=None:
-                    crefInterp = \
-                        self.cal.interpolate_by_time(avgCref1, avgCref2,
-                                                     crefTime1, crefTime2, intTime)
-                    
-                    avgTref = \
-                        self.cal.interpolate_by_time(avgTref1, avgTref2,
-                                                     crefTime1, crefTime2, intTime)
-    
-                    ta = self.cal.Ta(avgTref, csig, crefInterp )
-                else:
-                    ta = self.cal.Ta(avgTref1, csig, avgCref1 )
-                tas.append(ta)
-
-                chans = len(ta)
-                lo = int(.1*chans)
-                hi = int(.9*chans)
-                if ta[lo:hi].mean()>5:
-                    plot(ta,label=str(count)+' tsys('+str(avgTref)+')')  # look into adding weights
-                    legend(title='integration')
-                count=count+1
-                
-        tas = np.array(tas)
-        
-        plot(tas.mean(0),label=str(scan))  # look into adding weights
-        legend(title='scan')
-        savefig('avgTa.png')
-        
-    def CalibrateSdfitsScanToTaStar(self, scan, feed, window, pol, \
-                          avgCref1, crefTime1, avgTref1, \
-                          avgCref2, crefTime2, avgTref2):
-        
-        signalRows = self.rowList.get(scan, feed, window, pol)
-    
-        ext = signalRows['EXTENSION']
-        rows = signalRows['ROW']
-        
         tastars = []
+        ref_tsyss = []
         calON = None
         calOFF = None
-        tsyss = []
-        count = 0
         for idx in rows:
             row = self.fd[ext].data[idx]
             
@@ -162,21 +104,30 @@ class MappingPipeline:
                                                      crefTime1, crefTime2, intTime)
     
                     ta = self.cal.Ta(avgTref, csig, crefInterp )
-                    tsyss.append(avgTref)
                 else:
                     ta = self.cal.Ta(avgTref1, csig, avgCref1 )
-                    tsyss.append(avgTref1)
+                    
+                tas.append(ta)
+                ref_tsyss.append(avgTref1)
 
-                tastar = self.cal.TaStar(ta, beam_scaling=1, opacity=0.032, gain=None, elevation=elevation)
-                count = count+1
-                tastars.append(tastar)
-                
-        tastars = np.array(tastars)
-        tsyss = np.array(tsyss)
-        
-        plot(tastars.mean(0),label=str(scan)+' tsys('+str(tsyss.mean())+')')  # look into adding weights
-        legend(title='integration')
-        savefig('avgTaStar.png')
+                if units=='ta*' or units=='tmb' or units=='tb*' or units=='jy':
+                    tastar = self.cal.TaStar(ta, beam_scaling=1, opacity=0.032, gain=None, elevation=elevation)
+                    tastars.append(tastar)
+
+        if units=='ta':
+            tas = np.array(tas)
+            calibrated_integrations = tas
+            
+        if units=='ta*':
+            tastars = np.array(tastars)
+            calibrated_integrations = tastars
+                    
+        ref_tsyss = np.array(ref_tsyss)
+        plot(calibrated_integrations.mean(0),label=str(scan)+' tsys('+str(ref_tsyss.mean())[:5]+')')  # look into adding weights
+        ylabel(units)
+        xlabel('channel')
+        legend(title='scan',loc='upper right')
+        savefig('calibratedScans.png')
 
     def __del__(self):
             
