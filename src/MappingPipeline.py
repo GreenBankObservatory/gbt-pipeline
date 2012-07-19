@@ -74,7 +74,7 @@ class MappingPipeline:
         tas = []
         calON = None
         calOFF = None
-        
+        count = 0
         for idx in rows:
             row = self.fd[ext].data[idx]
             
@@ -92,16 +92,27 @@ class MappingPipeline:
                 calOFF = None
                 calON = None
 
-                crefInterp = \
-                    self.cal.interpolate_by_time(avgCref1, avgCref2,
-                                                 crefTime1, crefTime2, intTime)
-                
-                avgTref = \
-                    self.cal.interpolate_by_time(avgTref1, avgTref2,
-                                                 crefTime1, crefTime2, intTime)
-
-                ta = self.cal.Ta(avgTref, csig, crefInterp )
+                if avgCref2!=None and crefTime2!=None:
+                    crefInterp = \
+                        self.cal.interpolate_by_time(avgCref1, avgCref2,
+                                                     crefTime1, crefTime2, intTime)
+                    
+                    avgTref = \
+                        self.cal.interpolate_by_time(avgTref1, avgTref2,
+                                                     crefTime1, crefTime2, intTime)
+    
+                    ta = self.cal.Ta(avgTref, csig, crefInterp )
+                else:
+                    ta = self.cal.Ta(avgTref1, csig, avgCref1 )
                 tas.append(ta)
+
+                chans = len(ta)
+                lo = int(.1*chans)
+                hi = int(.9*chans)
+                if ta[lo:hi].mean()>5:
+                    plot(ta,label=str(count)+' tsys('+str(avgTref)+')')  # look into adding weights
+                    legend(title='integration')
+                count=count+1
                 
         tas = np.array(tas)
         
@@ -121,7 +132,8 @@ class MappingPipeline:
         tastars = []
         calON = None
         calOFF = None
-        
+        tsyss = []
+        count = 0
         for idx in rows:
             row = self.fd[ext].data[idx]
             
@@ -140,22 +152,30 @@ class MappingPipeline:
                 calOFF = None
                 calON = None
 
-                crefInterp = \
-                    self.cal.interpolate_by_time(avgCref1, avgCref2,
-                                                 crefTime1, crefTime2, intTime)
-                
-                avgTref = \
-                    self.cal.interpolate_by_time(avgTref1, avgTref2,
-                                                 crefTime1, crefTime2, intTime)
+                if avgCref2!=None and crefTime2!=None:
+                    crefInterp = \
+                        self.cal.interpolate_by_time(avgCref1, avgCref2,
+                                                     crefTime1, crefTime2, intTime)
+                    
+                    avgTref = \
+                        self.cal.interpolate_by_time(avgTref1, avgTref2,
+                                                     crefTime1, crefTime2, intTime)
+    
+                    ta = self.cal.Ta(avgTref, csig, crefInterp )
+                    tsyss.append(avgTref)
+                else:
+                    ta = self.cal.Ta(avgTref1, csig, avgCref1 )
+                    tsyss.append(avgTref1)
 
-                ta = self.cal.Ta(avgTref, csig, crefInterp )
                 tastar = self.cal.TaStar(ta, beam_scaling=1, opacity=0.032, gain=None, elevation=elevation)
+                count = count+1
                 tastars.append(tastar)
                 
         tastars = np.array(tastars)
+        tsyss = np.array(tsyss)
         
-        plot(tastars.mean(0),label=str(scan)+' tsys('+str(avgTref)+')')  # look into adding weights
-        legend(title='scan')
+        plot(tastars.mean(0),label=str(scan)+' tsys('+str(tsyss.mean())+')')  # look into adding weights
+        legend(title='integration')
         savefig('avgTaStar.png')
 
     def __del__(self):

@@ -417,9 +417,11 @@ class SdFitsIO:
         #lo = int(.1*number_of_data_channels)
         #hi = int(.9*number_of_data_channels)
         #idl_tsys =  tcal * (calOFF.field('DATA')[lo:hi]).mean() / (calON.field('DATA')[lo:hi]-calOFF.field('DATA')[lo:hi]).mean() + tcal/2.
+        #print idl_tsys
+        #idl_tsys =  tcal * calOFF.field('DATA') / (calON.field('DATA')-calOFF.field('DATA')) + tcal/2.
         #----------------
     
         exposure = calON.field('EXPOSURE') + calOFF.field('EXPOSURE')
         
         return cref,tref,exposure,timestamp
-    
+   

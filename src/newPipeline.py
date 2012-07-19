@@ -5,6 +5,13 @@ if __name__ == '__main__':
     FILENAME = '/media/980d0181-4160-4bbf-8c3d-3d370f24fefd/data/TKFPA_29/TKFPA_29.raw.acs.'
     
     pipe = MappingPipeline(FILENAME)
+    
+    refSpectrum1 = None
+    refTsys1 = None
+    refTimestamp1 = None
+    refSpectrum2 = None
+    refTsys2 = None
+    refTimestamp2 = None
 
     feed=0
     window=0

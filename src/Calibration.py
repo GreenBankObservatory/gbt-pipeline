@@ -13,7 +13,7 @@ class Calibration:
         # set calibration constants
         self.BB = .0132  # Ruze equation parameter
         self.SPILLOVER = .99  # rear spillover, ohmic loss, blockage (etaL)
-        self.GAIN_COEFFICIENTS = [.0910,.00434,-5.22e-5,0]
+        self.GAIN_COEFFICIENTS = [.910,.00434,-5.22e-5,0]
     
     # ------------- Unit methods: do not depend on any other pipeline methods
 
