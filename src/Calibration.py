@@ -381,3 +381,21 @@ class Calibration:
         avgTimestamp = timestamps.mean()
         
         return avgCref, avgTref80, avgTimestamp
+
+    def tsky(self, ambient_temp_k, freqHz, tau):
+        """Determine the sky temperature contribution at a frequency
+        
+        Keywords:
+        ambient_temp_k -- (float) mean ambient temperature value, in kelvin
+        freq -- (float)
+        tau -- (float) opacity value
+        Returns:
+        the sky model temperature contribution at frequncy channel
+        
+        """
+        ambient_temp_c = ambient_temp_k-273.15 # convert to celcius
+        airTemp = self.tatm(freqHz, ambient_temp_c)
+        
+        tsky = airTemp * (1-math.e**(-tau))
+        
+        return tsky
