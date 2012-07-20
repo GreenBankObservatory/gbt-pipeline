@@ -32,8 +32,11 @@ class Calibration:
         else:
             return np.mean((calON,calOFF),axis=0)
 
+    def tsky_corr(self, tsky_sig, tsky_ref):
+        return self.SPILLOVER*(tsky_sig-tsky_ref)
+    
     # eqn. (11) in PS spec
-    def aperture_efficiency(self,reference_etaA,freqHz):
+    def aperture_efficiency(self, reference_etaA, freqHz):
         """Determine aperture efficiency
         
         Keyword attributes:
@@ -54,6 +57,16 @@ class Calibration:
         freqGHz = float(freqHz)/1e9
         return reference_etaA * math.e**-((self.BB * freqGHz)**2)
         
+    def main_beam_efficiency(self, reference_etaB, freqHz):
+        """Determine main beam efficiency, given reference etaB value and freq.
+        
+        This is the same equation as is used to determine aperture efficiency.
+        The only difference is the reference value.
+        
+        """
+        
+        return self.aperture_efficiency( reference_etaB, freqHz )
+    
     def gain(self, gain_coeff, elevation):
         # comput gain based on elevation, eqn. (12) in PS specification
         gain = 0
@@ -64,6 +77,21 @@ class Calibration:
             
         return gain
 
+    def elevation_adjusted_opacity(self, zenith_opacity, elevation):
+        """Compute elevation-corrected opacities.
+
+        Keywords:
+
+        zenith_opacity -- opacity based only on time
+        elevation -- (float) elevation angle of integration or scan
+        
+        """
+        number_of_atmospheres = self.natm( elevation )
+    
+        corrected_opacity = zenith_opacity * number_of_atmospheres
+    
+        return corrected_opacity
+    
     def natm(self,elDeg):
         """Compute number of atmospheres at elevation (deg)
     
@@ -99,10 +127,10 @@ class Calibration:
             nAtmos = -0.023437 + \
                 (1.0140 / math.sin( DEGREE*(elDeg + 5.1774 / (elDeg + 3.3543))))
         else:
-            nAtmos =1./math.sin(DEGREE*elDeg)
+            nAtmos = math.sin(DEGREE*elDeg)
     
         #print 'Model Number of Atmospheres:', nAtmos,' at elevation ',elDeg
-        return 1./nAtmos
+        return nAtmos
         
     
     def tatm(self,freqHz, tmpC):
@@ -264,43 +292,6 @@ class Calibration:
     
         return abs(shifted)
 
-    def retrieve_opacity_coefficients(self, opacity_coefficients_filename):
-        """Return opacities (taus) derived from a list of coeffients
-        
-        These coefficients are produced from Ron Madalenna's getForecastValues script
-        
-        Keywords:
-        infilename -- input file name needed for project name
-        mjd -- date for data
-        freq -- list of frequencies for which we seek an opacity
-        
-        Returns:
-        a list of opacity coefficients for the time range of the dataset
-        
-        """
-        FILE = open(opacity_coefficients_filename,'r')
-    
-        coeffs = []
-        if FILE:
-            for line in FILE:
-                # find the most recent forecast and parse out the coefficients for 
-                # each band
-                # coeffs[0] is the mjd timestamp
-                # coeffs[1] are the coefficients for 2-22 GHz
-                # coeffs[2] are the coefficients for 22-50 GHz
-                # coeffs[3] are the coefficients for 70-116 GHz
-                coeffs.append((float(line.split('{{')[0]),\
-                    [float(xx) for xx in line.split('{{')[1].split('}')[0].split(' ')],\
-                    [float(xx) for xx in line.split('{{')[2].split('}')[0].split(' ')],\
-                    [float(xx) for xx in line.split('{{')[3].split('}')[0].split(' ')]))
-                   
-        else:
-            if opt.verbose > 1:
-                print "WARNING: Could not read coefficients for Tau in",opacity_coefficients_filename
-            return False
-    
-        return coeffs
-
     def zenith_opacity_per_frequency(self, coeffs, freqs):
         """Interpolate low and high opacities across a vector of frequencies
     
@@ -358,7 +349,7 @@ class Calibration:
         a2 =  (integration_timestamp-firstRef_timestamp)  / time_btwn_ref_scans
         return a1*reference1 + a2*reference2
 
-    def getReferenceAverage(self, crefs, trefs, exposures, timestamps):
+    def getReferenceAverage(self, crefs, trefs, exposures, timestamps, tambients, elevations):
         
         # middle 80%
         number_of_data_channels = len(crefs[0])
@@ -370,6 +361,8 @@ class Calibration:
         trefs = np.array(trefs)
         exposures = np.array(exposures)
         timestamps = np.array(timestamps)
+        tambients = np.array(tambients)
+        elevations = np.array(elevations)        
         
         tref80s = trefs[:,lo:hi].mean(axis=1)
         weights = exposures / tref80s**2
@@ -379,8 +372,10 @@ class Calibration:
         avgCref = np.average(crefs,axis=0,weights=weights)
         
         avgTimestamp = timestamps.mean()
+        avgTambient = tambients.mean() # do not know if this should be weighted
+        avgElevation = elevations.mean() # do not know if this should be weighted
         
-        return avgCref, avgTref80, avgTimestamp
+        return avgCref, avgTref80, avgTimestamp, avgTambient, avgElevation
 
     def tsky(self, ambient_temp_k, freqHz, tau):
         """Determine the sky temperature contribution at a frequency

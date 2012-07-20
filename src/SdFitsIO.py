@@ -422,6 +422,8 @@ class SdFitsIO:
         #----------------
     
         exposure = calON.field('EXPOSURE') + calOFF.field('EXPOSURE')
+        tambient = calOFF.field('TAMBIENT')
+        elevation = calOFF.field('ELEVATIO')
         
-        return cref,tref,exposure,timestamp
+        return cref,tref,exposure,timestamp,tambient,elevation
    
