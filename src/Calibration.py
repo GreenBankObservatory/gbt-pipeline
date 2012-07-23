@@ -14,6 +14,7 @@ class Calibration:
         self.BB = .0132  # Ruze equation parameter
         self.SPILLOVER = .99  # rear spillover, ohmic loss, blockage (etaL)
         self.GAIN_COEFFICIENTS = [.910,.00434,-5.22e-5,0]
+        self.UNDER_2GHZ_ZENITH_TAU = 0.008
     
     # ------------- Unit methods: do not depend on any other pipeline methods
 
@@ -24,9 +25,7 @@ class Calibration:
         return calON - calOFF
 
     def Csig(self,calON,calOFF):  # part of eqn. (5) in PS spec
-        if 0 == len(calON) and len(calOFF) > 0:
-            return calOFF
-        elif 0 == len(calON) and 0 == len(calOFF):
+        if 0 == len(calON) and 0 == len(calOFF):
             print 'No integrations provided to Csig method'
             raise
         else:
@@ -308,7 +307,7 @@ class Calibration:
         def interpolated_zenith_opacity(f):
             # for frequencies < 2 GHz, return a default zenith opacity
             if np.array(f).mean() < 2:
-                result = np.ones(np.array(f).shape)*0.008
+                result = np.ones(np.array(f).shape)*self.UNDER_2GHZ_ZENITH_TAU
                 return result
             result=0
             for idx,term in enumerate(coeffs):

@@ -401,9 +401,10 @@ class SdFitsIO:
     def getReferenceIntegration(self, calON, calOFF):
         
         cal = Calibration()
-        
-        cref = cal.Cref(calON.field('DATA'), calOFF.field('DATA'))
-        ccal = cal.Ccal(calON.field('DATA'), calOFF.field('DATA'))
+        calONdata = self.pu.masked_array(calON.field('DATA'))
+        calOFFdata = self.pu.masked_array(calOFF.field('DATA'))
+        cref = cal.Cref(calONdata, calOFFdata)
+        ccal = cal.Ccal(calONdata, calOFFdata)
         tcal = calOFF.field('TCAL')
         tref = cal.Tref( cref, ccal, tcal )
 
@@ -416,9 +417,9 @@ class SdFitsIO:
         #number_of_data_channels = len(tref)
         #lo = int(.1*number_of_data_channels)
         #hi = int(.9*number_of_data_channels)
-        #idl_tsys =  tcal * (calOFF.field('DATA')[lo:hi]).mean() / (calON.field('DATA')[lo:hi]-calOFF.field('DATA')[lo:hi]).mean() + tcal/2.
+        #idl_tsys =  tcal * (calOFFdata[lo:hi]).mean() / (calONdata[lo:hi]-calOFFdata[lo:hi]).mean() + tcal/2.
         #print idl_tsys
-        #idl_tsys =  tcal * calOFF.field('DATA') / (calON.field('DATA')-calOFF.field('DATA')) + tcal/2.
+        #idl_tsys =  tcal * calOFFdata / (calONdata-calOFFdata) + tcal/2.
         #----------------
     
         exposure = calON.field('EXPOSURE') + calOFF.field('EXPOSURE')

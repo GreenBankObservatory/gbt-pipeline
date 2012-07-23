@@ -20,6 +20,7 @@ if __name__ == '__main__':
     feed=0
     window=0
     pol=0
+    beam_scaling=1
 
     # -------------- reference 1
     scan=13
@@ -27,9 +28,9 @@ if __name__ == '__main__':
         pipe.getReference(scan, feed, window, pol)
     
     # -------------- reference 2
-    scan=26
-    refSpectrum2, refTsys2, refTimestamp2, refTambient2, refElevation2 = \
-        pipe.getReference(scan, feed, window, pol)
+    #scan=26
+    #refSpectrum2, refTsys2, refTimestamp2, refTambient2, refElevation2 = \
+    #    pipe.getReference(scan, feed, window, pol)
 
     # -------------- calibrate signal scans
     #for scan in (14,15,16,17,18,19,20):
@@ -38,4 +39,4 @@ if __name__ == '__main__':
         pipe.CalibrateSdfitsIntegrations( scan, feed, window, pol, \
                refSpectrum1, refTsys1, refTimestamp1, refTambient1, refElevation1, \
                refSpectrum2, refTsys2, refTimestamp2, refTambient2, refElevation2, \
-               units='tsrc' )
+               beam_scaling, units='ta*' )
