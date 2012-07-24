@@ -4,6 +4,7 @@ from SdFitsIO import SdFitsIO
 from pipeutils import Pipeutils
 import numpy as np
 from pylab import *
+from Weather import Weather
 
 CREATE_PLOTS = True
 AVERAGING_SPECTRA_FOR_SUMMARY = True
@@ -15,6 +16,7 @@ class MappingPipeline:
         self.cal = Calibration()
         self.sdf = SdFitsIO()
         self.pu = Pipeutils()
+        self.weather = Weather()
         
         self.FITSFILE = filename+'fits'
         self.INDEXFILE = filename+'index'
@@ -171,9 +173,9 @@ class MappingPipeline:
             
             if csig != None:
                 
-                intTime = self.pu.dateToMjd( calOFF.field('DATE-OBS') )
-                elevation = calOFF.field('ELEVATIO')
-                obsfreq = calOFF.field('OBSFREQ')
+                intTime = self.pu.dateToMjd( calOFF.field('DATE-OBS') ) # integration timestamp
+                elevation = calOFF.field('ELEVATIO') # integration elevation
+                obsfreqHz = calOFF.field('OBSFREQ')  # integration observed frequency
 
                 if avgCref2!=None and crefTime2!=None:
                     crefInterp = \
@@ -198,30 +200,61 @@ class MappingPipeline:
                     # ASSUMES a given opacity
                     #   the opacity needs to come from the command line or Ron's
                     #   model database.
-                    opacity_el = self.cal.elevation_adjusted_opacity(self.OPACITY, elevation)
+                    if not self.OPACITY:
+                        intOpacity = self.weather.retrieve_zenith_opacity(intTime, obsfreqHz)
+                        if not intOpacity:
+                            print 'ERROR: Not able to retrieve integration zenith opacity for',
+                            print 'calibration to:',units
+                            print '  Please supply a zenith opacity or calibrate to Ta.'
+                            sys.exit(9)
+                    else:
+                        intOpacity = self.OPACITY
+                        
+                    opacity_el = self.cal.elevation_adjusted_opacity(intOpacity, elevation)
 
                         
                     # tsky for reference 1
-                    opacity1 = self.cal.elevation_adjusted_opacity(self.OPACITY, refElevation1)
+                    if not self.OPACITY:
+                        ref1_zenith_opacity = self.weather.retrieve_zenith_opacity(crefTime1, obsfreqHz)
+                        if not ref1_zenith_opacity:
+                            print 'ERROR: Not able to retrieve reference 1 zenith opacity for',
+                            print 'calibration to:',units
+                            print '  Please supply a zenith opacity or calibrate to Ta.'
+                            sys.exit(9)
+                    else:
+                        ref1_zenith_opacity = self.OPACITY
+                        
+                    opacity1 = self.cal.elevation_adjusted_opacity(ref1_zenith_opacity, refElevation1)
                     
                     crpix1 = calOFF.field('CRPIX1')
                     cdelt1 = calOFF.field('CDELT1')
                     crval1 = calOFF.field('CRVAL1')
                     tsky1 = []
                     for chan in range(len(ta)):
-                        freq = (chan-crpix1)*cdelt1 + crval1
-                        tsky_chan = self.cal.tsky(refTambient1, freq, opacity1)
+                        freqHz = (chan-crpix1)*cdelt1 + crval1
+                        tsky_chan = self.cal.tsky(refTambient1, freqHz, opacity1)
                         tsky1.append(tsky_chan)
                     tsky1 = np.array(tsky1)
                         
                     if multiple_reference_scans_for_tsky:
 
                         # tsky for reference 2
-                        opacity2 = self.cal.elevation_adjusted_opacity(self.OPACITY, refElevation2)
+                        if not self.OPACITY:
+                            ref2_zenith_opacity = self.weather.retrieve_zenith_opacity(crefTime2, obsfreqHz)
+                            if not ref2_zenith_opacity:
+                                print 'ERROR: Not able to retrieve reference 2 zenith opacity for',
+                                print 'calibration to:',units
+                                print '  Please supply a zenith opacity or calibrate to Ta.'
+                                sys.exit(9)
+                        else:
+                            ref2_zenith_opacity = self.OPACITY
+        
+                        opacity2 = self.cal.elevation_adjusted_opacity(ref2_zenith_opacity, refElevation2)
+
                         tsky2 = []
                         for chan in range(len(ta)):
-                            freq = (chan-crpix1)*cdelt1 + crval1
-                            tsky_chan = self.cal.tsky(refTambient2, freq, opacity2)
+                            freqHz = (chan-crpix1)*cdelt1 + crval1
+                            tsky_chan = self.cal.tsky(refTambient2, freqHz, opacity2)
                             tsky2.append(tsky_chan)
                         tsky2 = np.array(tsky2)
     
@@ -234,8 +267,8 @@ class MappingPipeline:
                     tambient_current = calOFF.field('TAMBIENT')
                     tsky_current = []
                     for chan in range(len(ta)):
-                        freq = (chan-crpix1)*cdelt1 + crval1
-                        tsky_chan = self.cal.tsky(tambient_current, freq, opacity_el)
+                        freqHz = (chan-crpix1)*cdelt1 + crval1
+                        tsky_chan = self.cal.tsky(tambient_current, freqHz, opacity_el)
                         tsky_current.append(tsky_chan)
                     tsky_current = np.array(tsky_current)
                         
@@ -268,7 +301,7 @@ class MappingPipeline:
                 if units=='tmb':
                     # ASSUMES a reference value for etaB.  This should be made available
                     #   at the command line.  The assumed value is for KFPA only.
-                    main_beam_efficiency = self.cal.main_beam_efficiency(self.ETAB_REF, obsfreq)
+                    main_beam_efficiency = self.cal.main_beam_efficiency(self.ETAB_REF, obsfreqHz)
                     tmb = tastar / main_beam_efficiency
                     
                     if AVERAGING_SPECTRA_FOR_SUMMARY:
@@ -277,7 +310,7 @@ class MappingPipeline:
                 if units=='jy':
                     # ASSUMES a reference value for etaA.  This should be made available
                     #   at the command line.  The assumed value is for KFPA only.
-                    aperture_efficiency = self.cal.aperture_efficiency(self.ETAA_REF, obsfreq)
+                    aperture_efficiency = self.cal.aperture_efficiency(self.ETAA_REF, obsfreqHz)
                     jy = tastar / (2.85 * aperture_efficiency)
 
                     if AVERAGING_SPECTRA_FOR_SUMMARY:

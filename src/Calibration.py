@@ -291,33 +291,33 @@ class Calibration:
     
         return abs(shifted)
 
-    def zenith_opacity_per_frequency(self, coeffs, freqs):
+    def zenith_opacity(self, coeffs, freqGHz):
         """Interpolate low and high opacities across a vector of frequencies
     
         Keywords:
         coeffs -- (list) opacitiy coefficients from archived text file, produced by
             GBT weather prediction code
-        freqs -- (list) of frequency values in GHz
+        freqGHz -- frequency value in GHz
     
         Returns:
-        A (numpy 1d array) of a zenith opacity at each requested frequency.
+        A zenith opacity at requested frequency.
         
         """
         # interpolate between the coefficients based on time for a given frequency
-        def interpolated_zenith_opacity(f):
+        def interpolated_zenith_opacity(freq):
             # for frequencies < 2 GHz, return a default zenith opacity
-            if np.array(f).mean() < 2:
-                result = np.ones(np.array(f).shape)*self.UNDER_2GHZ_ZENITH_TAU
+            if np.array(freq).mean() < 2:
+                result = np.ones(np.array(freq).shape)*self.UNDER_2GHZ_ZENITH_TAU
                 return result
             result=0
             for idx,term in enumerate(coeffs):
-                if idx>0: result = result + term*f**idx
+                if idx>0: result = result + term*freq**idx
                 else:
                     result=term
             return result
     
-        zenith_opacities = [ interpolated_zenith_opacity(f) for f in freqs ]
-        return np.array(zenith_opacities)
+        zenith_opacity = interpolated_zenith_opacity(freqGHz)
+        return zenith_opacity
         
     # -------------- Functional methods: depend on underlying methods
     
