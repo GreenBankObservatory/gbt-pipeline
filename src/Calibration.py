@@ -322,9 +322,19 @@ class Calibration:
     # -------------- Functional methods: depend on underlying methods
     
     # same as Tsys for the reference scan
-    def Tref(self,Cref,Ccal,Tcal): # eqn. (4) in PS spec
+    def Tref(self, Tcal, calON, calOFF): # eqn. (4) in PS spec
+        Ccal = self.Ccal(calON,calOFF)
+        Cref = self.Cref(calON,calOFF)
         return Tcal*(Cref/Ccal)
     
+    def idlTsys80(self, tcal,calON,calOFF):
+        nchan = len(calOFF)
+        lo = int(.1*nchan)
+        hi = int(.9*nchan)
+        calOFF = (calOFF[lo:hi]).mean()
+        calON = (calON[lo:hi]).mean()
+        return tcal*(calOFF/(calON-calOFF))+tcal/2
+
     def Ta(self,Tref,Csig,Cref):   # eqn. (5) in PS spec
         return Tref * ((Csig-Cref)/Cref)
     
@@ -362,7 +372,16 @@ class Calibration:
         timestamps = np.array(timestamps)
         tambients = np.array(tambients)
         elevations = np.array(elevations)        
-        
+
+#------------------
+        # uncomment if using idl Tsys
+        #weights = exposures / trefs**2
+        #avgTref = np.average(trefs,axis=0,weights=weights)
+        #for xx in weights:
+        #    print xx,',',
+        #print 'mean tref',avgTref
+        #import sys; sys.exit()
+#^^^^^^^^^^^^^^^^^^
         tref80s = trefs[:,lo:hi].mean(axis=1)
         weights = exposures / tref80s**2
         avgTref = np.average(trefs[:,lo:hi],axis=0,weights=weights)

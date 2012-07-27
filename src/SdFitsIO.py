@@ -2,8 +2,9 @@ import csv
 from collections import OrderedDict
 from Calibration import Calibration
 from pipeutils import Pipeutils
+import pyfits
 
-class SdFitsIO:
+class SdFitsReader:
     """Class contains methods to read and write to the GBT SdFits format.
     
     This includes code for both the FITS files and associated index files.
@@ -406,8 +407,12 @@ class SdFitsIO:
         cref = cal.Cref(calONdata, calOFFdata)
         ccal = cal.Ccal(calONdata, calOFFdata)
         tcal = calOFF.field('TCAL')
-        tref = cal.Tref( cref, ccal, tcal )
-
+        tref = cal.Tref( tcal, calONdata, calOFFdata )
+#--------------------
+        # uncomment if using idl Tsys
+        #tref = cal.idlTsys80( tcal, calONdata, calOFFdata )
+        #tref = float('{:2.4}'.format(tref))
+#^^^^^^^^^^^^^^^^^^^^
         dateobs = calOFF.field('DATE-OBS')
         timestamp = self.pu.dateToMjd(dateobs)
         
@@ -427,4 +432,3 @@ class SdFitsIO:
         elevation = calOFF.field('ELEVATIO')
         
         return cref,tref,exposure,timestamp,tambient,elevation
-   
