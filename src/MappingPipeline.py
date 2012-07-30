@@ -36,6 +36,8 @@ class MappingPipeline:
         self.OPACITY  = None
         self.ETAB_REF = 0.91   # KFPA
         self.ETAA_REF = 0.71   # KFPA
+        
+        self.BUFFER_SIZE = 100
                
     def determineSetup(self, sdfits_row_structure, ext):
         
@@ -124,12 +126,10 @@ class MappingPipeline:
         
         return avgCref,avgTref,avgTimestamp,avgTambient,avgElevation
         
-    def CalibrateSdfitsIntegrations(self, mapscans, feed, window, pol, \
-                          avgCref1, avgTref1, crefTime1, refTambient1, refElevation1, \
-                          avgCref2, avgTref2, crefTime2, refTambient2, refElevation2, \
-                          beam_scaling, units):
-    
-        outfilename = os.path.basename(self.fileroot)[:-4] + 'feed' + str(feed) + '_if' + str(window) + '_pol' + str(pol) + '.fits'
+    def create_output_sdfits(self, feed, window, pol, mapscans):
+        
+        outfilename = os.path.basename(self.fileroot)[:-4] + 'feed' + str(feed) \
+            + '_if' + str(window) + '_pol' + str(pol) + '.fits'
         if os.path.exists(outfilename):
             print 'delete',outfilename
             print '   and run again.'
@@ -144,14 +144,43 @@ class MappingPipeline:
         self.outfile.create_table_hdu(dtype=input_row.dtype, header=input_header)
         self.outfile.update_hdu_list()
         
+        return input_row
+
+    def multi_tskys(self, crefTime2, refTambient2, refElevation2):
+        
+        if crefTime2!=None and refTambient2!=None and refElevation2!=None:
+            return True
+        else:
+            return False
+    
+    def set_row_chunks(self,rows, WRITESIZE=100):
+
+        nrows = len(rows)
+        rowchunks = []
+        startchunk = 0
+        while nrows>0:
+            if nrows > WRITESIZE:
+                nrows = nrows - WRITESIZE
+                rowchunks.append(rows[startchunk:startchunk+WRITESIZE])
+                startchunk = startchunk+WRITESIZE
+            else:
+                rowchunks.append(rows[startchunk:])
+                nrows = 0
+        return rowchunks
+
+        
+    def CalibrateSdfitsIntegrations(self, mapscans, feed, window, pol, \
+                          avgCref1, avgTref1, crefTime1, refTambient1, refElevation1, \
+                          avgCref2, avgTref2, crefTime2, refTambient2, refElevation2, \
+                          beam_scaling, units):
+    
+        input_row = self.create_output_sdfits(feed, window, pol, mapscans)
+        
         for scan in mapscans:
             
             signalRows = self.rowList.get(scan, feed, window, pol)
             
-            if crefTime2!=None and refTambient2!=None and refElevation2!=None:
-                multiple_reference_scans_for_tsky = True
-            else:
-                multiple_reference_scans_for_tsky = False
+            multiple_reference_scans_for_tsky = self.multi_tskys(crefTime2, refTambient2, refElevation2)
                 
             ext = signalRows['EXTENSION']
             rows = signalRows['ROW']
@@ -172,21 +201,9 @@ class MappingPipeline:
             calON = None
             calOFF = None
             
-            nrows = len(rows)
-            WRITESIZE = 100
-            writeNrows = []
-            rowchunks = []
-            startchunk = 0
-            while nrows>0:
-                if nrows > WRITESIZE:
-                    nrows = nrows - WRITESIZE
-                    writeNrows.append( WRITESIZE )
-                    rowchunks.append(rows[startchunk:startchunk+WRITESIZE])
-                    startchunk = startchunk+WRITESIZE
-                else:
-                    writeNrows.append( nrows )
-                    rowchunks.append(rows[startchunk:])
-                    nrows = 0
+            # break the input rows into chunks as buffers to write out
+            #   so that we don't write out rows one at a time
+            rowchunks = self.set_row_chunks(rows, self.BUFFER_SIZE)
                             
             for chunk in rowchunks:
                 
