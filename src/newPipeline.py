@@ -28,14 +28,14 @@ if __name__ == '__main__':
         pipe.getReference(scan, feed, window, pol)
     
     # -------------- reference 2
-    #scan=26
-    #refSpectrum2, refTsys2, refTimestamp2, refTambient2, refElevation2 = \
-    #    pipe.getReference(scan, feed, window, pol)
+    scan=26
+    refSpectrum2, refTsys2, refTimestamp2, refTambient2, refElevation2 = \
+        pipe.getReference(scan, feed, window, pol)
 
     # -------------- calibrate signal scans
-    #mapscans = (14,15,16,17,18,19,20)
+    mapscans = (14,15,16,17,18,19,20)
     #mapscans = (14,18)
-    mapscans = (14,)
+    #mapscans = (14,)
         
     pipe.CalibrateSdfitsIntegrations( mapscans, feed, window, pol, \
             refSpectrum1, refTsys1, refTimestamp1, refTambient1, refElevation1, \

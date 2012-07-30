@@ -2,7 +2,7 @@ import csv
 from collections import OrderedDict
 from Calibration import Calibration
 from pipeutils import Pipeutils
-import pyfits
+import fitsio
 
 class SdFitsReader:
     """Class contains methods to read and write to the GBT SdFits format.
@@ -154,16 +154,15 @@ class SdFitsReader:
         myFile = open(indexfile,'rU')
         table_length = []
         if fitsfile:
-            fd = pyfits.open(fitsfile,memmap=1,mode='readonly')
     
             # one set of masks per FITS extension
             # each set of masks has a mask for each sampler
             mask = []
             for blockid in range(1,len(fd)):
-                table_length.append(fd[blockid].header['naxis2'])
+                header = fd.read_header(fitsfile, blockid)
+                table_length.append(header['naxis2'])
                 mask.append({})
     
-            fd.close()
         else:
             if not bool(table_length):
                 print 'ERROR: either fits file or table size must be provided'
@@ -402,18 +401,18 @@ class SdFitsReader:
     def getReferenceIntegration(self, calON, calOFF):
         
         cal = Calibration()
-        calONdata = self.pu.masked_array(calON.field('DATA'))
-        calOFFdata = self.pu.masked_array(calOFF.field('DATA'))
+        calONdata = self.pu.masked_array(calON['DATA'][0])
+        calOFFdata = self.pu.masked_array(calOFF['DATA'][0])
         cref = cal.Cref(calONdata, calOFFdata)
         ccal = cal.Ccal(calONdata, calOFFdata)
-        tcal = calOFF.field('TCAL')
+        tcal = calOFF['TCAL'][0]
         tref = cal.Tref( tcal, calONdata, calOFFdata )
 #--------------------
         # uncomment if using idl Tsys
         #tref = cal.idlTsys80( tcal, calONdata, calOFFdata )
         #tref = float('{:2.4}'.format(tref))
 #^^^^^^^^^^^^^^^^^^^^
-        dateobs = calOFF.field('DATE-OBS')
+        dateobs = calOFF['DATE-OBS'][0]
         timestamp = self.pu.dateToMjd(dateobs)
         
         #----------------
@@ -427,8 +426,8 @@ class SdFitsReader:
         #idl_tsys =  tcal * calOFFdata / (calONdata-calOFFdata) + tcal/2.
         #----------------
     
-        exposure = calON.field('EXPOSURE') + calOFF.field('EXPOSURE')
-        tambient = calOFF.field('TAMBIENT')
-        elevation = calOFF.field('ELEVATIO')
+        exposure = calON['EXPOSURE'][0] + calOFF['EXPOSURE'][0]
+        tambient = calOFF['TAMBIENT'][0]
+        elevation = calOFF['ELEVATIO'][0]
         
         return cref,tref,exposure,timestamp,tambient,elevation
