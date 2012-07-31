@@ -23,7 +23,7 @@
 # $Id$
 
 import argparse
-import pipeutils
+from pipeutils import Pipeutils
 
 class myparser(argparse.ArgumentParser):
     def convert_arg_line_to_args(self, arg_line):
@@ -43,6 +43,9 @@ class CommandLine:
     
     """
     def __init__(self):
+
+        self.pu = Pipeutils()
+        
         self.parser = myparser(fromfile_prefix_chars='@',
             description='Calibrate spectra and create maps from GBT observations.',
             formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -136,10 +139,10 @@ class CommandLine:
 
         # transform some parameters to proper types
         if opt.gain_left:
-            opt.gain_left = pipeutils.string_to_floats(opt.gain_left)
+            opt.gain_left = self.pu.string_to_floats(opt.gain_left)
         if opt.gain_right:
-            opt.gain_right = pipeutils.string_to_floats(opt.gain_right)
+            opt.gain_right = self.pu.string_to_floats(opt.gain_right)
         if opt.gaincoeffs:
-            opt.gaincoeffs = pipeutils.string_to_floats(opt.gaincoeffs)
+            opt.gaincoeffs = self.pu.string_to_floats(opt.gaincoeffs)
 
         return opt

@@ -1,10 +1,14 @@
 import csv
+import os
+import sys
+
+import fitsio
+
 from collections import OrderedDict
 from Calibration import Calibration
 from pipeutils import Pipeutils
-import fitsio
 
-class SdFitsReader:
+class SdFits:
     """Class contains methods to read and write to the GBT SdFits format.
     
     This includes code for both the FITS files and associated index files.
@@ -431,3 +435,17 @@ class SdFitsReader:
         elevation = calOFF['ELEVATIO'][0]
         
         return cref,tref,exposure,timestamp,tambient,elevation
+
+    def nameIndexFile(self, fitsfile):
+        # -------------------------------------------------  name index file
+        
+        if fitsfile.endswith('.fits'):
+            # reverse the filename to only replace '.fits' at the end of the string
+            # the python string replace method works from left to right
+            return os.path.splitext(fitsfile)[0]+'.index'
+        
+        else:
+            #doMessage(logger,msg.ERR,'input file not recognized as a fits file.',\
+            #  ' Please check the file extension and change to \'fits\' if necessary.')
+            sys.exit(9)
+        

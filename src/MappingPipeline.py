@@ -1,6 +1,6 @@
 import fitsio
 from Calibration import Calibration
-from SdFitsIO import SdFitsReader
+from SdFitsIO import SdFits
 from pipeutils import Pipeutils
 import numpy as np
 from pylab import *
@@ -13,31 +13,28 @@ AVERAGING_SPECTRA_FOR_SUMMARY = True
 
 class MappingPipeline:
     
-    def __init__(self, filename):
+    def __init__(self, cl_params):
 
         self.cal = Calibration()
         self.pu = Pipeutils()
         self.weather = Weather()
-        
-        self.sdfreader = SdFitsReader()
+        self.sdf = SdFits()
 
 
-        self.fileroot = filename
-        
-        self.FITSFILE = filename+'fits'
-        self.INDEXFILE = filename+'index'
+        self.FITSFILE = cl_params.infile
+        self.INDEXFILE = self.sdf.nameIndexFile( cl_params.infile )
     
         self.infile = fitsio.FITS( self.FITSFILE )
         self.outfile = None
 
-        self.rowList = self.sdfreader.parseSdfitsIndex( self.INDEXFILE )
+        self.rowList = self.sdf.parseSdfitsIndex( self.INDEXFILE )
         
         # constants
         self.OPACITY  = None
         self.ETAB_REF = 0.91   # KFPA
         self.ETAA_REF = 0.71   # KFPA
         
-        self.BUFFER_SIZE = 100
+        self.BUFFER_SIZE = 1000
                
     def determineSetup(self, sdfits_row_structure, ext):
         
@@ -89,7 +86,7 @@ class MappingPipeline:
                 calOFF = row
             
             if calOFF and calON:
-                cref,tref,exposure,timestamp,tambient,elevation = self.sdfreader.getReferenceIntegration(calON, calOFF)
+                cref,tref,exposure,timestamp,tambient,elevation = self.sdf.getReferenceIntegration(calON, calOFF)
                 
 #-----------------
                 # comment if using idl Tsys
@@ -128,7 +125,9 @@ class MappingPipeline:
         
     def create_output_sdfits(self, feed, window, pol, mapscans):
         
-        outfilename = os.path.basename(self.fileroot)[:-4] + 'feed' + str(feed) \
+        rootname,extension = os.path.splitext(self.FITSFILE)
+        basename = os.path.basename(rootname)
+        outfilename = basename + '_feed' + str(feed) \
             + '_if' + str(window) + '_pol' + str(pol) + '.fits'
         if os.path.exists(outfilename):
             print 'delete',outfilename
@@ -170,9 +169,9 @@ class MappingPipeline:
 
         
     def CalibrateSdfitsIntegrations(self, mapscans, feed, window, pol, \
-                          avgCref1, avgTref1, crefTime1, refTambient1, refElevation1, \
-                          avgCref2, avgTref2, crefTime2, refTambient2, refElevation2, \
-                          beam_scaling, units):
+                          avgCref1=None, avgTref1=None, crefTime1=None, refTambient1=None, refElevation1=None, \
+                          avgCref2=None, avgTref2=None, crefTime2=None, refTambient2=None, refElevation2=None, \
+                          beam_scaling=None, units='ta*'):
     
         input_row = self.create_output_sdfits(feed, window, pol, mapscans)
         
@@ -471,5 +470,4 @@ class MappingPipeline:
 
     def __del__(self):
             
-        self.infile.close()
         print 'bye'

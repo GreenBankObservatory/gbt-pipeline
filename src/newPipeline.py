@@ -1,10 +1,16 @@
+import commandline
 from MappingPipeline import MappingPipeline
+import sys
 
 if __name__ == '__main__':
     
-    FILENAME = '/media/980d0181-4160-4bbf-8c3d-3d370f24fefd/data/TKFPA_29/TKFPA_29.raw.acs.'
+    # create instance of CommandLine object to parse input
+    cl = commandline.CommandLine()
     
-    pipe = MappingPipeline(FILENAME)
+    # parse all the input parameters and store them as attributes in param structure
+    cl_params = cl.read(sys)
+
+    pipe = MappingPipeline(cl_params)
     
     refSpectrum1 = None
     refTsys1 = None

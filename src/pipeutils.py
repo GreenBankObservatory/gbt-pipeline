@@ -668,3 +668,19 @@ class Pipeutils:
     
         return gain_factor
     
+    def string_to_floats(self, string_list):
+        """Change a list of numbers to a list of floats
+    
+        Keywords:
+        string_list -- a comma-seperated list of numbers
+        
+        Returns:
+        a (list) of floats
+    
+        >>> string_to_floats('1.1,-5.55555,6e6')
+        [1.1000000000000001, -5.5555500000000002, 6000000.0]
+    
+        """
+        string_list = string_list.replace(' ','')
+        string_list = string_list.split(',')
+        return [ float(item) for item in string_list ]
