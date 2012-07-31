@@ -53,7 +53,7 @@ pip install numpy==${NUMPYVER}
 
 # ------------------------------------------------------------ install fitsio
 echo 'installing fitsio'
-pip install fitsio==${FITSIOVER}
+pip install fitsio
 
 # ---------------------------------------------------------- build Obit
 echo 'building Obit'
