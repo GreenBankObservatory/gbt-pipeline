@@ -54,69 +54,81 @@ class CommandLine:
             line will override whatever is stored in the file.",
             prog='gbtpipeline',
             usage='%(prog)s [options]')
-        self.parser.add_argument("-i", "--infile", dest="infile", default='',
+        
+        input_group = self.parser.add_argument_group('Input')
+        input_group.add_argument("-i", "--infile", dest="infile", default='',
                         help="SDFITS file name containing map scans", metavar="FILE")
-        self.parser.add_argument("-m", "--map-scans", dest="mapscans", default=[],
-                        help="range of scan numbers", metavar="N[,N]")
-        self.parser.add_argument("--allmaps", dest="allmaps", action='store_true',
-                        default=False, help="If set, attempt to process all maps in input file.")
-        self.parser.add_argument("--imaging-off", dest="imagingoff", action='store_true',
-                        default=False, help="If set, will not create images.")
-        self.parser.add_argument("-u", "--units", dest="units", default='Ta*',
-                        help="calibration units")
-        self.parser.add_argument("-d", "--sdfits-dir", dest="sdfitsdir", default='',
+        input_group.add_argument("-d", "--sdfits-dir", dest="sdfitsdir", default='',
                         help="SDFITS input directory; used if infile option is not usable",
                         metavar="DIR")
-        self.parser.add_argument("--refscan1", dest="refscan1", default=False,
+        
+        data_selection = self.parser.add_argument_group('Data Selection')
+        data_selection.add_argument("-m", "--map-scans", dest="mapscans", default=[],
+                        help="range of scan numbers", metavar="N[,N]")
+        data_selection.add_argument("--refscan1", dest="refscan1", default=False,
                         help="first reference scan", metavar="SCAN", type=int)
-        self.parser.add_argument("--refscan2", dest="refscan2", default=False,
+        data_selection.add_argument("--refscan2", dest="refscan2", default=False,
                         help="second reference scan", metavar="SCAN", type=int)
-        self.parser.add_argument("-f", "--feed",dest="feed", default=[],
-                        help="comma-separated feed(s) to process", metavar="F[,F]")
-        self.parser.add_argument("-p", "--pol",dest="pol", default=[],
-                        help="comma-separated polarization(s) to process", metavar="P[,P]")
-        self.parser.add_argument("-a", "--average",dest="average", default=0, type=int,
-                        help="averge the spectra over N channels (idlToSdfits)", metavar="N")
-        self.parser.add_argument("-c", "--channels",dest="channels", default=False, type=str,
+        data_selection.add_argument("--allmaps", dest="allmaps", action='store_true',
+                        default=False, help="If set, attempt to process all maps in input file.")
+        data_selection.add_argument("-c", "--channels",dest="channels", default=False, type=str,
                         help="channel selection i.e. 100:200 (idlToSdfits); use with CAUTION")
-        self.parser.add_argument("-n", "--idlToSdfits-rms-flag",dest="idlToSdfits_rms_flag", default=False,
+        data_selection.add_argument("-f", "--feed",dest="feed", default=[],
+                        help="comma-separated feed(s) to process", metavar="F[,F]")
+        data_selection.add_argument("-p", "--pol",dest="pol", default=[],
+                        help="comma-separated polarization(s) to process", metavar="P[,P]")
+
+        control = self.parser.add_argument_group('Control')
+        control.add_argument("--imaging-off", dest="imagingoff", action='store_true',
+                        default=False, help="If set, will not create images.")
+        control.add_argument("-a", "--average",dest="average", default=0, type=int,
+                        help="averge the spectra over N channels (idlToSdfits)", metavar="N")
+        control.add_argument("-n", "--idlToSdfits-rms-flag",dest="idlToSdfits_rms_flag", default=False,
                         help="flag integrations with excess noise, see idlToSdfits help",
                         metavar="N")
-        self.parser.add_argument("-w", "--idlToSdfits-baseline-subtract",dest="idlToSdfits_baseline_subtract",
+        control.add_argument("-w", "--idlToSdfits-baseline-subtract",dest="idlToSdfits_baseline_subtract",
                         default=False, help="subtract median-filtered baseline, see idlToSdfits help",
                         metavar="N")
-        self.parser.add_argument("--display-idlToSdfits", action='store_true',
+        control.add_argument("--display-idlToSdfits", action='store_true',
                         dest="display_idlToSdfits", default=False,
                         help="will attempt to display idlToSdfits plots")
-        self.parser.add_argument("--spillover-factor",dest="spillover", default=.99, type=float,
+
+        calibration = self.parser.add_argument_group('Calibration')
+        calibration.add_argument("-u", "--units", dest="units", default='Ta*',
+                        help="calibration units")
+        calibration.add_argument("--spillover-factor",dest="spillover", default=.99, type=float,
                         help="rear spillover factor (eta-l)", metavar="N")
-        self.parser.add_argument("--apperture-efficiency",dest="aperture_eff", default=.71, type=float,
+        calibration.add_argument("--apperture-efficiency",dest="aperture_eff", default=.71, type=float,
                         help="aperture efficiency for freq.=0 (eta-A)", metavar="N")
-        self.parser.add_argument("--main-beam-efficiency",dest="mainbeam_eff", default=.91, type=float,
+        calibration.add_argument("--main-beam-efficiency",dest="mainbeam_eff", default=.91, type=float,
                         help="main beam efficiency for freq.=0 (eta-B)", metavar="N")
-        self.parser.add_argument("--gain-coefficients",dest="gaincoeffs", default=".91,.00434,-5.22e-5",
+        calibration.add_argument("--gain-coefficients",dest="gaincoeffs", default=".91,.00434,-5.22e-5",
                         help="comma-separated gain coefficients", metavar="N")
-        self.parser.add_argument("-v", "--verbose", dest="verbose", default=0,
+        calibration.add_argument("--map-scans-for-scale", action='store_true',
+                        dest="mapscansforscale", default=False,
+                        help="When set, use the mapping scans to scale map Tsys's to K.")
+        calibration.add_argument("--gain-factors-left",dest="gain_left", default=[],
+                        help="comma-separated gain factors for each left-polarized feed", metavar="G[,G]")
+        calibration.add_argument("--gain-factors-right",dest="gain_right", default=[],
+                        help="comma-separated gain factors for each right-polarized feed", metavar="G[,G]")
+        calibration.add_argument("-t", "--zenith-opacity",dest="zenithtau", type=float,
+                        help="zenith opacity value (tau-z)", metavar="N", default=False)
+        calibration.add_argument("--fs-as-ps", dest="psmap",
+                        action='store_true', default=False,
+                        help="optionaly process a FS map as PS")
+
+        output = self.parser.add_argument_group('Output')
+        output.add_argument("-v", "--verbose", dest="verbose", default=0,
                         help="set the verbosity level-- 0-1:none, "
                              "2:errors only, 3:+warnings, "
                              "4:+user info, 5:+debug", metavar="N", type=int)
-        self.parser.add_argument("--clobber", action='store_true',
+        output.add_argument("--clobber", action='store_true',
                         dest="clobber", default=False,
                         help="Overwrites existing output files if set.")
-        self.parser.add_argument("--map-scans-for-scale", action='store_true',
-                        dest="mapscansforscale", default=False,
-                        help="When set, use the mapping scans to scale map Tsys's to K.")
-        self.parser.add_argument("--gain-factors-left",dest="gain_left", default=[],
-                        help="comma-separated gain factors for each left-polarized feed", metavar="G[,G]")
-        self.parser.add_argument("--gain-factors-right",dest="gain_right", default=[],
-                        help="comma-separated gain factors for each right-polarized feed", metavar="G[,G]")
-        self.parser.add_argument("--max-processors",dest="process_max", default=False, type=int,
-                        help="optional max number of processors, to reduce resource usage", metavar="N")
-        self.parser.add_argument("-t", "--zenith-opacity",dest="zenithtau", type=float,
-                        help="zenith opacity value (tau-z)", metavar="N", default=False)
-        self.parser.add_argument("--fs-as-ps", dest="psmap",
-                        action='store_true', default=False,
-                        help="optionaly process a FS map as PS")
+
+        other = self.parser.add_argument_group('Other')
+        other.add_argument("--max-processors",dest="process_max", default=False, type=int,
+                        help="optional max number of processors, to reduce resource usage", metavar="N")        
 
     def read(self,sys):
         """Read and parse the command line arguments

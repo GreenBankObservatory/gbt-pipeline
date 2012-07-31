@@ -12,19 +12,23 @@ INSTALL_DIR=/home/gbt7/pipeline
 mkdir -p ${INSTALL_DIR}
 echo created ${INSTALL_DIR}
 
+# ---------------------------- set version numbers
+PYVER=2.7.3
+NUMPYVER=1.6.2
+FITSIOVER=0.9.0
+OBITVER=413
+
 # ---------------------------- cd into scratch area and download dependencies
 
 cd ${SCRATCH_DIR}
-echo 'downloading python-2.6.6'
-curl -O http://www.python.org/ftp/python/2.6.6/Python-2.6.6.tgz
-echo 'downloading numpy-1.4.1'
-curl -O http://pypi.python.org/packages/source/n/numpy/numpy-1.4.1.tar.gz
-echo 'downloading parseltongue-2.0'
+echo 'downloading python'
+curl -O http://www.python.org/ftp/python/${PYVER}/Python-${PYVER}.tgz
+echo 'downloading virtualenv'
+curl -O https://raw.github.com/pypa/virtualenv/master/virtualenv.py
+echo 'downloading parseltongue'
 curl -O http://www.jive.nl/parseltongue/releases/parseltongue.tar.gz
-echo 'downloading pyfits-2.2.2'
-svn checkout http://svn6.assembla.com/svn/pyfits/tags/pyfits_2_2_2
-echo 'downloading Obit Revision 413'
-svn checkout -r 413 https://svn.cv.nrao.edu/svn/ObitInstall
+echo 'downloading Obit'
+svn checkout -r ${OBITVER} https://svn.cv.nrao.edu/svn/ObitInstall
 
 # alternatively...
 #curl -O http://www.jive.nl/parseltongue/releases/Obit-22JUN10a.tar.gz
@@ -32,22 +36,24 @@ svn checkout -r 413 https://svn.cv.nrao.edu/svn/ObitInstall
 # ------------------------------------------------------------- build python
 echo 'building python'
 cd ${SCRATCH_DIR}
-tar xvzf Python-2.6.6.tgz
-cd Python-2.6.6
+tar xvzf Python-${PYVER}.tgz
+cd Python-${PYVER}
 ./configure --prefix=${INSTALL_DIR}
 make install
 
-# ------------------------------------------------------------ build numpy
-echo 'building numpy'
+# ------------------------------------------------------------ create virtual env
+echo 'making virtual env'
 cd ${SCRATCH_DIR}
-tar xvzf numpy-1.4.1.tar.gz
-cd numpy-1.4.1
-ATLAS=None BLAS=None LAPACK=None ${INSTALL_DIR}/bin/python setup.py install
+${INSTALL_DIR}/bin/python ./virtualenv.py pipeline-env
+source pipeline-env/bin/activate
 
-# ------------------------------------------------------------ build pyfits
-echo 'building pyfits'
-cd ${SCRATCH_DIR}/pyfits_2_2_2
-${INSTALL_DIR}/bin/python setup.py install
+# ------------------------------------------------------------ install numpy
+echo 'installing numpy'
+pip install numpy==${NUMPYVER}
+
+# ------------------------------------------------------------ install fitsio
+echo 'installing fitsio'
+pip install fitsio==${FITSIOVER}
 
 # ---------------------------------------------------------- build Obit
 echo 'building Obit'
