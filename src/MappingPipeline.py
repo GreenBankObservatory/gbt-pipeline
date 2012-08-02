@@ -22,17 +22,6 @@
 
 # $Id$
 
-# how to read the input file
-FITSIO_INPUT = True
-
-if FITSIO_INPUT:
-    PYFITS_INPUT = False
-else:
-    PYFITS_INPUT = True
-
-if PYFITS_INPUT:
-    import pyfits
-    
 import fitsio
 
 from Calibration import Calibration
@@ -61,11 +50,7 @@ class MappingPipeline:
         self.FITSFILE = cl_params.infile
         self.INDEXFILE = self.sdf.nameIndexFile( cl_params.infile )
     
-        if FITSIO_INPUT:
-            self.infile = fitsio.FITS( self.FITSFILE )
-        elif PYFITS_INPUT:
-            self.infile = pyfits.open( self.FITSFILE, memmap=1, mode='readonly'  )
-            
+        self.infile = fitsio.FITS( self.FITSFILE )
         self.outfile = None
 
         self.rowList = self.sdf.parseSdfitsIndex( self.INDEXFILE )
@@ -88,11 +73,8 @@ class MappingPipeline:
         
         # fill the buffers
         for idx,rowNum in enumerate(sdfits_row_structure[:4]):
-            if FITSIO_INPUT:
-                columns = ('CAL','SIG')
-                row = self.infile[ext][columns][rowNum]
-            elif PYFITS_INPUT:
-                row = self.infile[ext].data[rowNum]  # pyfits
+            columns = ('CAL','SIG')
+            row = self.infile[ext][columns][rowNum]
             
             lookahead_cal_states.add(self.sdf.getVal(row,'CAL'))
             lookahead_sig_states.add(self.sdf.getVal(row,'SIG'))
@@ -123,15 +105,11 @@ class MappingPipeline:
         tambients = [] # used for tsky computation for ta* and beyond
         elevations = [] # used for tsky computation for ta* and beyond
         
-        if FITSIO_INPUT:
-            columns = tuple(self.infile[ext].colnames)
+        columns = tuple(self.infile[ext].colnames)
         
         for idx in rows:
             
-            if FITSIO_INPUT:
-                row = self.infile[ext][columns][idx:idx+1]
-            elif PYFITS_INPUT:        
-                row = self.infile[ext].data[idx]
+            row = self.infile[ext][columns][idx:idx+1]
         
             if self.sdf.getVal(row,'CAL') == 'T':
                 calON = row
@@ -192,10 +170,7 @@ class MappingPipeline:
         signalRows = self.rowList.get(mapscans[0], feed, window, pol)
         ext = signalRows['EXTENSION']
 
-        if FITSIO_INPUT:
-            dtype = self.infile[ext][0].dtype
-        elif PYFITS_INPUT:        
-            dtype = self.infile[ext].data.dtype   # pyfits
+        dtype = self.infile[ext][0].dtype
         
         input_header = fitsio.read_header(self.FITSFILE, ext)
         self.outfile.create_table_hdu(dtype=dtype, header=input_header)
@@ -224,7 +199,65 @@ class MappingPipeline:
                 nrows = 0
         return rowchunks
 
+    def getObsFreq(self, mapscans, feed, window, pol):
+
+        # get integration rows of input table
+        signalRows = self.rowList.get(mapscans[0], feed, window, pol)
+        ext = signalRows['EXTENSION']
+        rows = signalRows['ROW']
+        columns = tuple(self.infile[ext].colnames)
+        firstIntegration = self.infile[ext][columns][rows[0]]
         
+        # integration observed frequency
+        # we assume this center of band frequency is the same for all integrations
+        #  in both the reference scans and the map scans
+        obsfreqHz = self.sdf.getVal(firstIntegration, 'OBSFREQ')
+
+        return obsfreqHz
+
+    def getReferenceTsky(self, mapscans, feed, window, pol, crefTime1, refTambient1, refElevation1, \
+                         crefTime2, refTambient2, refElevation2):
+        
+        multiple_reference_scans_for_tsky = self.multi_tskys(crefTime2, refTambient2, refElevation2)
+        
+        obsfreqHz = self.getObsFreq(mapscans, feed, window, pol)
+        
+        # tsky for reference 1
+        if not self.OPACITY:
+            ref1_zenith_opacity = self.weather.retrieve_zenith_opacity(crefTime1, obsfreqHz)
+            if not ref1_zenith_opacity:
+                print 'ERROR: Not able to retrieve reference 1 zenith opacity',
+                print '  Please supply a zenith opacity or calibrate to Ta.'
+                sys.exit(9)
+        else:
+            ref1_zenith_opacity = self.OPACITY
+            
+        opacity1 = self.cal.elevation_adjusted_opacity(ref1_zenith_opacity, refElevation1)
+        
+        # get tsky at center frequency
+        tsky1 = self.cal.tsky(refTambient1, obsfreqHz, opacity1)
+    
+        tsky2 = None
+        if multiple_reference_scans_for_tsky:
+
+            # tsky for reference 2
+            if not self.OPACITY:
+                ref2_zenith_opacity = self.weather.retrieve_zenith_opacity(crefTime2, obsfreqHz)
+                if not ref2_zenith_opacity:
+                    print 'ERROR: Not able to retrieve reference 2 zenith opacity for',
+                    print 'calibration to:',units
+                    print '  Please supply a zenith opacity or calibrate to Ta.'
+                    sys.exit(9)
+            else:
+                ref2_zenith_opacity = self.OPACITY
+
+            opacity2 = self.cal.elevation_adjusted_opacity(ref2_zenith_opacity, refElevation2)
+
+            # get tsky at center frequency
+            tsky2 = self.cal.tsky(refTambient2, obsfreqHz, opacity2)
+            
+        return tsky1,tsky2
+
     def CalibrateSdfitsIntegrations(self, mapscans, feed, window, pol, \
                           avgCref1=None, avgTref1=None, crefTime1=None, refTambient1=None, refElevation1=None, \
                           avgCref2=None, avgTref2=None, crefTime2=None, refTambient2=None, refElevation2=None, \
@@ -232,19 +265,19 @@ class MappingPipeline:
     
         dtype = self.create_output_sdfits(feed, window, pol, mapscans)
 
+        if units != 'ta':
+            tsky1,tsky2 = self.getReferenceTsky(mapscans, feed, window, pol, crefTime1, refTambient1, refElevation1, \
+                            crefTime2, refTambient2, refElevation2)
+        
         for scan in mapscans:
             
             signalRows = self.rowList.get(scan, feed, window, pol)
-            
-            multiple_reference_scans_for_tsky = self.multi_tskys(crefTime2, refTambient2, refElevation2)
-                
-            ext = signalRows['EXTENSION']
+
+            # get integration rows
             rows = signalRows['ROW']
+            ext = signalRows['EXTENSION']
             
-            if FITSIO_INPUT:
-                columns = tuple(self.infile[ext].colnames)
-            elif PYFITS_INPUT:
-                columns = tuple(self.infile[ext].columns.names) # pyfits
+            columns = tuple(self.infile[ext].colnames)
         
             if AVERAGING_SPECTRA_FOR_SUMMARY:
                 tas = []
@@ -282,10 +315,7 @@ class MappingPipeline:
                 # now start at the beginning and calibrate all the integrations
                 for idx,rowNum in enumerate(chunk):
                     
-                    if FITSIO_INPUT:
-                        row = self.infile[ext][columns][rowNum]
-                    elif PYFITS_INPUT:
-                        row = self.infile[ext].data[rowNum]
+                    row = self.infile[ext][columns][rowNum]
                     
                     if self.sdf.getVal(row,'CAL') == 'T':
                         calON = row
@@ -320,8 +350,7 @@ class MappingPipeline:
                         
                         intTime = self.pu.dateToMjd( self.sdf.getVal(calOFF,'DATE-OBS') ) # integration timestamp
                         elevation = self.sdf.getVal(calOFF,'ELEVATIO') # integration elevation
-                        obsfreqHz = self.sdf.getVal(calOFF,'OBSFREQ')  # integration observed frequency
-        
+                                
                         if avgCref2!=None and crefTime2!=None:
                             crefInterp = \
                                 self.cal.interpolate_by_time(avgCref1, avgCref2,
@@ -343,7 +372,20 @@ class MappingPipeline:
                         if CREATE_PLOTS:
                             ref_tsyss.append(avgTref1)
         
-                        if units=='tsrc' or units=='ta*' or units=='tmb' or units=='jy':
+                        if units != 'ta':
+                            
+                            obsfreqHz = self.getObsFreq(mapscans, feed, window, pol)
+                            
+                            if tsky1 and tsky2:
+                                # get interpolated reference tsky value
+                                tsky_ref =  self.cal.interpolate_by_time(tsky1, tsky2,
+                                                crefTime1, crefTime2, intTime)
+                            elif tsky1 and not tsky2:
+                                tsky_ref =  tsky1
+                            else:
+                                print 'ERROR: no reference tsky value'
+                                sys.exit()
+
                             # ASSUMES a given opacity
                             #   the opacity needs to come from the command line or Ron's
                             #   model database.
@@ -358,73 +400,12 @@ class MappingPipeline:
                                 intOpacity = self.OPACITY
                                 
                             opacity_el = self.cal.elevation_adjusted_opacity(intOpacity, elevation)
-        
-                                
-                            # tsky for reference 1
-                            if not self.OPACITY:
-                                ref1_zenith_opacity = self.weather.retrieve_zenith_opacity(crefTime1, obsfreqHz)
-                                if not ref1_zenith_opacity:
-                                    print 'ERROR: Not able to retrieve reference 1 zenith opacity for',
-                                    print 'calibration to:',units
-                                    print '  Please supply a zenith opacity or calibrate to Ta.'
-                                    sys.exit(9)
-                            else:
-                                ref1_zenith_opacity = self.OPACITY
-                                
-                            opacity1 = self.cal.elevation_adjusted_opacity(ref1_zenith_opacity, refElevation1)
-                            
-                            crpix1 = self.sdf.getVal(calOFF,'CRPIX1')
-                            cdelt1 = self.sdf.getVal(calOFF,'CDELT1')
-                            crval1 = self.sdf.getVal(calOFF,'CRVAL1')
-                            tsky1 = []
-                            for chan in range(len(ta)):
-                                freqHz = (chan-crpix1)*cdelt1 + crval1
-                                tsky_chan = self.cal.tsky(refTambient1, freqHz, opacity1)
-                                tsky1.append(tsky_chan)
-                            tsky1 = np.array(tsky1)
-                                
-                            if multiple_reference_scans_for_tsky:
-        
-                                # tsky for reference 2
-                                if not self.OPACITY:
-                                    ref2_zenith_opacity = self.weather.retrieve_zenith_opacity(crefTime2, obsfreqHz)
-                                    if not ref2_zenith_opacity:
-                                        print 'ERROR: Not able to retrieve reference 2 zenith opacity for',
-                                        print 'calibration to:',units
-                                        print '  Please supply a zenith opacity or calibrate to Ta.'
-                                        sys.exit(9)
-                                else:
-                                    ref2_zenith_opacity = self.OPACITY
-                
-                                opacity2 = self.cal.elevation_adjusted_opacity(ref2_zenith_opacity, refElevation2)
-        
-                                tsky2 = []
-                                for chan in range(len(ta)):
-                                    freqHz = (chan-crpix1)*cdelt1 + crval1
-                                    tsky_chan = self.cal.tsky(refTambient2, freqHz, opacity2)
-                                    tsky2.append(tsky_chan)
-                                tsky2 = np.array(tsky2)
-            
-                                # get Tsky for each ref, then interpolate bt/wn the 2
-                                tskyInterp = \
-                                    self.cal.interpolate_by_time(tsky1, tsky2,
-                                                                 crefTime1, crefTime2, intTime)
                                 
                             # get tsky for the current integration
                             tambient_current = self.sdf.getVal(calOFF,'TAMBIENT')
-                            tsky_current = []
-                            for chan in range(len(ta)):
-                                freqHz = (chan-crpix1)*cdelt1 + crval1
-                                tsky_chan = self.cal.tsky(tambient_current, freqHz, opacity_el)
-                                tsky_current.append(tsky_chan)
-                            tsky_current = np.array(tsky_current)
-                                
-                    
-                            if multiple_reference_scans_for_tsky:
-                                tsky_corr = self.cal.tsky_corr(tsky_current, tskyInterp)
-                            
-                            else:
-                                tsky_corr = self.cal.tsky_corr(tsky_current, tsky1)
+                            tsky_current = self.cal.tsky(tambient_current, obsfreqHz, opacity_el)
+                           
+                            tsky_corr = self.cal.tsky_corr(tsky_current, tsky_ref)
                                 
                             tsrc = ta-tsky_corr
         
@@ -485,11 +466,8 @@ class MappingPipeline:
                             
                         row['TSYS'] = tsys
 
-                    if PYFITS_INPUT:
-                        for col in columns:
-                            output_data[col][outputidx] = row[col]
-                    elif FITSIO_INPUT:
-                        output_data[outputidx] = row
+
+                    output_data[outputidx] = row
                         
                     outputidx = outputidx + 1
                     

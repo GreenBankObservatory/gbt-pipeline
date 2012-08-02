@@ -26,8 +26,8 @@ import commandline
 from MappingPipeline import MappingPipeline
 import sys
 
-if __name__ == '__main__':
-    
+def runPipeline():
+
     # create instance of CommandLine object to parse input, then
     # parse all the input parameters and store them as attributes in param structure
     cl = commandline.CommandLine()
@@ -62,11 +62,16 @@ if __name__ == '__main__':
         pipe.getReference(scan, feed, window, pol)
 
     # -------------- calibrate signal scans
-    mapscans = (14,15,16,17,18,19,20)
+    #mapscans = (14,15,16,17,18,19,20)
     #mapscans = (14,18)
-    #mapscans = (14,)
+    mapscans = (14,)
         
     pipe.CalibrateSdfitsIntegrations( mapscans, feed, window, pol, \
             refSpectrum1, refTsys1, refTimestamp1, refTambient1, refElevation1, \
             refSpectrum2, refTsys2, refTimestamp2, refTambient2, refElevation2, \
             beam_scaling, units='ta' )
+
+if __name__ == '__main__':
+    
+    runPipeline()
+    

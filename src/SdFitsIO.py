@@ -139,7 +139,6 @@ class SdFits:
   
     def getVal(self, data, column):
         return data[column][0] # fitsio
-        #return data.field(column) # pyfits
     
     def get_start_mjd(self, indexfile,verbose=0):
         """Get the start date (mjd) of the session
