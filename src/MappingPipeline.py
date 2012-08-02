@@ -22,7 +22,19 @@
 
 # $Id$
 
+# how to read the input file
+FITSIO_INPUT = True
+
+if FITSIO_INPUT:
+    PYFITS_INPUT = False
+else:
+    PYFITS_INPUT = True
+
+if PYFITS_INPUT:
+    import pyfits
+    
 import fitsio
+
 from Calibration import Calibration
 from SdFitsIO import SdFits
 from pipeutils import Pipeutils
@@ -34,6 +46,7 @@ import os
 
 CREATE_PLOTS = True
 AVERAGING_SPECTRA_FOR_SUMMARY = True
+
 
 class MappingPipeline:
     
@@ -48,7 +61,11 @@ class MappingPipeline:
         self.FITSFILE = cl_params.infile
         self.INDEXFILE = self.sdf.nameIndexFile( cl_params.infile )
     
-        self.infile = fitsio.FITS( self.FITSFILE )
+        if FITSIO_INPUT:
+            self.infile = fitsio.FITS( self.FITSFILE )
+        elif PYFITS_INPUT:
+            self.infile = pyfits.open( self.FITSFILE, memmap=1, mode='readonly'  )
+            
         self.outfile = None
 
         self.rowList = self.sdf.parseSdfitsIndex( self.INDEXFILE )
@@ -71,10 +88,15 @@ class MappingPipeline:
         
         # fill the buffers
         for idx,rowNum in enumerate(sdfits_row_structure[:4]):
-            row = self.infile[ext][rowNum]
-            lookahead_cal_states.add(row['CAL'][0])
-            lookahead_sig_states.add(row['SIG'][0])
-        
+            if FITSIO_INPUT:
+                columns = ('CAL','SIG')
+                row = self.infile[ext][columns][rowNum]
+            elif PYFITS_INPUT:
+                row = self.infile[ext].data[rowNum]  # pyfits
+            
+            lookahead_cal_states.add(self.sdf.getVal(row,'CAL'))
+            lookahead_sig_states.add(self.sdf.getVal(row,'SIG'))
+                    
         cal_switching = False
         sigref = False
 
@@ -83,7 +105,7 @@ class MappingPipeline:
         
         if len(lookahead_sig_states) > 1:
             sigref = True
-            
+
         return cal_switching, sigref
     
     def getReference(self, scan, feed, window, pol):
@@ -101,10 +123,17 @@ class MappingPipeline:
         tambients = [] # used for tsky computation for ta* and beyond
         elevations = [] # used for tsky computation for ta* and beyond
         
+        if FITSIO_INPUT:
+            columns = tuple(self.infile[ext].colnames)
+        
         for idx in rows:
             
-            row = self.infile[ext][idx]
-            if row['CAL'][0] == 'T':
+            if FITSIO_INPUT:
+                row = self.infile[ext][columns][idx:idx+1]
+            elif PYFITS_INPUT:        
+                row = self.infile[ext].data[idx]
+        
+            if self.sdf.getVal(row,'CAL') == 'T':
                 calON = row
             else:
                 calOFF = row
@@ -162,12 +191,16 @@ class MappingPipeline:
         self.outfile = fitsio.FITS(outfilename,'rw')
         signalRows = self.rowList.get(mapscans[0], feed, window, pol)
         ext = signalRows['EXTENSION']
-        input_row = self.infile[ext][0]
-        input_header = fitsio.read_header(self.FITSFILE, ext)
-        self.outfile.create_table_hdu(dtype=input_row.dtype, header=input_header)
-        self.outfile.update_hdu_list()
+
+        if FITSIO_INPUT:
+            dtype = self.infile[ext][0].dtype
+        elif PYFITS_INPUT:        
+            dtype = self.infile[ext].data.dtype   # pyfits
         
-        return input_row
+        input_header = fitsio.read_header(self.FITSFILE, ext)
+        self.outfile.create_table_hdu(dtype=dtype, header=input_header)
+        
+        return dtype
 
     def multi_tskys(self, crefTime2, refTambient2, refElevation2):
         
@@ -197,8 +230,8 @@ class MappingPipeline:
                           avgCref2=None, avgTref2=None, crefTime2=None, refTambient2=None, refElevation2=None, \
                           beam_scaling=None, units='ta*'):
     
-        input_row = self.create_output_sdfits(feed, window, pol, mapscans)
-        
+        dtype = self.create_output_sdfits(feed, window, pol, mapscans)
+
         for scan in mapscans:
             
             signalRows = self.rowList.get(scan, feed, window, pol)
@@ -208,6 +241,11 @@ class MappingPipeline:
             ext = signalRows['EXTENSION']
             rows = signalRows['ROW']
             
+            if FITSIO_INPUT:
+                columns = tuple(self.infile[ext].colnames)
+            elif PYFITS_INPUT:
+                columns = tuple(self.infile[ext].columns.names) # pyfits
+        
             if AVERAGING_SPECTRA_FOR_SUMMARY:
                 tas = []
                 tsrcs = []
@@ -227,23 +265,29 @@ class MappingPipeline:
             # break the input rows into chunks as buffers to write out
             #   so that we don't write out rows one at a time
             rowchunks = self.set_row_chunks(rows, self.BUFFER_SIZE)
-                            
+
+            outputidx = 0
+            
             for chunk in rowchunks:
                 
                 rows2write = len(chunk)
-                if cal_switching:
-                    rows2write / 2
-                if sigref:
-                    rows2write / 2
                 
-                output_data = np.zeros(rows2write, dtype=input_row.dtype)
+                if cal_switching:
+                    rows2write = rows2write / 2
+                if sigref:
+                    rows2write = rows2write / 2
+
+                output_data = np.zeros(rows2write, dtype=dtype)
                 
                 # now start at the beginning and calibrate all the integrations
                 for idx,rowNum in enumerate(chunk):
-        
-                    row = self.infile[ext][rowNum]
                     
-                    if row['CAL'][0] == 'T':
+                    if FITSIO_INPUT:
+                        row = self.infile[ext][columns][rowNum]
+                    elif PYFITS_INPUT:
+                        row = self.infile[ext].data[rowNum]
+                    
+                    if self.sdf.getVal(row,'CAL') == 'T':
                         calON = row
                     else:
                         calOFF = row
@@ -253,19 +297,19 @@ class MappingPipeline:
                     if cal_switching and calOFF and calON:
                         # noise diode is being fired during signal integrations
         
-                        calONdata = self.pu.masked_array(calON['DATA'][0])
-                        calOFFdata = self.pu.masked_array(calOFF['DATA'][0])
+                        calONdata = self.pu.masked_array(self.sdf.getVal(calON,'DATA'))
+                        calOFFdata = self.pu.masked_array(self.sdf.getVal(calOFF,'DATA'))
                         
                         csig = self.cal.Csig(calONdata, calOFFdata)
         
                         if AVERAGING_SPECTRA_FOR_SUMMARY:
-                            exposure = calON['EXPOSURE'][0]+calOFF['EXPOSURE'][0]
+                            exposure = self.sdf.getVal(calON,'EXPOSURE')+self.sdf.getVal(calOFF,'EXPOSURE')
                             exposures.append(exposure)
         
                     # if there is more than one row, this isn't the last one, this and the next are CAL=='F',
                     #    then the diode is not firing
                     elif not cal_switching:
-                        csig = self.pu.masked_array(calOFF['DATA'][0])
+                        csig = self.pu.masked_array(self.sdf.getVal(calOFF,'DATA'))
                     
                     # we are cal switching but we only have one cal state,
                     #   then read the next row
@@ -274,15 +318,9 @@ class MappingPipeline:
                     
                     if csig != None:
                         
-                        index = idx
-                        if cal_switching:
-                            index = index / 2
-                        if sigref:
-                            index = index / 2
-                        
-                        intTime = self.pu.dateToMjd( calOFF['DATE-OBS'][0] ) # integration timestamp
-                        elevation = calOFF['ELEVATIO'][0] # integration elevation
-                        obsfreqHz = calOFF['OBSFREQ'][0]  # integration observed frequency
+                        intTime = self.pu.dateToMjd( self.sdf.getVal(calOFF,'DATE-OBS') ) # integration timestamp
+                        elevation = self.sdf.getVal(calOFF,'ELEVATIO') # integration elevation
+                        obsfreqHz = self.sdf.getVal(calOFF,'OBSFREQ')  # integration observed frequency
         
                         if avgCref2!=None and crefTime2!=None:
                             crefInterp = \
@@ -335,9 +373,9 @@ class MappingPipeline:
                                 
                             opacity1 = self.cal.elevation_adjusted_opacity(ref1_zenith_opacity, refElevation1)
                             
-                            crpix1 = calOFF['CRPIX1'][0]
-                            cdelt1 = calOFF['CDELT1'][0]
-                            crval1 = calOFF['CRVAL1'][0]
+                            crpix1 = self.sdf.getVal(calOFF,'CRPIX1')
+                            cdelt1 = self.sdf.getVal(calOFF,'CDELT1')
+                            crval1 = self.sdf.getVal(calOFF,'CRVAL1')
                             tsky1 = []
                             for chan in range(len(ta)):
                                 freqHz = (chan-crpix1)*cdelt1 + crval1
@@ -373,7 +411,7 @@ class MappingPipeline:
                                                                  crefTime1, crefTime2, intTime)
                                 
                             # get tsky for the current integration
-                            tambient_current = calOFF['TAMBIENT'][0]
+                            tambient_current = self.sdf.getVal(calOFF,'TAMBIENT')
                             tsky_current = []
                             for chan in range(len(ta)):
                                 freqHz = (chan-crpix1)*cdelt1 + crval1
@@ -431,7 +469,6 @@ class MappingPipeline:
                         
                         # --------------------------------  write data out to FITS file
     
-        
                         if 'ta' == units:
                             row['DATA'] = ta
                         elif 'tsrc' == units:
@@ -447,10 +484,17 @@ class MappingPipeline:
                             sys.exit(9)
                             
                         row['TSYS'] = tsys
+
+                    if PYFITS_INPUT:
+                        for col in columns:
+                            output_data[col][outputidx] = row[col]
+                    elif FITSIO_INPUT:
+                        output_data[outputidx] = row
+                        
+                    outputidx = outputidx + 1
                     
-                    output_data[idx] = row
-                
                 self.outfile[-1].append(output_data)
+                self.outfile.update_hdu_list()
                         
                 # done looping over rows in a chunk
                 

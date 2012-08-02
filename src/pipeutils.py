@@ -30,7 +30,6 @@ import logging
 import time
 import glob
 
-import pyfits
 import numpy as np
 
 # message levels

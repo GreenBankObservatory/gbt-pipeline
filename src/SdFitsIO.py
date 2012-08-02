@@ -21,10 +21,10 @@
 #       Green Bank, WV 24944-0002 USA
 
 # $Id$
-
-import csv
+    
 import os
 import sys
+import csv
 
 import fitsio
 
@@ -137,6 +137,10 @@ class SdFits:
         return infile
     
   
+    def getVal(self, data, column):
+        return data[column][0] # fitsio
+        #return data.field(column) # pyfits
+    
     def get_start_mjd(self, indexfile,verbose=0):
         """Get the start date (mjd) of the session
     
@@ -429,18 +433,18 @@ class SdFits:
     def getReferenceIntegration(self, calON, calOFF):
         
         cal = Calibration()
-        calONdata = self.pu.masked_array(calON['DATA'][0])
-        calOFFdata = self.pu.masked_array(calOFF['DATA'][0])
+        calONdata = self.pu.masked_array(self.getVal(calON,'DATA'))
+        calOFFdata = self.pu.masked_array(self.getVal(calOFF,'DATA'))
         cref = cal.Cref(calONdata, calOFFdata)
         ccal = cal.Ccal(calONdata, calOFFdata)
-        tcal = calOFF['TCAL'][0]
+        tcal = self.getVal(calOFF,'TCAL')
         tref = cal.Tref( tcal, calONdata, calOFFdata )
 #--------------------
         # uncomment if using idl Tsys
         #tref = cal.idlTsys80( tcal, calONdata, calOFFdata )
         #tref = float('{:2.4}'.format(tref))
 #^^^^^^^^^^^^^^^^^^^^
-        dateobs = calOFF['DATE-OBS'][0]
+        dateobs = self.getVal(calOFF,'DATE-OBS')
         timestamp = self.pu.dateToMjd(dateobs)
         
         #----------------
@@ -454,9 +458,9 @@ class SdFits:
         #idl_tsys =  tcal * calOFFdata / (calONdata-calOFFdata) + tcal/2.
         #----------------
     
-        exposure = calON['EXPOSURE'][0] + calOFF['EXPOSURE'][0]
-        tambient = calOFF['TAMBIENT'][0]
-        elevation = calOFF['ELEVATIO'][0]
+        exposure = self.getVal(calON,'EXPOSURE') + self.getVal(calOFF,'EXPOSURE')
+        tambient = self.getVal(calOFF,'TAMBIENT')
+        elevation = self.getVal(calOFF,'ELEVATIO')
         
         return cref,tref,exposure,timestamp,tambient,elevation
 
