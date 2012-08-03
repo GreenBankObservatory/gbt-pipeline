@@ -7,6 +7,9 @@ class Weather:
     def __init__(self):
         
         self.cal = Calibration()
+        self.last_integration_mjd_timestamp = None
+        self.last_requested_freqHz = None
+        self.last_zenith_opacity = None
         
     def retrieve_opacity_coefficients(self, opacity_coefficients_filename):
         """Return opacities (taus) derived from a list of coeffients
@@ -50,15 +53,30 @@ class Weather:
         
         # if less than 2 GHz, opacity coefficients are not available
         if freqGHz < 2:
-            return ()
+            return None
 
+        # if the frequency is the same as the last requested and
+        #  this time is within the same record (1 hr window) of the last
+        #  recorded opacity coefficients, then just reuse the last
+        #  zenith opacity value requested
+
+        if self.last_requested_freqHz != None and self.last_requested_freqHz == freqHz and \
+                integration_mjd_timestamp >= self.last_integration_mjd_timestamp and \
+                integration_mjd_timestamp < self.last_integration_mjd_timestamp + .04167:
+            
+                return self.last_zenith_opacity
+        
+        self.last_integration_mjd_timestamp = integration_mjd_timestamp
+        self.last_requested_freqHz = freqHz
+                
         # retrieve a list of opacity coefficients files, based on a given directory
         # and filename structure
         opacity_coefficients_filename = False
         opacity_files = glob.glob(\
           '/users/rmaddale/Weather/ArchiveCoeffs/CoeffsOpacityFreqList_avrg_*.txt')
+        self.number_of_opacity_files = len(opacity_files)
         
-        if 0==len(opacity_files):
+        if 0==self.number_of_opacity_files:
             #doMessage(logger,msg.WARN,'WARNING: No opacity coefficients file')
             print 'WARNING: No opacity coefficients file'
             return False
@@ -103,13 +121,13 @@ class Weather:
         # opacities coefficients filename
         if opacity_coefficients_filename and os.path.exists(opacity_coefficients_filename):
             #doMessage(logger,msg.DBG,'Using coefficients from', opacity_coefficients_filename)
-            opacity_coeffs = self.retrieve_opacity_coefficients(opacity_coefficients_filename)
+            self.opacity_coeffs = self.retrieve_opacity_coefficients(opacity_coefficients_filename)
         else:
             #doMessage(logger,msg.WARN,'WARNING: No opacity coefficients file')
             print 'WARNING: No opacity coefficients file'
             return False
 
-        for coeffs_line in opacity_coeffs:
+        for coeffs_line in self.opacity_coeffs:
             if integration_mjd_timestamp > coeffs_line[0]:
                 if (freqGHz >= 2 and freqGHz <= 22):
                     coeffs = coeffs_line[1]
@@ -119,5 +137,6 @@ class Weather:
                     coeffs = coeffs_line[3]
 
         zenith_opacity = self.cal.zenith_opacity(coeffs, freqGHz)
+        self.last_zenith_opacity = zenith_opacity
         
         return zenith_opacity
