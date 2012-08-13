@@ -27,7 +27,7 @@ import fitsio
 from Integration import Integration
 from Calibration import Calibration
 from SdFitsIO import SdFits
-from pipeutils import Pipeutils
+from Pipeutils import Pipeutils
 import numpy as np
 from pylab import *
 from Weather import Weather

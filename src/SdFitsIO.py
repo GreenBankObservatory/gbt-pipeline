@@ -30,7 +30,7 @@ import fitsio
 
 from collections import OrderedDict
 from Calibration import Calibration
-from pipeutils import Pipeutils
+from Pipeutils import Pipeutils
 
 class SdFits:
     """Class contains methods to read and write to the GBT SdFits format.

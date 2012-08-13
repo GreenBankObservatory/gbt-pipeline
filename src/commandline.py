@@ -23,7 +23,7 @@
 # $Id$
 
 import argparse
-from pipeutils import Pipeutils
+from Pipeutils import Pipeutils
 
 class myparser(argparse.ArgumentParser):
     def convert_arg_line_to_args(self, arg_line):
