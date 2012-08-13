@@ -377,7 +377,7 @@ class Calibration:
         
         tsys = self.idlTsys80(tcal,  ref_calON['DATA'],  ref_calOFF['DATA'])
         #tsys = self.Tref(tcal,  ref_calON['DATA'],  ref_calOFF['DATA'])[lo:hi].mean()
-        
+        print tsys
         ta = self.Ta(tsys, sig, ref )
         
         return ta, tsys
@@ -388,7 +388,7 @@ class Calibration:
         ta1, tsys1 = self.Ta_fs_one_state(sigrefState, 1, 0)
 
         tsys = np.mean((tsys0,tsys1))
-        print tsys
+        print 'Tsys in fs integration',tsys
                                                         
         # shift in frequency
         sig_centerfreq = sigrefState[0]['calOFF']['OBSFREQ']

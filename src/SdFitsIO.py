@@ -439,7 +439,8 @@ class SdFits:
         cref = cal.Cavg(calONdata, calOFFdata)
         ccal = cal.Cdiff(calONdata, calOFFdata)
         tcal = calOFF['TCAL']
-        tref = cal.Tref( tcal, calONdata, calOFFdata )
+        #tref = cal.Tref( tcal, calONdata, calOFFdata )
+        tref = cal.idlTsys80( tcal, calONdata, calOFFdata )
         
         dateobs = calOFF['DATE-OBS']
         timestamp = self.pu.dateToMjd(dateobs)

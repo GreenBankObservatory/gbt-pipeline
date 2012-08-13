@@ -275,6 +275,7 @@ class MappingPipeline:
         
         for scan in self.mapscans:
             
+            print 'calibrating scan',scan
             inputRows = self.rowList.get(scan, feed, window, pol)
 
             # get integration rows
@@ -284,6 +285,9 @@ class MappingPipeline:
             columns = tuple(self.infile[ext].colnames)
             
             cal_switching, sigref = self.determineSetup(rows, ext)
+            if cal_switching != 2 and sigref != 2:
+                print 'ERROR:  scsan',scan,'does not have 2 signal states'
+                print '    and 2 noise diode (cal) states'
             
             # break the input rows into chunks as buffers to write out
             #   so that we don't write out rows one at a time
@@ -679,7 +683,7 @@ class MappingPipeline:
                           avgCref1=None, avgTref1=None, crefTime1=None, refTambient1=None, refElevation1=None, \
                           avgCref2=None, avgTref2=None, crefTime2=None, refTambient2=None, refElevation2=None, \
                           beam_scaling=None):
-    
+        
         if avgCref1 != None:
             self.calibrate_ps_sdfits_integrations(feed, window, pol, \
                           avgCref1, avgTref1, crefTime1, refTambient1, refElevation1, \

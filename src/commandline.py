@@ -58,9 +58,6 @@ class CommandLine:
         input_group = self.parser.add_argument_group('Input')
         input_group.add_argument("-i", "--infile", dest="infile", default='',
                         help="SDFITS file name containing map scans", metavar="FILE")
-        input_group.add_argument("-d", "--sdfits-dir", dest="sdfitsdir", default='',
-                        help="SDFITS input directory; used if infile option is not usable",
-                        metavar="DIR")
         
         data_selection = self.parser.add_argument_group('Data Selection')
         data_selection.add_argument("-m", "--map-scans", dest="mapscans", default=[],
@@ -104,18 +101,12 @@ class CommandLine:
                         help="main beam efficiency for freq.=0 (eta-B)", metavar="N")
         calibration.add_argument("--gain-coefficients",dest="gaincoeffs", default=".91,.00434,-5.22e-5",
                         help="comma-separated gain coefficients", metavar="N")
-        calibration.add_argument("--map-scans-for-scale", action='store_true',
-                        dest="mapscansforscale", default=False,
-                        help="When set, use the mapping scans to scale map Tsys's to K.")
         calibration.add_argument("--gain-factors-left",dest="gain_left", default=[],
                         help="comma-separated gain factors for each left-polarized feed", metavar="G[,G]")
         calibration.add_argument("--gain-factors-right",dest="gain_right", default=[],
                         help="comma-separated gain factors for each right-polarized feed", metavar="G[,G]")
         calibration.add_argument("-t", "--zenith-opacity",dest="zenithtau", type=float,
                         help="zenith opacity value (tau-z)", metavar="N", default=False)
-        calibration.add_argument("--fs-as-ps", dest="psmap",
-                        action='store_true', default=False,
-                        help="optionaly process a FS map as PS")
 
         output = self.parser.add_argument_group('Output')
         output.add_argument("-v", "--verbose", dest="verbose", default=0,

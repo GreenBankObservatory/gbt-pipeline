@@ -48,31 +48,30 @@ def runPipeline():
     refTimestamp2 = None
     refTambient2 = None
     refElevation2 = None
-
-    feed=0
+    
+    print cl_params.feed
+    import pdb; pdb.set_trace()
+    feeds=cl_params.feed
     window=0
     pol=0
     beam_scaling=1
-
-    # -------------- reference 1
-    if PS:
-        scan=13
-        refSpectrum1, refTsys1, refTimestamp1, refTambient1, refElevation1 = \
-            pipe.getReference(scan, feed, window, pol)
     
-    # -------------- reference 2
-    #scan=26
-    #refSpectrum2, refTsys2, refTimestamp2, refTambient2, refElevation2 = \
-    #    pipe.getReference(scan, feed, window, pol)
-
-    # -------------- calibrate signal scans
-    #mapscans = (14,15,16,17,18,19,20)
-    #mapscans = (14,18)
+    for feed in feeds:
+        # -------------- reference 1
+        if cl_params.refscan1:
+            refSpectrum1, refTsys1, refTimestamp1, refTambient1, refElevation1 = \
+                pipe.getReference(cl_params.refscan1, feed, window, pol)
+        
+            if cl_params.refscan2:
+                # -------------- reference 2
+                refSpectrum2, refTsys2, refTimestamp2, refTambient2, refElevation2 = \
+                    pipe.getReference(cl_params.refscan2, feed, window, pol)
     
-    pipe.CalibrateSdfitsIntegrations( feed, window, pol, \
-            refSpectrum1, refTsys1, refTimestamp1, refTambient1, refElevation1, \
-            refSpectrum2, refTsys2, refTimestamp2, refTambient2, refElevation2, \
-            beam_scaling )
+        # -------------- calibrate signal scans
+        pipe.CalibrateSdfitsIntegrations( feed, window, pol, \
+                refSpectrum1, refTsys1, refTimestamp1, refTambient1, refElevation1, \
+                refSpectrum2, refTsys2, refTimestamp2, refTambient2, refElevation2, \
+                beam_scaling )
 
 if __name__ == '__main__':
     
