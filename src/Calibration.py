@@ -24,6 +24,7 @@
 
 import numpy as np
 import math
+import smoothing
 
 class Calibration:
     """Class containing all the calibration methods for the GBT Pipeline.
@@ -39,21 +40,18 @@ class Calibration:
         self.SPILLOVER = .99  # rear spillover, ohmic loss, blockage (etaL)
         self.GAIN_COEFFICIENTS = [.910,.00434,-5.22e-5,0]
         self.UNDER_2GHZ_ZENITH_TAU = 0.008
-    
+        self.SMOOTHING_WINDOW = 16
+                   
     # ------------- Unit methods: do not depend on any other pipeline methods
 
-    def Cref(self,calON,calOFF):  # eqn. (2) in PS spec
+    # eqn. (2) in PS spec as "Cref"
+    # part of eqn. (5) in PS spec as "Csig"
+    def Cavg(self,calON,calOFF):  
         return np.mean((calON,calOFF),axis=0)
 
-    def Ccal(self,calON,calOFF):  # eqn. (3) in PS spec
+    # eqn. (3) in PS spec as "Ccal"
+    def Cdiff(self,calON,calOFF):
         return calON - calOFF
-
-    def Csig(self,calON,calOFF):  # part of eqn. (5) in PS spec
-        if 0 == len(calON) and 0 == len(calOFF):
-            print 'No integrations provided to Csig method'
-            raise
-        else:
-            return np.mean((calON,calOFF),axis=0)
 
     def tsky_corr(self, tsky_sig, tsky_ref):
         return self.SPILLOVER*(tsky_sig-tsky_ref)
@@ -347,8 +345,8 @@ class Calibration:
     
     # same as Tsys for the reference scan
     def Tref(self, Tcal, calON, calOFF): # eqn. (4) in PS spec
-        Ccal = self.Ccal(calON,calOFF)
-        Cref = self.Cref(calON,calOFF)
+        Cref = self.Cavg(calON,calOFF)
+        Ccal = self.Cdiff(calON,calOFF)
         return Tcal*(Cref/Ccal)
     
     def idlTsys80(self, tcal,calON,calOFF):
@@ -362,6 +360,65 @@ class Calibration:
     def Ta(self,Tref,Csig,Cref):   # eqn. (5) in PS spec
         return Tref * ((Csig-Cref)/Cref)
     
+    def Ta_fs_one_state(self, sigrefState, sigid, refid):
+
+        lo = len(sigrefState[0]['TP'])*.1
+        hi = len(sigrefState[0]['TP'])*.9
+
+        sig = sigrefState[sigid]['TP']
+        sig_calON   = sigrefState[sigid]['calON']
+        sig_calOFF  = sigrefState[sigid]['calOFF']
+
+        ref = sigrefState[refid]['TP']
+        ref_calON  = sigrefState[refid]['calON']
+        ref_calOFF = sigrefState[refid]['calOFF']
+        
+        tcal = ref_calOFF['TCAL']
+        
+        tsys = self.idlTsys80(tcal,  ref_calON['DATA'],  ref_calOFF['DATA'])
+        #tsys = self.Tref(tcal,  ref_calON['DATA'],  ref_calOFF['DATA'])[lo:hi].mean()
+        
+        ta = self.Ta(tsys, sig, ref )
+        
+        return ta, tsys
+        
+    def Ta_fs(self, sigrefState):
+        
+        ta0, tsys0 = self.Ta_fs_one_state(sigrefState, 0, 1)
+        ta1, tsys1 = self.Ta_fs_one_state(sigrefState, 1, 0)
+
+        tsys = np.mean((tsys0,tsys1))
+        print tsys
+                                                        
+        # shift in frequency
+        sig_centerfreq = sigrefState[0]['calOFF']['OBSFREQ']
+        ref_centerfreq = sigrefState[1]['calOFF']['OBSFREQ']
+
+        sig_delta = sigrefState[0]['calOFF']['CDELT1']
+        channel_shift = -((sig_centerfreq-ref_centerfreq)/sig_delta)
+
+        # do integer channel shift to second spectrum
+        ta1_ishifted = np.roll(ta1,int(channel_shift))
+        
+        if channel_shift > 0:
+            ta1_ishifted[:channel_shift]=0
+        elif channel_shift < 0:
+            ta1_ishifted[channel_shift:]=0
+
+        # do fractional channel shift
+        fractional_shift = channel_shift - int(channel_shift)
+        #doMessage(logger,msg.DBG,'Fractional channel shift is',fractional_shift)
+        xp = range(len(ta1_ishifted))
+        yp = ta1_ishifted
+        xx = xp-fractional_shift
+
+        yy = np.interp(xx,xp,yp)
+        
+        # average shifted spectra
+        ta = (ta0+yy)/2.
+              
+        return ta, tsys
+                
     # eqn. (13) in PS spec
     def TaStar(self, Tsrc, beam_scaling, opacity, gain, elevation):
         if not gain:
@@ -399,16 +456,15 @@ class Calibration:
 
 #------------------
         # uncomment if using idl Tsys
-        #weights = exposures / trefs**2
-        #avgTref = np.average(trefs,axis=0,weights=weights)
-        #for xx in weights:
-        #    print xx,',',
-        #print 'mean tref',avgTref
-        #import sys; sys.exit()
+        weights = exposures / trefs**2
+        avgTref = np.average(trefs,axis=0,weights=weights)
 #^^^^^^^^^^^^^^^^^^
-        tref80s = trefs[:,lo:hi].mean(axis=1)
-        weights = exposures / tref80s**2
-        avgTref = np.average(trefs[:,lo:hi],axis=0,weights=weights)
+#------------------
+        # uncomment if using SPEC Tref
+        #tref80s = trefs[:,lo:hi].mean(axis=1)
+        #weights = exposures / tref80s**2
+        #avgTref = np.average(trefs[:,lo:hi],axis=0,weights=weights)
+#^^^^^^^^^^^^^^^^^^
         
         avgTref80 = avgTref.mean(0) # single value for mid 80% of band
         avgCref = np.average(crefs,axis=0,weights=weights)

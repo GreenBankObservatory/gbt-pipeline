@@ -137,9 +137,6 @@ class SdFits:
         return infile
     
   
-    def getVal(self, data, column):
-        return data[column][0] # fitsio
-    
     def get_start_mjd(self, indexfile,verbose=0):
         """Get the start date (mjd) of the session
     
@@ -386,8 +383,13 @@ class SdFits:
                                       'ROW': [rowOfFitsFile],
                                       'TYPE': typeOfScan }
             def get(self,scan,feed,window,polarization):
-                key = (scan,feed,window,polarization)
-                return self.rows[key]
+                try:
+                    key = (scan,feed,window,polarization)
+                    return self.rows[key]
+                except(KeyError):
+                    print 'ERROR: scan, feed, window, polarization not found in file.'
+                    print scan,feed,window,polarization
+                    sys.exit()
 
         try:
             ifile = open(infile)
@@ -432,34 +434,19 @@ class SdFits:
     def getReferenceIntegration(self, calON, calOFF):
         
         cal = Calibration()
-        calONdata = self.pu.masked_array(self.getVal(calON,'DATA'))
-        calOFFdata = self.pu.masked_array(self.getVal(calOFF,'DATA'))
-        cref = cal.Cref(calONdata, calOFFdata)
-        ccal = cal.Ccal(calONdata, calOFFdata)
-        tcal = self.getVal(calOFF,'TCAL')
+        calONdata = calON['DATA']
+        calOFFdata = calOFF['DATA']
+        cref = cal.Cavg(calONdata, calOFFdata)
+        ccal = cal.Cdiff(calONdata, calOFFdata)
+        tcal = calOFF['TCAL']
         tref = cal.Tref( tcal, calONdata, calOFFdata )
-#--------------------
-        # uncomment if using idl Tsys
-        #tref = cal.idlTsys80( tcal, calONdata, calOFFdata )
-        #tref = float('{:2.4}'.format(tref))
-#^^^^^^^^^^^^^^^^^^^^
-        dateobs = self.getVal(calOFF,'DATE-OBS')
-        timestamp = self.pu.dateToMjd(dateobs)
         
-        #----------------
-        # IDL Tsys computation
-        # middle 80%
-        #number_of_data_channels = len(tref)
-        #lo = int(.1*number_of_data_channels)
-        #hi = int(.9*number_of_data_channels)
-        #idl_tsys =  tcal * (calOFFdata[lo:hi]).mean() / (calONdata[lo:hi]-calOFFdata[lo:hi]).mean() + tcal/2.
-        #print idl_tsys
-        #idl_tsys =  tcal * calOFFdata / (calONdata-calOFFdata) + tcal/2.
-        #----------------
-    
-        exposure = self.getVal(calON,'EXPOSURE') + self.getVal(calOFF,'EXPOSURE')
-        tambient = self.getVal(calOFF,'TAMBIENT')
-        elevation = self.getVal(calOFF,'ELEVATIO')
+        dateobs = calOFF['DATE-OBS']
+        timestamp = self.pu.dateToMjd(dateobs)
+            
+        exposure = calON['EXPOSURE'] + calOFF['EXPOSURE']
+        tambient = calOFF['TAMBIENT']
+        elevation = calOFF['ELEVATIO']
         
         return cref,tref,exposure,timestamp,tambient,elevation
 
@@ -467,8 +454,6 @@ class SdFits:
         # -------------------------------------------------  name index file
         
         if fitsfile.endswith('.fits'):
-            # reverse the filename to only replace '.fits' at the end of the string
-            # the python string replace method works from left to right
             return os.path.splitext(fitsfile)[0]+'.index'
         
         else:
