@@ -22,9 +22,6 @@
 
 # $Id$
 
-PS = False
-
-
 import commandline
 from MappingPipeline import MappingPipeline
 import sys
@@ -65,40 +62,36 @@ def runPipeline():
     print 'windows',', '.join([str(xx) for xx in windows])
     print 'feeds',', '.join([str(xx) for xx in feeds])
     print 'pols',', '.join([str(xx) for xx in pols])
+    if cl_params.refscans:
+        print 'refscans',', '.join([str(xx) for xx in cl_params.refscans[:2]])
     
-    print cl_params.gainfactors
-    if 1 != cl_params.gainfactors:
-       if len(feeds)*len(pols) != len(cl_params.gainfactors):
-            print 'ERROR: there must be a gain factor for every feed and polarization.'
-            print '   For this data, there must be',len(feeds)*len(pols),'gain factors.'
-            sys.exit()
-
     for window in windows:
         for feed in feeds:
             for pol in pols:
                 
                 # -------------- reference 1
-                if cl_params.refscan1:
+                if cl_params.refscans:
 
                     try:
-                        pipe.rowList.get(cl_params.refscan1, feed, window, pol)
+                        pipe.rowList.get(cl_params.refscans[0], feed, window, pol)
                     except:
-                        print 'ERROR: missing 2nd reference scan #',cl_params.refscan1,'for feed',feed,'window',window,'polarization',pol
+                        print 'ERROR: missing 2nd reference scan #',cl_params.refscans[0],'for feed',feed,'window',window,'polarization',pol
                         continue
                     
                     refSpectrum1, refTsys1, refTimestamp1, refTambient1, refElevation1 = \
-                        pipe.getReference(cl_params.refscan1, feed, window, pol)
+                        pipe.getReference(cl_params.refscans[0], feed, window, pol)
                     
-                    if cl_params.refscan2:
+                    if len(cl_params.refscans)>1:
                         # -------------- reference 2
                         try:
-                            pipe.rowList.get(cl_params.refscan2, feed, window, pol)
+                            pipe.rowList.get(cl_params.refscans[1], feed, window, pol)
                         except:
-                            print 'ERROR: missing 2nd reference scan #',cl_params.refscan2,'for feed',feed,'window',window,'polarization',pol
+                            print 'ERROR: missing 2nd reference scan #',cl_params.refscans[1],
+                            print 'for feed',feed,'window',window,'polarization',pol
                             continue
                         
                         refSpectrum2, refTsys2, refTimestamp2, refTambient2, refElevation2 = \
-                            pipe.getReference(cl_params.refscan2, feed, window, pol)
+                            pipe.getReference(cl_params.refscans[1], feed, window, pol)
             
                 # -------------- calibrate signal scans
                 if 1 != cl_params.gainfactors:

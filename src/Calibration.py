@@ -37,11 +37,9 @@ class Calibration:
         
         # set calibration constants
         self.BB = .0132  # Ruze equation parameter
-        self.SPILLOVER = .99  # rear spillover, ohmic loss, blockage (etaL)
-        self.GAIN_COEFFICIENTS = [.910,.00434,-5.22e-5,0]
         self.UNDER_2GHZ_ZENITH_TAU = 0.008
         self.SMOOTHING_WINDOW = 2
-                   
+
     # ------------- Unit methods: do not depend on any other pipeline methods
 
     # eqn. (2) in PS spec as "Cref"
@@ -53,8 +51,8 @@ class Calibration:
     def Cdiff(self,calON,calOFF):
         return calON - calOFF
 
-    def tsky_corr(self, tsky_sig, tsky_ref):
-        return self.SPILLOVER*(tsky_sig-tsky_ref)
+    def tsky_corr(self, tsky_sig, tsky_ref, spillover):
+        return spillover*(tsky_sig-tsky_ref)
     
     # eqn. (11) in PS spec
     def aperture_efficiency(self, reference_etaA, freqHz):
@@ -421,10 +419,10 @@ class Calibration:
         return ta, tsys
                 
     # eqn. (13) in PS spec
-    def TaStar(self, Tsrc, beam_scaling, opacity, gain, elevation):
+    def TaStar(self, Tsrc, beam_scaling, opacity, gain, elevation, spillover, gain_coeffs):
         if not gain:
-            gain = self.gain(self.GAIN_COEFFICIENTS, elevation)
-        return Tsrc*((beam_scaling*(math.e**opacity))/(self.SPILLOVER*gain))
+            gain = self.gain(gain_coeffs, elevation)
+        return Tsrc*((beam_scaling*(math.e**opacity))/(spillover*gain))
         
     def jansky(self,TaStar,aperture_efficiency): # eqn. (16) in PS spec
         return TaStar/(2.85*aperture_efficiency)

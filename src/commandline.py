@@ -62,20 +62,16 @@ class CommandLine:
         data_selection = self.parser.add_argument_group('Data Selection')
         data_selection.add_argument("-m", "--map-scans", dest="mapscans", default=None,
                         help="range of scan numbers", metavar="N[,N]")
-        data_selection.add_argument("--refscan1", dest="refscan1", default=False,
-                        help="first reference scan", metavar="SCAN", type=int)
-        data_selection.add_argument("--refscan2", dest="refscan2", default=False,
-                        help="second reference scan", metavar="SCAN", type=int)
-        data_selection.add_argument("--allmaps", dest="allmaps", action='store_true',
-                        default=False, help="If set, attempt to process all maps in input file.")
-        data_selection.add_argument("-c", "--channels",dest="channels", default=False, type=str,
-                        help="channel selection i.e. 100:200 (idlToSdfits); use with CAUTION")
+        data_selection.add_argument("--refscan","--refscans", dest="refscans", default=None,
+                        help="reference scan(s)", metavar="SCAN[,SCAN]")
         data_selection.add_argument("-f", "--feed",dest="feed", default=None,
                         help="comma-separated feed(s) to process", metavar="F[,F]")
         data_selection.add_argument("-p", "--pol",dest="pol", default=None,
                         help="comma-separated polarization(s) to process", metavar="P[,P]")
         data_selection.add_argument("--window", dest="window", default=None,
                         help="comma-separated window(s) to process", metavar="W[,W]")
+        data_selection.add_argument("-c", "--channels",dest="channels", default=False, type=str,
+                        help="channel selection i.e. 100:200 (idlToSdfits); use with CAUTION")
 
         control = self.parser.add_argument_group('Control')
         control.add_argument("--imaging-off", dest="imagingoff", action='store_true',
@@ -93,7 +89,7 @@ class CommandLine:
                         help="will attempt to display idlToSdfits plots")
 
         calibration = self.parser.add_argument_group('Calibration')
-        calibration.add_argument("-u", "--units", dest="units", default='Ta*',
+        calibration.add_argument("-u", "--units", dest="units", default='Tmb',
                         help="calibration units")
         calibration.add_argument("--spillover-factor",dest="spillover", default=.99, type=float,
                         help="rear spillover factor (eta-l)", metavar="N")
@@ -106,7 +102,7 @@ class CommandLine:
         calibration.add_argument("--gain-factors",dest="gainfactors", default=1,
                         help="comma-separated gain factors for each feed", metavar="G[,G]")
         calibration.add_argument("-t", "--zenith-opacity",dest="zenithtau", type=float,
-                        help="zenith opacity value (tau-z)", metavar="N", default=False)
+                        help="zenith opacity value (tau-z)", metavar="N", default=None)
 
         output = self.parser.add_argument_group('Output')
         output.add_argument("-v", "--verbose", dest="verbose", default=0,
@@ -141,21 +137,29 @@ class CommandLine:
         opt = self.parser.parse_args()
 
         # transform some parameters to proper types
-        if 1 != opt.gainfactors:
-            opt.gainfactors = [ float(xx) for xx in opt.gainfactors.split(',') ]
-        if opt.gaincoeffs:
-            opt.gaincoeffs = self.pu.string_to_floats(opt.gaincoeffs)
+        try:
+            if 1 != opt.gainfactors:
+                opt.gainfactors = [ float(xx) for xx in opt.gainfactors.split(',') ]
+            if opt.gaincoeffs:
+                opt.gaincoeffs = self.pu.string_to_floats(opt.gaincoeffs)
+    
+            if opt.feed:
+                opt.feed = self.pu.parserange(opt.feed)
+                
+            if opt.pol:
+                opt.pol = self.pu.parserange(opt.pol)
+    
+            if opt.window:
+                opt.window = self.pu.parserange(opt.window)
+    
+            if opt.mapscans:
+                opt.mapscans = self.pu.parserange(opt.mapscans)
+                
+            if opt.refscans:
+                opt.refscans = self.pu.parserange(opt.refscans)
+        except ValueError:
+            print 'ERROR: there is a malformed parameter option'
+            print '   please check your command line settings and try again.'
+            sys.exit()
 
-        if opt.feed:
-            opt.feed = self.pu.parserange(opt.feed)
-            
-        if opt.pol:
-            opt.pol = self.pu.parserange(opt.pol)
-
-        if opt.window:
-            opt.window = self.pu.parserange(opt.window)
-
-        if opt.mapscans:
-            opt.mapscans = self.pu.parserange(opt.mapscans)
-            
         return opt

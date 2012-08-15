@@ -57,10 +57,13 @@ class MappingPipeline:
         
         self.rowList = self.sdf.parseSdfitsIndex( self.INDEXFILE )
 
-        # constants
-        self.OPACITY  = None
-        self.ETAB_REF = 0.91   # KFPA
-        self.ETAA_REF = 0.71   # KFPA
+        # command line options
+        self.OPACITY  = cl_params.zenithtau
+        self.ETAB_REF = cl_params.mainbeam_eff
+        self.ETAA_REF = cl_params.aperture_eff
+        self.SPILLOVER = cl_params.spillover
+        self.GAINCOEFFS = cl_params.gaincoeffs
+        self.CLOBBER = cl_params.clobber
         
         self.BUFFER_SIZE = 1000
         
@@ -163,9 +166,10 @@ class MappingPipeline:
 
         outfilename = basename + '_feed' + str(feed) \
             + '_if' + str(window) + '_pol' + str(pol) + '.fits'
-        if os.path.exists(outfilename):
+        if False == self.CLOBBER and os.path.exists(outfilename):
             print 'delete',outfilename
             print '   and run again.'
+            print '   Consider using --clobber to overwrite existing output.'
             sys.exit()
         
         # create a new table
@@ -386,7 +390,8 @@ class MappingPipeline:
                         gain = self.cal.gain(self.cal.GAIN_COEFFICIENTS, elevation)
                         
                         tastar = self.cal.TaStar(tsrc, beam_scaling, opacity=opacity_el, \
-                                                 gain=gain, elevation=elevation)
+                                                 gain=gain, elevation=elevation,spillover=self.SPILLOVER, \
+                                                 gaincoeffs=self.GAINCOEFFS)
                         
                         
                     if self.cl.units=='tmb':
@@ -595,7 +600,7 @@ class MappingPipeline:
                             tambient_current = calOFF['TAMBIENT']
                             tsky_current = self.cal.tsky(tambient_current, obsfreqHz, opacity_el)
                            
-                            tsky_corr = self.cal.tsky_corr(tsky_current, tsky_ref)
+                            tsky_corr = self.cal.tsky_corr(tsky_current, tsky_ref, self.SPILLOVER)
                                 
                             tsrc = ta-tsky_corr
         
@@ -611,7 +616,8 @@ class MappingPipeline:
                             gain = self.cal.gain(self.cal.GAIN_COEFFICIENTS, elevation)
                             
                             tastar = self.cal.TaStar(tsrc, beam_scaling, opacity=opacity_el, \
-                                                     gain=gain, elevation=elevation)
+                                                     gain=gain, elevation=elevation, spillover=self.SPILLOVER,\
+                                                     gaincoeffs=self.GAINCOEFFS)
                             
                             if AVERAGING_SPECTRA_FOR_SUMMARY:
                                 tastars.append(tastar)
