@@ -359,8 +359,7 @@ class Calibration:
         return tcal*(calOFF/(calON-calOFF))+tcal/2
 
     def Ta(self,Tref,Csig,Cref):   # eqn. (5) in PS spec
-        Cref_smoothed = smoothing.boxcar(Cref,2)
-        return Tref * ((Csig-Cref_smoothed)/Cref_smoothed)
+        return Tref * ((Csig-Cref)/Cref)
     
     def Ta_fs_one_state(self, sigrefState, sigid, refid):
 

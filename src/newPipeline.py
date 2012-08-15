@@ -52,9 +52,6 @@ def runPipeline():
     feeds=cl_params.feed
     pols=cl_params.pol
     windows=cl_params.window
-
-    # replace with command line option!!!
-    beam_scaling=1
     
     if not cl_params.mapscans:
         pipe.cl.mapscans = pipe.rowList.scans()
@@ -69,6 +66,13 @@ def runPipeline():
     print 'feeds',', '.join([str(xx) for xx in feeds])
     print 'pols',', '.join([str(xx) for xx in pols])
     
+    print cl_params.gainfactors
+    if 1 != cl_params.gainfactors:
+       if len(feeds)*len(pols) != len(cl_params.gainfactors):
+            print 'ERROR: there must be a gain factor for every feed and polarization.'
+            print '   For this data, there must be',len(feeds)*len(pols),'gain factors.'
+            sys.exit()
+
     for window in windows:
         for feed in feeds:
             for pol in pols:
@@ -87,8 +91,6 @@ def runPipeline():
                     
                     if cl_params.refscan2:
                         # -------------- reference 2
-
-
                         try:
                             pipe.rowList.get(cl_params.refscan2, feed, window, pol)
                         except:
@@ -99,6 +101,16 @@ def runPipeline():
                             pipe.getReference(cl_params.refscan2, feed, window, pol)
             
                 # -------------- calibrate signal scans
+                if 1 != cl_params.gainfactors:
+                    try:
+                        beam_scaling = cl_params.gainfactors[feed+pol]
+                    except IndexError:
+                        print 'ERORR: can not get a gainfactor for feed and polarization.',feed
+                        print '  You need to supply a factor for each feed and'
+                        print '  polarization for the receiver.'
+                else:
+                    beam_scaling = cl_params.gainfactors
+                
                 pipe.CalibrateSdfitsIntegrations( feed, window, pol,\
                         refSpectrum1, refTsys1, refTimestamp1, refTambient1, refElevation1, \
                         refSpectrum2, refTsys2, refTimestamp2, refTambient2, refElevation2, \

@@ -103,10 +103,8 @@ class CommandLine:
                         help="main beam efficiency for freq.=0 (eta-B)", metavar="N")
         calibration.add_argument("--gain-coefficients",dest="gaincoeffs", default=".91,.00434,-5.22e-5",
                         help="comma-separated gain coefficients", metavar="N")
-        calibration.add_argument("--gain-factors-left",dest="gain_left", default=[],
-                        help="comma-separated gain factors for each left-polarized feed", metavar="G[,G]")
-        calibration.add_argument("--gain-factors-right",dest="gain_right", default=[],
-                        help="comma-separated gain factors for each right-polarized feed", metavar="G[,G]")
+        calibration.add_argument("--gain-factors",dest="gainfactors", default=1,
+                        help="comma-separated gain factors for each feed", metavar="G[,G]")
         calibration.add_argument("-t", "--zenith-opacity",dest="zenithtau", type=float,
                         help="zenith opacity value (tau-z)", metavar="N", default=False)
 
@@ -143,10 +141,8 @@ class CommandLine:
         opt = self.parser.parse_args()
 
         # transform some parameters to proper types
-        if opt.gain_left:
-            opt.gain_left = self.pu.string_to_floats(opt.gain_left)
-        if opt.gain_right:
-            opt.gain_right = self.pu.string_to_floats(opt.gain_right)
+        if 1 != opt.gainfactors:
+            opt.gainfactors = [ float(xx) for xx in opt.gainfactors.split(',') ]
         if opt.gaincoeffs:
             opt.gaincoeffs = self.pu.string_to_floats(opt.gaincoeffs)
 

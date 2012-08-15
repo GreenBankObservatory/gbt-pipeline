@@ -56,7 +56,7 @@ class MappingPipeline:
         self.cl = cl_params # store command line params locally
         
         self.rowList = self.sdf.parseSdfitsIndex( self.INDEXFILE )
-        
+
         # constants
         self.OPACITY  = None
         self.ETAB_REF = 0.91   # KFPA
@@ -704,7 +704,7 @@ class MappingPipeline:
                 ylabel(self.cl.units)
                 xlabel('channel')
                 legend(title='scan',loc='upper right')
-                savefig('calibratedScans.png')
+                savefig('calibratedScans_f'+str(feed)+'_w'+str(window)+'_p'+str(pol)+'.png')
         
         # done with scans
         sys.stdout.write('\n')
