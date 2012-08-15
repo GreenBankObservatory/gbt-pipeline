@@ -60,7 +60,7 @@ class CommandLine:
                         help="SDFITS file name containing map scans", metavar="FILE")
         
         data_selection = self.parser.add_argument_group('Data Selection')
-        data_selection.add_argument("-m", "--map-scans", dest="mapscans", default=[],
+        data_selection.add_argument("-m", "--map-scans", dest="mapscans", default=None,
                         help="range of scan numbers", metavar="N[,N]")
         data_selection.add_argument("--refscan1", dest="refscan1", default=False,
                         help="first reference scan", metavar="SCAN", type=int)
@@ -70,10 +70,12 @@ class CommandLine:
                         default=False, help="If set, attempt to process all maps in input file.")
         data_selection.add_argument("-c", "--channels",dest="channels", default=False, type=str,
                         help="channel selection i.e. 100:200 (idlToSdfits); use with CAUTION")
-        data_selection.add_argument("-f", "--feed",dest="feed", default=[],
+        data_selection.add_argument("-f", "--feed",dest="feed", default=None,
                         help="comma-separated feed(s) to process", metavar="F[,F]")
-        data_selection.add_argument("-p", "--pol",dest="pol", default=[],
+        data_selection.add_argument("-p", "--pol",dest="pol", default=None,
                         help="comma-separated polarization(s) to process", metavar="P[,P]")
+        data_selection.add_argument("--window", dest="window", default=None,
+                        help="comma-separated window(s) to process", metavar="W[,W]")
 
         control = self.parser.add_argument_group('Control')
         control.add_argument("--imaging-off", dest="imagingoff", action='store_true',
@@ -148,4 +150,16 @@ class CommandLine:
         if opt.gaincoeffs:
             opt.gaincoeffs = self.pu.string_to_floats(opt.gaincoeffs)
 
+        if opt.feed:
+            opt.feed = self.pu.parserange(opt.feed)
+            
+        if opt.pol:
+            opt.pol = self.pu.parserange(opt.pol)
+
+        if opt.window:
+            opt.window = self.pu.parserange(opt.window)
+
+        if opt.mapscans:
+            opt.mapscans = self.pu.parserange(opt.mapscans)
+            
         return opt

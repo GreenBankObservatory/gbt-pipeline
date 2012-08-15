@@ -40,7 +40,7 @@ class Calibration:
         self.SPILLOVER = .99  # rear spillover, ohmic loss, blockage (etaL)
         self.GAIN_COEFFICIENTS = [.910,.00434,-5.22e-5,0]
         self.UNDER_2GHZ_ZENITH_TAU = 0.008
-        self.SMOOTHING_WINDOW = 16
+        self.SMOOTHING_WINDOW = 2
                    
     # ------------- Unit methods: do not depend on any other pipeline methods
 
@@ -344,6 +344,7 @@ class Calibration:
     # -------------- Functional methods: depend on underlying methods
     
     # same as Tsys for the reference scan
+    ################################################## DEPRECATED
     def Tref(self, Tcal, calON, calOFF): # eqn. (4) in PS spec
         Cref = self.Cavg(calON,calOFF)
         Ccal = self.Cdiff(calON,calOFF)
@@ -358,7 +359,8 @@ class Calibration:
         return tcal*(calOFF/(calON-calOFF))+tcal/2
 
     def Ta(self,Tref,Csig,Cref):   # eqn. (5) in PS spec
-        return Tref * ((Csig-Cref)/Cref)
+        Cref_smoothed = smoothing.boxcar(Cref,2)
+        return Tref * ((Csig-Cref_smoothed)/Cref_smoothed)
     
     def Ta_fs_one_state(self, sigrefState, sigid, refid):
 
@@ -377,7 +379,7 @@ class Calibration:
         
         tsys = self.idlTsys80(tcal,  ref_calON['DATA'],  ref_calOFF['DATA'])
         #tsys = self.Tref(tcal,  ref_calON['DATA'],  ref_calOFF['DATA'])[lo:hi].mean()
-        print tsys
+        #print tsys
         ta = self.Ta(tsys, sig, ref )
         
         return ta, tsys
@@ -388,7 +390,7 @@ class Calibration:
         ta1, tsys1 = self.Ta_fs_one_state(sigrefState, 1, 0)
 
         tsys = np.mean((tsys0,tsys1))
-        print 'Tsys in fs integration',tsys
+        #print 'Tsys in fs integration',tsys
                                                         
         # shift in frequency
         sig_centerfreq = sigrefState[0]['calOFF']['OBSFREQ']

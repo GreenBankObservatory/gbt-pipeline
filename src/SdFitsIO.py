@@ -28,9 +28,9 @@ import csv
 
 import fitsio
 
-from collections import OrderedDict
 from Calibration import Calibration
 from Pipeutils import Pipeutils
+from ObservationRows import ObservationRows
 
 class SdFits:
     """Class contains methods to read and write to the GBT SdFits format.
@@ -370,27 +370,6 @@ class SdFits:
     
     def parseSdfitsIndex(self, infile):
         
-        class ObservationRows:
-            def __init__(self):
-                self.rows = OrderedDict()
-            def addRow(self, scan, feed, window, polarization,
-                               fitsExtension, rowOfFitsFile, typeOfScan):
-                key = (scan,feed,window,polarization)
-                if key in self.rows:
-                    self.rows[key]['ROW'].append(rowOfFitsFile)
-                else:
-                    self.rows[key] = {'EXTENSION': fitsExtension,
-                                      'ROW': [rowOfFitsFile],
-                                      'TYPE': typeOfScan }
-            def get(self,scan,feed,window,polarization):
-                try:
-                    key = (scan,feed,window,polarization)
-                    return self.rows[key]
-                except(KeyError):
-                    print 'ERROR: scan, feed, window, polarization not found in file.'
-                    print scan,feed,window,polarization
-                    sys.exit()
-
         try:
             ifile = open(infile)
         except IOError:

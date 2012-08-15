@@ -28,6 +28,13 @@ from numpy import *
 
 debug = False
 
+def boxcar(array, window):
+    chan=0
+    while chan < len(array):
+        array[chan] = array[chan:chan+window].mean()
+        chan = chan+1
+    return array
+    
 def medfilt1(x=None,L=None):
 
     '''

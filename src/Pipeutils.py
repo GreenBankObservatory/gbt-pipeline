@@ -466,8 +466,7 @@ class Pipeutils:
                 oklist = [ str(item) for item in oklist ]
                 print 'ERROR: excluded item', exitem, 'does not exist in inclusive range'
                 raise
-    
-        oklist = [ str(item) for item in oklist ]
+
         return sorted(list(oklist))
     
     def is_inclusive_range(self, rangelist):

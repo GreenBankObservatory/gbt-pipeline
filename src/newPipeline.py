@@ -49,29 +49,60 @@ def runPipeline():
     refTambient2 = None
     refElevation2 = None
     
-    print cl_params.feed
-    import pdb; pdb.set_trace()
     feeds=cl_params.feed
-    window=0
-    pol=0
+    pols=cl_params.pol
+    windows=cl_params.window
+
+    # replace with command line option!!!
     beam_scaling=1
     
-    for feed in feeds:
-        # -------------- reference 1
-        if cl_params.refscan1:
-            refSpectrum1, refTsys1, refTimestamp1, refTambient1, refElevation1 = \
-                pipe.getReference(cl_params.refscan1, feed, window, pol)
-        
-            if cl_params.refscan2:
-                # -------------- reference 2
-                refSpectrum2, refTsys2, refTimestamp2, refTambient2, refElevation2 = \
-                    pipe.getReference(cl_params.refscan2, feed, window, pol)
+    if not cl_params.mapscans:
+        pipe.cl.mapscans = pipe.rowList.scans()
+    if not feeds:
+        feeds = pipe.rowList.feeds()
+    if not pols:
+        pols = pipe.rowList.pols()
+    if not windows:
+        windows = pipe.rowList.windows()
     
-        # -------------- calibrate signal scans
-        pipe.CalibrateSdfitsIntegrations( feed, window, pol, \
-                refSpectrum1, refTsys1, refTimestamp1, refTambient1, refElevation1, \
-                refSpectrum2, refTsys2, refTimestamp2, refTambient2, refElevation2, \
-                beam_scaling )
+    print 'windows',', '.join([str(xx) for xx in windows])
+    print 'feeds',', '.join([str(xx) for xx in feeds])
+    print 'pols',', '.join([str(xx) for xx in pols])
+    
+    for window in windows:
+        for feed in feeds:
+            for pol in pols:
+                
+                # -------------- reference 1
+                if cl_params.refscan1:
+
+                    try:
+                        pipe.rowList.get(cl_params.refscan1, feed, window, pol)
+                    except:
+                        print 'ERROR: missing 2nd reference scan #',cl_params.refscan1,'for feed',feed,'window',window,'polarization',pol
+                        continue
+                    
+                    refSpectrum1, refTsys1, refTimestamp1, refTambient1, refElevation1 = \
+                        pipe.getReference(cl_params.refscan1, feed, window, pol)
+                    
+                    if cl_params.refscan2:
+                        # -------------- reference 2
+
+
+                        try:
+                            pipe.rowList.get(cl_params.refscan2, feed, window, pol)
+                        except:
+                            print 'ERROR: missing 2nd reference scan #',cl_params.refscan2,'for feed',feed,'window',window,'polarization',pol
+                            continue
+                        
+                        refSpectrum2, refTsys2, refTimestamp2, refTambient2, refElevation2 = \
+                            pipe.getReference(cl_params.refscan2, feed, window, pol)
+            
+                # -------------- calibrate signal scans
+                pipe.CalibrateSdfitsIntegrations( feed, window, pol,\
+                        refSpectrum1, refTsys1, refTimestamp1, refTambient1, refElevation1, \
+                        refSpectrum2, refTsys2, refTimestamp2, refTambient2, refElevation2, \
+                        beam_scaling )
 
 if __name__ == '__main__':
     
