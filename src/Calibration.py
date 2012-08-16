@@ -419,9 +419,9 @@ class Calibration:
         return ta, tsys
                 
     # eqn. (13) in PS spec
-    def TaStar(self, Tsrc, beam_scaling, opacity, gain, elevation, spillover, gain_coeffs):
+    def TaStar(self, Tsrc, beam_scaling, opacity, gain, elevation, spillover, gaincoeffs):
         if not gain:
-            gain = self.gain(gain_coeffs, elevation)
+            gain = self.gain(gaincoeffs, elevation)
         return Tsrc*((beam_scaling*(math.e**opacity))/(spillover*gain))
         
     def jansky(self,TaStar,aperture_efficiency): # eqn. (16) in PS spec

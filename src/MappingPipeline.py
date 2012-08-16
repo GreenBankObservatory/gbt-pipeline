@@ -36,8 +36,6 @@ import os
 import sys
 
 CREATE_PLOTS = True
-AVERAGING_SPECTRA_FOR_SUMMARY = True
-
 
 class MappingPipeline:
     
@@ -389,7 +387,7 @@ class MappingPipeline:
                         #   model database.  Gain coefficients can optionally come
                         #   from the command line.
                         
-                        gain = self.cal.gain(self.cal.GAIN_COEFFICIENTS, elevation)
+                        gain = self.cal.gain(self.GAINCOEFFS, elevation)
                         
                         tastar = self.cal.TaStar(tsrc, beam_scaling, opacity=opacity_el, \
                                                  gain=gain, elevation=elevation,spillover=self.SPILLOVER, \
@@ -484,7 +482,7 @@ class MappingPipeline:
             
             columns = tuple(self.infile[ext].colnames)
         
-            if AVERAGING_SPECTRA_FOR_SUMMARY:
+            if CREATE_PLOTS:
                 tas = []
                 tsrcs = []
                 tastars = []
@@ -529,7 +527,7 @@ class MappingPipeline:
         
                         csig = self.cal.Cavg(calON['DATA'], calOFF['DATA'])
         
-                        if AVERAGING_SPECTRA_FOR_SUMMARY:
+                        if CREATE_PLOTS:
                             exposure = calON['EXPOSURE']+calOFF['EXPOSURE']
                             exposures.append(exposure)
         
@@ -563,7 +561,7 @@ class MappingPipeline:
                             ta = self.cal.Ta(avgTref1, csig, avgCref1 )
                             tsys = avgTref1
                                             
-                        if AVERAGING_SPECTRA_FOR_SUMMARY:
+                        if CREATE_PLOTS:
                             tas.append(ta)
                 
                         if CREATE_PLOTS:
@@ -606,7 +604,7 @@ class MappingPipeline:
                                 
                             tsrc = ta-tsky_corr
         
-                            if AVERAGING_SPECTRA_FOR_SUMMARY:
+                            if CREATE_PLOTS:
                                 tsrcs.append(tsrc)
                             
                         if self.cl.units=='ta*' or self.cl.units=='tmb' or self.cl.units=='jy':
@@ -615,13 +613,13 @@ class MappingPipeline:
                             #   model database.  Gain coefficients can optionally come
                             #   from the command line.
                             
-                            gain = self.cal.gain(self.cal.GAIN_COEFFICIENTS, elevation)
+                            gain = self.cal.gain(self.GAINCOEFFS, elevation)
                             
                             tastar = self.cal.TaStar(tsrc, beam_scaling, opacity=opacity_el, \
                                                      gain=gain, elevation=elevation, spillover=self.SPILLOVER,\
                                                      gaincoeffs=self.GAINCOEFFS)
                             
-                            if AVERAGING_SPECTRA_FOR_SUMMARY:
+                            if CREATE_PLOTS:
                                 tastars.append(tastar)
                             
                         if self.cl.units=='tmb':
@@ -630,7 +628,7 @@ class MappingPipeline:
                             main_beam_efficiency = self.cal.main_beam_efficiency(self.ETAB_REF, obsfreqHz)
                             tmb = tastar / main_beam_efficiency
                             
-                            if AVERAGING_SPECTRA_FOR_SUMMARY:
+                            if CREATE_PLOTS:
                                 tmbs.append(tmb)
                                 
                         if self.cl.units=='jy':
@@ -639,7 +637,7 @@ class MappingPipeline:
                             aperture_efficiency = self.cal.aperture_efficiency(self.ETAA_REF, obsfreqHz)
                             jy = tastar / (2.85 * aperture_efficiency)
         
-                            if AVERAGING_SPECTRA_FOR_SUMMARY:
+                            if CREATE_PLOTS:
                                 jys.append(jy)
                             
                         # used these, so clear for the next iteration
@@ -682,7 +680,7 @@ class MappingPipeline:
            
             # make some scan summary information for plotting
             
-            if AVERAGING_SPECTRA_FOR_SUMMARY:
+            if CREATE_PLOTS:
                 if self.cl.units=='ta':
                     tas = np.array(tas)
                     calibrated_integrations = tas
@@ -709,11 +707,13 @@ class MappingPipeline:
                 weights = exposures / ref_tsyss**2
                 averaged_integrations = np.average(calibrated_integrations,axis=0,weights=weights)
                 pylab.plot(averaged_integrations,label=str(scan)+' tsys('+str(ref_tsyss.mean())[:5]+')')
-                pylab.ylabel(self.cl.units)
-                pylab.xlabel('channel')
-                pylab.legend(title='scan',loc='upper right')
-                pylab.savefig('calibratedScans_f'+str(feed)+'_w'+str(window)+'_p'+str(pol)+'.png')
-                pylab.clf()
+            
+        if CREATE_PLOTS:
+            pylab.ylabel(self.cl.units)
+            pylab.xlabel('channel')
+            pylab.legend(title='scan',loc='upper right')
+            pylab.savefig('calibratedScans_f'+str(feed)+'_w'+str(window)+'_p'+str(pol)+'.png')
+            pylab.clf()
         
         # done with scans
         sys.stdout.write('\n')
