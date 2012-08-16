@@ -120,9 +120,9 @@ def runPipeline():
             for pol in pols:
                 
                 p = multiprocessing.Process(target=calibrateWindowFeedPol, args=(cl_params, window, feed, pol, rowList,))
-                #calibrateWindowFeedPol(cl_params, pipe, window, feed, pol)
                 p.start()
-                #raw_input()
+
+                #calibrateWindowFeedPol(cl_params, window, feed, pol, rowList)
 
 if __name__ == '__main__':
     

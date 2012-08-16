@@ -58,7 +58,6 @@ class MappingPipeline:
         except ValueError,e:
             print 'Input',e
             sys.exit()
-        print self.infile
         
         self.outfile = None
 
