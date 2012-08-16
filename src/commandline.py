@@ -56,7 +56,7 @@ class CommandLine:
             usage='%(prog)s [options]')
         
         input_group = self.parser.add_argument_group('Input')
-        input_group.add_argument("-i", "--infile", dest="infile", default='',
+        input_group.add_argument("-i", "--infile", dest="infilename", default='',
                         help="SDFITS file name containing map scans", metavar="FILE")
         
         data_selection = self.parser.add_argument_group('Data Selection')

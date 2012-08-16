@@ -29,7 +29,7 @@ from Calibration import Calibration
 from SdFitsIO import SdFits
 from Pipeutils import Pipeutils
 import numpy as np
-from pylab import *
+import pylab
 from Weather import Weather
 
 import os
@@ -41,27 +41,31 @@ AVERAGING_SPECTRA_FOR_SUMMARY = True
 
 class MappingPipeline:
     
-    def __init__(self, cl_params):
+    def __init__(self, cl_params, rowList):
 
         self.cal = Calibration()
         self.pu = Pipeutils()
         self.weather = Weather()
         self.sdf = SdFits()
 
-        self.FITSFILE = cl_params.infile
-        self.INDEXFILE = self.sdf.nameIndexFile( cl_params.infile )
-    
+        self.cl = cl_params # store command line params locally
+
+        self.infilename = cl_params.infilename
+
+
         try:
-            self.infile = fitsio.FITS( self.FITSFILE )
+            self.infile = fitsio.FITS( cl_params.infilename )
         except ValueError,e:
             print 'Input',e
             sys.exit()
-            
+        print self.infile
+        
         self.outfile = None
 
-        self.cl = cl_params # store command line params locally
-        
-        self.rowList = self.sdf.parseSdfitsIndex( self.INDEXFILE )
+        self.rowList = rowList
+
+        if not cl_params.mapscans:
+            self.cl.mapscans = rowList.scans()
 
         # command line options
         self.OPACITY  = cl_params.zenithtau
@@ -161,7 +165,7 @@ class MappingPipeline:
         except KeyError:
             return None
         
-        rootname,extension = os.path.splitext(self.FITSFILE)
+        rootname,extension = os.path.splitext(self.infilename)
         basename = os.path.basename(rootname)
 
         outfilename = basename + '_feed' + str(feed) \
@@ -178,7 +182,7 @@ class MappingPipeline:
 
         dtype = self.infile[ext][0].dtype
         
-        input_header = fitsio.read_header(self.FITSFILE, ext)
+        input_header = fitsio.read_header(self.infilename, ext)
         self.outfile.create_table_hdu(dtype=dtype, header=input_header)
         
         return dtype
@@ -705,12 +709,12 @@ class MappingPipeline:
                 exposures = np.array(exposures)
                 weights = exposures / ref_tsyss**2
                 averaged_integrations = np.average(calibrated_integrations,axis=0,weights=weights)
-                plot(averaged_integrations,label=str(scan)+' tsys('+str(ref_tsyss.mean())[:5]+')')
-                ylabel(self.cl.units)
-                xlabel('channel')
-                legend(title='scan',loc='upper right')
-                savefig('calibratedScans_f'+str(feed)+'_w'+str(window)+'_p'+str(pol)+'.png')
-                clf()
+                pylab.plot(averaged_integrations,label=str(scan)+' tsys('+str(ref_tsyss.mean())[:5]+')')
+                pylab.ylabel(self.cl.units)
+                pylab.xlabel('channel')
+                pylab.legend(title='scan',loc='upper right')
+                pylab.savefig('calibratedScans_f'+str(feed)+'_w'+str(window)+'_p'+str(pol)+'.png')
+                pylab.clf()
         
         # done with scans
         sys.stdout.write('\n')
