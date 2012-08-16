@@ -59,11 +59,11 @@ def runPipeline():
     if not windows:
         windows = pipe.rowList.windows()
     
-    print 'windows',', '.join([str(xx) for xx in windows])
-    print 'feeds',', '.join([str(xx) for xx in feeds])
-    print 'pols',', '.join([str(xx) for xx in pols])
-    if cl_params.refscans:
-        print 'refscans',', '.join([str(xx) for xx in cl_params.refscans[:2]])
+    #print 'windows',', '.join([str(xx) for xx in windows])
+    #print 'feeds',', '.join([str(xx) for xx in feeds])
+    #print 'pols',', '.join([str(xx) for xx in pols])
+    #if cl_params.refscans:
+    #    print 'refscans',', '.join([str(xx) for xx in cl_params.refscans[:2]])
     
     for window in windows:
         for feed in feeds:

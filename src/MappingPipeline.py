@@ -33,6 +33,7 @@ from pylab import *
 from Weather import Weather
 
 import os
+import sys
 
 CREATE_PLOTS = True
 AVERAGING_SPECTRA_FOR_SUMMARY = True
@@ -50,7 +51,12 @@ class MappingPipeline:
         self.FITSFILE = cl_params.infile
         self.INDEXFILE = self.sdf.nameIndexFile( cl_params.infile )
     
-        self.infile = fitsio.FITS( self.FITSFILE )
+        try:
+            self.infile = fitsio.FITS( self.FITSFILE )
+        except ValueError,e:
+            print 'Input',e
+            sys.exit()
+            
         self.outfile = None
 
         self.cl = cl_params # store command line params locally
@@ -161,9 +167,8 @@ class MappingPipeline:
         outfilename = basename + '_feed' + str(feed) \
             + '_if' + str(window) + '_pol' + str(pol) + '.fits'
         if False == self.CLOBBER and os.path.exists(outfilename):
-            print 'delete',outfilename
-            print '   and run again.'
-            print '   Consider using --clobber to overwrite existing output.'
+            print 'WARNING:  Will not overwrite existing pipeline output.'
+            print 'Consider using \'--clobber\' option to overwrite.'
             sys.exit()
         
         # create a new table
@@ -705,6 +710,7 @@ class MappingPipeline:
                 xlabel('channel')
                 legend(title='scan',loc='upper right')
                 savefig('calibratedScans_f'+str(feed)+'_w'+str(window)+'_p'+str(pol)+'.png')
+                clf()
         
         # done with scans
         sys.stdout.write('\n')
