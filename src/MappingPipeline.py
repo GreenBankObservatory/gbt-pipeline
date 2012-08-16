@@ -146,12 +146,6 @@ class MappingPipeline:
         
         print 'System Temperature for reference scan',scan,'with feed',feed,'window',window,'pol',pol,':',avgTref
         
-        if CREATE_PLOTS:
-            plot(avgCref,',',label='tsys='+str(avgTref))
-            legend()
-            savefig('avgCref.png')
-            clf()
-        
         return avgCref,avgTref,avgTimestamp,avgTambient,avgElevation
         
     def create_output_sdfits(self, feed, window, pol):
