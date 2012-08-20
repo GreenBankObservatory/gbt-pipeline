@@ -158,14 +158,16 @@ class MappingPipeline:
         
         try:
             signalRows = self.rowList.get(self.cl.mapscans[0], feed, window, pol)
+            ext = signalRows['EXTENSION']
+            rows = signalRows['ROW']
+            columns = tuple(self.infile[ext].colnames)
+            firstIntegration = Integration(self.infile[ext][columns][rows[0]])
+            targetname = firstIntegration['OBJECT']
         except KeyError:
             return None
         
-        rootname,extension = os.path.splitext(self.infilename)
-        basename = os.path.basename(rootname)
-
-        outfilename = basename + '_feed' + str(feed) \
-            + '_if' + str(window) + '_pol' + str(pol) + '.fits'
+        outfilename = targetname + '_scan_' + str(self.cl.mapscans[0]) + '_' + str(self.cl.mapscans[-1]) + '_feed' + str(feed) \
+            + '_window' + str(window) + '_pol' + str(pol) + '.fits'
         if False == self.CLOBBER and os.path.exists(outfilename):
             print 'WARNING:  Will not overwrite existing pipeline output.'
             print 'Consider using \'--clobber\' option to overwrite.'
@@ -173,8 +175,6 @@ class MappingPipeline:
         
         # create a new table
         self.outfile = fitsio.FITS(outfilename,'rw',clobber=True)
-
-        ext = signalRows['EXTENSION']
 
         dtype = self.infile[ext][0].dtype
         
