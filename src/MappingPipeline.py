@@ -162,7 +162,7 @@ class MappingPipeline:
             rows = signalRows['ROW']
             columns = tuple(self.infile[ext].colnames)
             firstIntegration = Integration(self.infile[ext][columns][rows[0]])
-            targetname = firstIntegration['OBJECT']
+            targetname = firstIntegration['OBJECT'].strip()
         except KeyError:
             return None
         

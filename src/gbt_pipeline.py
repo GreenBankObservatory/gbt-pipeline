@@ -117,16 +117,23 @@ def runPipeline():
     #if cl_params.refscans:
     #    print 'refscans',', '.join([str(xx) for xx in cl_params.refscans[:2]])
     
+    pids = []
     for window in windows:
         for feed in feeds:
             for pol in pols:
                 
                 if PARALLEL:
                     p = multiprocessing.Process(target=calibrateWindowFeedPol, args=(cl_params, window, feed, pol, rowList,))
+                    pids.append(p)
                     p.start()
 
                 else:
                     calibrateWindowFeedPol(cl_params, window, feed, pol, rowList)
+
+    for pp in pids:
+        pp.join()
+
+    print 'calibration all done, start imaging'
 
 if __name__ == '__main__':
     
