@@ -69,7 +69,6 @@ class MappingPipeline:
         self.ETAB_REF = cl_params.mainbeam_eff
         self.ETAA_REF = cl_params.aperture_eff
         self.SPILLOVER = cl_params.spillover
-        self.GAINCOEFFS = cl_params.gaincoeffs
         self.CLOBBER = cl_params.clobber
         
         self.BUFFER_SIZE = 1000
@@ -382,16 +381,7 @@ class MappingPipeline:
                         tambient_current = calOFF['TAMBIENT']
                                 
                     if self.cl.units=='ta*' or self.cl.units=='tmb' or self.cl.units=='jy':
-                        # ASSUMES GAIN COEFFICIENTS and a given opacity
-                        #   the opacity needs to come from the command line or Ron's
-                        #   model database.  Gain coefficients can optionally come
-                        #   from the command line.
-                        
-                        gain = self.cal.gain(self.GAINCOEFFS, elevation)
-                        
-                        tastar = self.cal.TaStar(tsrc, beam_scaling, opacity=opacity_el, \
-                                                 gain=gain, elevation=elevation,spillover=self.SPILLOVER, \
-                                                 gaincoeffs=self.GAINCOEFFS)
+                        tastar = self.cal.TaStar(tsrc, beam_scaling, opacity=opacity_el, spillover=self.SPILLOVER)
                         
                         
                     if self.cl.units=='tmb':
@@ -615,9 +605,7 @@ class MappingPipeline:
                             
                             gain = self.cal.gain(self.GAINCOEFFS, elevation)
                             
-                            tastar = self.cal.TaStar(tsrc, beam_scaling, opacity=opacity_el, \
-                                                     gain=gain, elevation=elevation, spillover=self.SPILLOVER,\
-                                                     gaincoeffs=self.GAINCOEFFS)
+                            tastar = self.cal.TaStar(tsrc, beam_scaling, opacity=opacity_el, spillover=self.SPILLOVER)
                             
                             if CREATE_PLOTS:
                                 tastars.append(tastar)
