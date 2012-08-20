@@ -22,6 +22,8 @@
 
 # $Id$
 
+PARALLEL = True
+
 import commandline
 from MappingPipeline import MappingPipeline
 from SdFitsIO import SdFits
@@ -119,10 +121,12 @@ def runPipeline():
         for feed in feeds:
             for pol in pols:
                 
-                p = multiprocessing.Process(target=calibrateWindowFeedPol, args=(cl_params, window, feed, pol, rowList,))
-                p.start()
+                if PARALLEL:
+                    p = multiprocessing.Process(target=calibrateWindowFeedPol, args=(cl_params, window, feed, pol, rowList,))
+                    p.start()
 
-                #calibrateWindowFeedPol(cl_params, window, feed, pol, rowList)
+                else:
+                    calibrateWindowFeedPol(cl_params, window, feed, pol, rowList)
 
 if __name__ == '__main__':
     

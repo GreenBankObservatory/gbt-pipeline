@@ -173,7 +173,7 @@ class MappingPipeline:
             sys.exit()
         
         # create a new table
-        self.outfile = fitsio.FITS(outfilename,'rw')
+        self.outfile = fitsio.FITS(outfilename,'rw',clobber=True)
 
         ext = signalRows['EXTENSION']
 
@@ -670,11 +670,11 @@ class MappingPipeline:
                         ' %   '
                     sys.stdout.write(percent_done)
                     sys.stdout.flush()
-                    
+                
+                # done looping over a chunk
+
                 self.outfile[-1].append(output_data)
                 self.outfile.update_hdu_list()
-                        
-                # done looping over a chunk
                 
             # done looping over a scan
            
