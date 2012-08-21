@@ -81,4 +81,4 @@ if [ $# -gt 0 ]; then
     echo "gbtpipeline" $*
 fi
 
-gbt_pipeline.py $*
+python gbt_pipeline.py $*
