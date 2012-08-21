@@ -3,11 +3,11 @@
 
 fullpath=`readlink -f $0`
 me=`dirname $fullpath`
+source /home/scratch/jmasters/pipeline-install-1345495249/pipeline-env/bin/activate
 
 if [ $me = "/home/gbtpipeline/integration" ]; then
 	echo "!!!!!!!!!! TEST VERSION !!!!!!!!!!!!"
 
-        source /home/scratch/jmasters/pipeline-install-1345495249/pipeline-env/bin/activate
 
 	if [[ "$PATH" != */home/gbtpipeline/integration* ]]
 	then
@@ -81,4 +81,4 @@ if [ $# -gt 0 ]; then
     echo "gbtpipeline" $*
 fi
 
-python gbt_pipeline.py $*
+python /home/gbtpipeline/integration/gbt_pipeline.py $*
