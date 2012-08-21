@@ -42,6 +42,7 @@ class ObservationRows:
             self.rows[key] = {'EXTENSION': fitsExtension,
                               'ROW': [rowOfFitsFile],
                               'TYPE': typeOfScan }
+            
     def get(self,scan,feed,window,polarization):
         try:
             key = (scan,feed,window,polarization)

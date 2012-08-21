@@ -376,7 +376,7 @@ class SdFits:
             print "ERROR: Could not open file.  Please check and try again."
             raise
         
-        print 'Input index file is', infile
+        #print 'Input index file is', infile
     
         while True:
             line = ifile.readline()

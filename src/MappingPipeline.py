@@ -23,23 +23,28 @@
 # $Id$
 
 import fitsio
+from blessings import Terminal
 
 from Integration import Integration
 from Calibration import Calibration
 from SdFitsIO import SdFits
 from Pipeutils import Pipeutils
 import numpy as np
-import pylab
 from Weather import Weather
 
 import os
 import sys
 
-CREATE_PLOTS = True
+CREATE_PLOTS = False
+
+if CREATE_PLOTS:
+    import pylab
 
 class MappingPipeline:
     
-    def __init__(self, cl_params, rowList):
+    def __init__(self, cl_params, rowList, feed, window, pol):
+
+        self.term = Terminal()
 
         self.cal = Calibration()
         self.pu = Pipeutils()
@@ -56,10 +61,17 @@ class MappingPipeline:
         except ValueError,e:
             print 'Input',e
             sys.exit()
-        
+            
         self.outfile = None
 
         self.rowList = rowList
+        self.CLOBBER = cl_params.clobber
+
+        try:
+            self.create_output_sdfits(feed, window, pol)
+        except KeyError:
+            raise
+        
 
         if not cl_params.mapscans:
             self.cl.mapscans = rowList.scans()
@@ -69,7 +81,6 @@ class MappingPipeline:
         self.ETAB_REF = cl_params.mainbeam_eff
         self.ETAA_REF = cl_params.aperture_eff
         self.SPILLOVER = cl_params.spillover
-        self.CLOBBER = cl_params.clobber
         
         self.BUFFER_SIZE = 1000
         
@@ -150,10 +161,21 @@ class MappingPipeline:
         avgCref,avgTref,avgTimestamp,avgTambient,avgElevation = \
             self.cal.getReferenceAverage(crefs, trefs, exposures, timestamps, tambients, elevations)
         
-        print 'System Temperature for reference scan',scan,'with feed',feed,'window',window,'pol',pol,':',avgTref
+        #print 'System Temperature for reference scan',scan,'with feed',feed,'window',window,'pol',pol,':',avgTref
         
         return avgCref,avgTref,avgTimestamp,avgTambient,avgElevation
+    
+    def get_dtype(self, feed, window, pol):
         
+        try:
+            signalRows = self.rowList.get(self.cl.mapscans[0], feed, window, pol)
+            ext = signalRows['EXTENSION']
+        except KeyError:
+            raise
+        dtype = self.infile[ext][0].dtype
+        
+        return dtype
+    
     def create_output_sdfits(self, feed, window, pol):
         
         try:
@@ -164,7 +186,7 @@ class MappingPipeline:
             firstIntegration = Integration(self.infile[ext][columns][rows[0]])
             targetname = firstIntegration['OBJECT'].strip()
         except KeyError:
-            return None
+            raise
         
         outfilename = targetname + '_scan_' + str(self.cl.mapscans[0]) + '_' + str(self.cl.mapscans[-1]) + '_feed' + str(feed) \
             + '_window' + str(window) + '_pol' + str(pol) + '.fits'
@@ -174,7 +196,12 @@ class MappingPipeline:
             sys.exit()
         
         # create a new table
+        old_stdout = sys.stdout
+        from cStringIO import StringIO
+        sys.stdout = StringIO()
+        # redirect stdout to not get clobber file warnings
         self.outfile = fitsio.FITS(outfilename,'rw',clobber=True)
+        sys.stdout = old_stdout
 
         dtype = self.infile[ext][0].dtype
         
@@ -276,13 +303,13 @@ class MappingPipeline:
         return rows2write
         
     def calibrate_fs_sdfits_integrations(self, feed, window, pol, \
-                                            beam_scaling):
+                                            beam_scaling, printOffset):
         
-        dtype = self.create_output_sdfits(feed, window, pol)
+        dtype = self.get_dtype(feed, window, pol)
         if None == dtype:
             return
-        else:
-            print 'calibrating feed',feed,'window',window,'polarization',pol
+        #else:
+        #    print 'calibrating feed',feed,'window',window,'polarization',pol
         
         for scan in self.cl.mapscans:
 
@@ -424,10 +451,10 @@ class MappingPipeline:
                     output_data[outputidx] = row.data
                     
                     outputidx = outputidx + 1
-                    percent_done = '\r' + 'scan ' + str(scan) + ': ' + \
-                        str( int((outputidx/float(rows2write))*100) ) + \
-                        ' %   '
-                    sys.stdout.write(percent_done)
+                    percent_done = int((outputidx/float(rows2write))*100)
+
+                    with self.term.location(0, (printOffset+1)):
+                        print '{offset:2d} -- feed {feed:2d} window {window:2d} pol {pol:2d} scan {scan:4d} : {percent_done:3d} %'.format(feed=feed, window=window, pol=pol, scan=scan, percent_done=percent_done, offset=printOffset),
                     sys.stdout.flush()
                     
                     # done looping over rows in a chunk
@@ -441,19 +468,19 @@ class MappingPipeline:
                 
             # done looping over chunks
 
-        sys.stdout.write('\n')
+        #sys.stdout.write('\n')
         self.outfile.close()
         
     def calibrate_ps_sdfits_integrations(self, feed, window, pol, \
                           avgCref1, avgTref1, crefTime1, refTambient1, refElevation1, \
                           avgCref2, avgTref2, crefTime2, refTambient2, refElevation2, \
-                          beam_scaling):
+                          beam_scaling, printOffset):
         
-        dtype = self.create_output_sdfits(feed, window, pol)
+        dtype = self.get_dtype(feed, window, pol)
         if None == dtype:
             return
-        else:
-            print 'calibrating feed',feed,'window',window,'polarization',pol
+        #else:
+        #    print 'calibrating feed',feed,'window',window,'polarization',pol
 
         if self.cl.units != 'ta':
             tsky1,tsky2 = self.getReferenceTsky(feed, window, pol, crefTime1, refTambient1, refElevation1, \
@@ -603,8 +630,6 @@ class MappingPipeline:
                             #   model database.  Gain coefficients can optionally come
                             #   from the command line.
                             
-                            gain = self.cal.gain(self.GAINCOEFFS, elevation)
-                            
                             tastar = self.cal.TaStar(tsrc, beam_scaling, opacity=opacity_el, spillover=self.SPILLOVER)
                             
                             if CREATE_PLOTS:
@@ -653,10 +678,10 @@ class MappingPipeline:
                     output_data[outputidx] = row.data
                         
                     outputidx = outputidx + 1
-                    percent_done = '\r' + 'scan ' + str(scan) + ': ' + \
-                        str( int((outputidx/float(rows2write))*100) ) + \
-                        ' %   '
-                    sys.stdout.write(percent_done)
+                    
+                    percent_done = int((outputidx/float(rows2write))*100)
+                    with self.term.location(0, (printOffset+1)):
+                        print '{offset:2d} -- feed {feed:2d} window {window:2d} pol {pol:2d} scan {scan:4d} : {percent_done:3d} %'.format(feed=feed, window=window, pol=pol, scan=scan, percent_done=percent_done, offset=printOffset),
                     sys.stdout.flush()
                 
                 # done looping over a chunk
@@ -704,23 +729,22 @@ class MappingPipeline:
             pylab.clf()
         
         # done with scans
-        sys.stdout.write('\n')
+        #sys.stdout.write('\n')
         self.outfile.close()
         
     def CalibrateSdfitsIntegrations(self, feed, window, pol, \
                           avgCref1=None, avgTref1=None, crefTime1=None, refTambient1=None, refElevation1=None, \
                           avgCref2=None, avgTref2=None, crefTime2=None, refTambient2=None, refElevation2=None, \
-                          beam_scaling=None):
+                          beam_scaling=None, printOffset=0):
         
         if avgCref1 != None:
             self.calibrate_ps_sdfits_integrations(feed, window, pol, \
                           avgCref1, avgTref1, crefTime1, refTambient1, refElevation1, \
                           avgCref2, avgTref2, crefTime2, refTambient2, refElevation2, \
-                          beam_scaling)
+                          beam_scaling, printOffset)
         else:
             self.calibrate_fs_sdfits_integrations(feed, window, pol, \
-                          beam_scaling)
+                          beam_scaling, printOffset)
             
     def __del__(self):
-            
-        print 'bye'
+        pass

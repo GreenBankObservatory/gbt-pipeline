@@ -29,14 +29,13 @@ from MappingPipeline import MappingPipeline
 from SdFitsIO import SdFits
 
 import fitsio
+from blessings import Terminal
 
 import multiprocessing
 import sys
 
-def calibrateWindowFeedPol(cl_params, window, feed, pol, rowList):
+def calibrateWindowFeedPol(cl_params, window, feed, pol, pipe, printOffset):
 
-    pipe = MappingPipeline(cl_params, rowList)
-    
     refSpectrum1 = None
     refTsys1 = None
     refTimestamp1 = None
@@ -86,7 +85,7 @@ def calibrateWindowFeedPol(cl_params, window, feed, pol, rowList):
     pipe.CalibrateSdfitsIntegrations( feed, window, pol,\
             refSpectrum1, refTsys1, refTimestamp1, refTambient1, refElevation1, \
             refSpectrum2, refTsys2, refTimestamp2, refTambient2, refElevation2, \
-            beam_scaling )
+            beam_scaling, printOffset )
     
 def runPipeline():
 
@@ -118,24 +117,42 @@ def runPipeline():
     #    print 'refscans',', '.join([str(xx) for xx in cl_params.refscans[:2]])
     
     pids = []
+    pipe = []
+    
     for window in windows:
         for feed in feeds:
             for pol in pols:
-                
-                if PARALLEL:
-                    p = multiprocessing.Process(target=calibrateWindowFeedPol, args=(cl_params, window, feed, pol, rowList,))
-                    pids.append(p)
-                    p.start()
+		try:
+		    mp = MappingPipeline(cl_params, rowList, feed, window, pol)
+		except KeyError:
+		    continue
+		pipe.append( (mp, window, feed, pol) )
+    
+    for idx, pp in enumerate(pipe):
+	
+	
+        if PARALLEL:
+	    p = multiprocessing.Process(target=calibrateWindowFeedPol, args=(cl_params, pp[1], pp[2], pp[3], pp[0], idx,))
+            pids.append(p)
 
-                else:
-                    calibrateWindowFeedPol(cl_params, window, feed, pol, rowList)
+        else:
+            calibrateWindowFeedPol(cl_params, pp[1], pp[2], pp[3], pp[0], idx)
 
-    for pp in pids:
-        pp.join()
 
-    print 'calibration all done, start imaging'
+    if PARALLEL:
+	for pp in pids:
+	    pp.start()
+    
+	for pp in pids:
+	    pp.join()
+
+    #print 'calibration all done, start imaging'
 
 if __name__ == '__main__':
     
+    term = Terminal()
+    print term.clear()
+    for xx in range(term.height):
+	print
+
     runPipeline()
-    
