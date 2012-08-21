@@ -89,7 +89,7 @@ class CommandLine:
                         help="will attempt to display idlToSdfits plots")
 
         calibration = self.parser.add_argument_group('Calibration')
-        calibration.add_argument("-u", "--units", dest="units", default='Tmb',
+        calibration.add_argument("-u", "--units", dest="units", default='tmb',
                         help="calibration units")
         calibration.add_argument("--spillover-factor",dest="spillover", default=.99, type=float,
                         help="rear spillover factor (eta-l)", metavar="N")
@@ -162,4 +162,6 @@ class CommandLine:
             print '   please check your command line settings and try again.'
             sys.exit()
 
+        opt.units = opt.units.lower()
+        
         return opt
