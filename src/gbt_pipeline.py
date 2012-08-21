@@ -89,6 +89,21 @@ def calibrateWindowFeedPol(cl_params, window, feed, pol, pipe, printOffset):
     
 def runPipeline():
 
+    term = Terminal()
+    print term.clear()
+    for xx in range(term.height):
+        print
+
+    start = 5
+    with term.location(x=0, y=start+0):
+        print '{t.red}progress by scan number{t.normal}'.format(t=term),
+    with term.location(x=0, y=start+2):
+        print '{t.bold}window {t.red}|{t.normal} {t.bold}feed{t.normal}'.format(t=term),
+    with term.location(x=0, y=start+3):
+        print '{t.bold}{t.red}{!s}{t.normal}'.format('-'*90,t=term)
+    sys.stdout.flush()
+        
+
     # create instance of CommandLine object to parse input, then
     # parse all the input parameters and store them as attributes in param structure
     cl = commandline.CommandLine()
@@ -122,37 +137,47 @@ def runPipeline():
     for window in windows:
         for feed in feeds:
             for pol in pols:
-		try:
-		    mp = MappingPipeline(cl_params, rowList, feed, window, pol)
-		except KeyError:
-		    continue
-		pipe.append( (mp, window, feed, pol) )
+                try:
+                    mp = MappingPipeline(cl_params, rowList, feed, window, pol)
+                except KeyError:
+                    continue
+                pipe.append( (mp, window, feed, pol) )
     
     for idx, pp in enumerate(pipe):
-	
-	
+        
+        window = pp[1]
+        feed = pp[2]
+        pol = pp[3]
+        
+        with term.location(x=14+feed*10, y=start+2):
+            print '{feed:4d}'.format(feed=feed),
+        with term.location(x=0, y=start+4+window):
+            print '{:<7d}{t.red}{t.bold}|{t.normal}'.format(window,t=term),
+        #    for ff in range(7):
+        #       print '{t.red}{!s}{t.normal}'.format('         |',t=term),
+                
+        sys.stdout.flush()
+        
+        
         if PARALLEL:
-	    p = multiprocessing.Process(target=calibrateWindowFeedPol, args=(cl_params, pp[1], pp[2], pp[3], pp[0], idx,))
+            p = multiprocessing.Process(target=calibrateWindowFeedPol, args=(cl_params, window, feed, pol, pp[0], idx,))
             pids.append(p)
 
         else:
-            calibrateWindowFeedPol(cl_params, pp[1], pp[2], pp[3], pp[0], idx)
+            calibrateWindowFeedPol(cl_params, window, feed, pol, pp[0], idx)
 
+
+    sys.stdout.flush()
 
     if PARALLEL:
-	for pp in pids:
-	    pp.start()
+        for pp in pids:
+            pp.start()
     
-	for pp in pids:
-	    pp.join()
+        for pp in pids:
+            pp.join()
 
     #print 'calibration all done, start imaging'
 
 if __name__ == '__main__':
     
-    term = Terminal()
-    print term.clear()
-    for xx in range(term.height):
-	print
-
     runPipeline()

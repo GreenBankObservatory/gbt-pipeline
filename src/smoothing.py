@@ -28,12 +28,12 @@ from numpy import *
 
 debug = False
 
-def boxcar(array, window):
-    chan=0
-    while chan < len(array):
-        array[chan] = array[chan:chan+window].mean()
-        chan = chan+1
-    return array
+def boxcar(myarray, window):
+    outputarray = myarray.copy()
+    result = np.convolve(outputarray,np.ones(window),mode='same')/float(window)
+    result[0:window] = result[window]
+    result[-window:] = result[-window]
+    return result
     
 def medfilt1(x=None,L=None):
 

@@ -45,7 +45,8 @@ class MappingPipeline:
     def __init__(self, cl_params, rowList, feed, window, pol):
 
         self.term = Terminal()
-
+        self.start = 5
+        
         self.cal = Calibration()
         self.pu = Pipeutils()
         self.weather = Weather()
@@ -453,8 +454,11 @@ class MappingPipeline:
                     outputidx = outputidx + 1
                     percent_done = int((outputidx/float(rows2write))*100)
 
-                    with self.term.location(0, (printOffset+1)):
-                        print '{offset:2d} -- feed {feed:2d} window {window:2d} pol {pol:2d} scan {scan:4d} : {percent_done:3d} %'.format(feed=feed, window=window, pol=pol, scan=scan, percent_done=percent_done, offset=printOffset),
+                    #with self.term.location(0, (printOffset+1)):
+                    #    print '{offset:2d} -- feed {feed:2d} window {window:2d} pol {pol:2d} scan {scan:4d} : {percent_done:3d} %'.format(feed=feed, window=window, pol=pol, scan=scan, percent_done=percent_done, offset=printOffset),
+                    with self.term.location(x=9+feed*10, y=self.start+4+window):
+                        print '{scan:>9d}'.format(t=self.term,scan=scan),
+                        
                     sys.stdout.flush()
                     
                     # done looping over rows in a chunk
@@ -575,7 +579,9 @@ class MappingPipeline:
                             ta = self.cal.Ta(avgTrefInterp, csig, crefInterp )
                             tsys = avgTrefInterp
                         else:
+                            #import pdb; pdb.set_trace()
                             ta = self.cal.Ta(avgTref1, csig, avgCref1 )
+                            
                             tsys = avgTref1
                                             
                         if CREATE_PLOTS:
@@ -680,8 +686,11 @@ class MappingPipeline:
                     outputidx = outputidx + 1
                     
                     percent_done = int((outputidx/float(rows2write))*100)
-                    with self.term.location(0, (printOffset+1)):
-                        print '{offset:2d} -- feed {feed:2d} window {window:2d} pol {pol:2d} scan {scan:4d} : {percent_done:3d} %'.format(feed=feed, window=window, pol=pol, scan=scan, percent_done=percent_done, offset=printOffset),
+                    #with self.term.location(0, (printOffset+1)):
+                    #    print '{offset:2d} -- feed {feed:2d} window {window:2d} pol {pol:2d} scan {scan:4d} : {percent_done:3d} %'.format(feed=feed, window=window, pol=pol, scan=scan, percent_done=percent_done, offset=printOffset),
+
+                    with self.term.location(x=9+feed*10, y=self.start+4+window):
+                        print '{scan:>9d}'.format(t=self.term,scan=scan),
                     sys.stdout.flush()
                 
                 # done looping over a chunk

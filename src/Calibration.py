@@ -38,7 +38,7 @@ class Calibration:
         # set calibration constants
         self.BB = .0132  # Ruze equation parameter
         self.UNDER_2GHZ_ZENITH_TAU = 0.008
-        self.SMOOTHING_WINDOW = 2
+        self.SMOOTHING_WINDOW = 3
 
     # ------------- Unit methods: do not depend on any other pipeline methods
 
@@ -357,7 +357,9 @@ class Calibration:
         return tcal*(calOFF/(calON-calOFF))+tcal/2
 
     def Ta(self,Tref,Csig,Cref):   # eqn. (5) in PS spec
-        return Tref * ((Csig-Cref)/Cref)
+        Cref_smoothed = smoothing.boxcar(Cref,self.SMOOTHING_WINDOW)
+        result = Tref * ((Csig-Cref_smoothed)/Cref_smoothed)
+        return result
     
     def Ta_fs_one_state(self, sigrefState, sigid, refid):
 
