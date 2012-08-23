@@ -33,6 +33,7 @@ from blessings import Terminal
 
 import multiprocessing
 import sys
+import pprint
 
 def calibrateWindowFeedPol(cl_params, window, feed, pol, pipe, printOffset):
 
@@ -87,28 +88,35 @@ def calibrateWindowFeedPol(cl_params, window, feed, pol, pipe, printOffset):
             refSpectrum2, refTsys2, refTimestamp2, refTambient2, refElevation2, \
             beam_scaling, printOffset )
     
-def runPipeline():
-
-    term = Terminal()
+def printTableHeader(term, start):
     print term.clear()
     for xx in range(term.height):
         print
 
-    start = 5
     with term.location(x=0, y=start+0):
-        print '{t.red}progress by scan number{t.normal}'.format(t=term),
+        print '{t.bold}progress by scan number{t.normal}'.format(t=term),
     with term.location(x=0, y=start+2):
-        print '{t.bold}window {t.red}|{t.normal} {t.bold}feed{t.normal}'.format(t=term),
+        print '{t.bold}window |{t.normal} {t.bold}feed{t.normal}'.format(t=term),
     with term.location(x=0, y=start+3):
-        print '{t.bold}{t.red}{!s}{t.normal}'.format('-'*90,t=term)
+        print '{t.bold}{!s}{t.normal}'.format('-'*90,t=term)
     sys.stdout.flush()
-        
+
+    
+def runPipeline(term, start):
+
+    #printTableHeader(term, start)
 
     # create instance of CommandLine object to parse input, then
     # parse all the input parameters and store them as attributes in param structure
     cl = commandline.CommandLine()
     cl_params = cl.read(sys)
+    
+    with term.location(0,0):
+	print cl_params
 
+    with term.location(0,term.height-1):
+        raw_input('{t.bold}Press enter to continue.{t.normal}'.format(t=term))
+	print term.clear()
     
     feeds=cl_params.feed
     pols=cl_params.pol
@@ -125,12 +133,6 @@ def runPipeline():
     if not windows:
         windows = rowList.windows()
     
-    #print 'windows',', '.join([str(xx) for xx in windows])
-    #print 'feeds',', '.join([str(xx) for xx in feeds])
-    #print 'pols',', '.join([str(xx) for xx in pols])
-    #if cl_params.refscans:
-    #    print 'refscans',', '.join([str(xx) for xx in cl_params.refscans[:2]])
-    
     pids = []
     pipe = []
     
@@ -138,46 +140,52 @@ def runPipeline():
         for feed in feeds:
             for pol in pols:
                 try:
-                    mp = MappingPipeline(cl_params, rowList, feed, window, pol)
+                    mp = MappingPipeline(cl_params, rowList, feed, window, pol, term, start)
                 except KeyError:
                     continue
                 pipe.append( (mp, window, feed, pol) )
     
+    for ww in windows:
+        with term.location(0, start + ww*(len(feeds)+1)):
+            print '{t.bold}window {window:2d}{t.normal}'.format(window=ww,t=term),
+
     for idx, pp in enumerate(pipe):
         
         window = pp[1]
         feed = pp[2]
         pol = pp[3]
         
-        with term.location(x=14+feed*10, y=start+2):
-            print '{feed:4d}'.format(feed=feed),
-        with term.location(x=0, y=start+4+window):
-            print '{:<7d}{t.red}{t.bold}|{t.normal}'.format(window,t=term),
-        #    for ff in range(7):
-        #       print '{t.red}{!s}{t.normal}'.format('         |',t=term),
+        #with term.location(x=14+feed*10, y=start+2):
+        #    print '{feed:4d}'.format(feed=feed),
+        #with term.location(x=0, y=start+4+window):
+        #    print '{:<7d}{t.bold}|{t.normal}'.format(window,t=term),
                 
-        sys.stdout.flush()
+        #sys.stdout.flush()
         
-        
+        # pipe output will be printed in order of window, feed
         if PARALLEL:
             p = multiprocessing.Process(target=calibrateWindowFeedPol, args=(cl_params, window, feed, pol, pp[0], idx,))
             pids.append(p)
 
         else:
-            calibrateWindowFeedPol(cl_params, window, feed, pol, pp[0], idx)
-
-
-    sys.stdout.flush()
+                calibrateWindowFeedPol(cl_params, window, feed, pol, pp[0], idx)
 
     if PARALLEL:
         for pp in pids:
-            pp.start()
+	    pp.start()
     
         for pp in pids:
             pp.join()
 
-    #print 'calibration all done, start imaging'
+    with term.location(0,term.height-2):
+        print 'calibration all done, start imaging'
 
 if __name__ == '__main__':
+
+    term = Terminal()
+    start = 0
     
-    runPipeline()
+    with term.fullscreen():
+        runPipeline(term,start)
+	with term.location(0,term.height-1):
+	    raw_input( '{t.bold}Press enter to exit.{t.normal}'.format(t=term) )
