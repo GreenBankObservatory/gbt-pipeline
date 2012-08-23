@@ -149,6 +149,10 @@ def runPipeline(term, start):
         with term.location(0, start + ww*(len(feeds)+1)):
             print '{t.bold}window {window:2d}{t.normal}'.format(window=ww,t=term),
 
+    #for pol in pols:
+    #    with term.location(pol*36, start + ww*(len(feeds)+1)):
+    #        print '{t.bold}window {window:2d}{t.normal}'.format(window=ww,t=term),
+
     for idx, pp in enumerate(pipe):
         
         window = pp[1]

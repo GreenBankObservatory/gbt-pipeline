@@ -454,7 +454,7 @@ class MappingPipeline:
                     
                     outputidx = outputidx + 1
                     percent_done = int((outputidx/float(rows2write))*100)
-                    with self.term.location(pol*48, self.start + window + 1 + (printOffset/2)):
+                    with self.term.location(pol*36, self.start + window + 1 + (printOffset/2)):
                         print 'feed={feed:2d}, pol={pol:1d}, scan={scan:4d} : {percent_done:3d} %'.format(feed=feed, pol=pol, scan=scan, percent_done=percent_done),
                     #with self.term.location(x=9+feed*10, y=self.start+4+window):
                         #print '{scan:>9d}'.format(t=self.term,scan=scan),
