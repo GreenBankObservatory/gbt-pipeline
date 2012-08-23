@@ -455,16 +455,19 @@ class MappingPipeline:
                     outputidx = outputidx + 1
                     percent_done = int((outputidx/float(rows2write))*100)
 
-                    #with self.term.location(5*printOffset, self.start + window + 1):
-                    #    if printOffset%2:
+                    #with self.term.location(3+5*printOffset, self.start + window + 1):
+                    #    if printOffset%2: # 2 should be replaced with npols
                     #        print '|',
 
                     #with self.term.location(6 + 5*printOffset, self.start + window + 1):
-                    with self.term.location(4 + 5*printOffset, self.start + window + 1):
+                    #with self.term.location(4 + 10*printOffset, self.start + window + 2):
+                    #    boldprogress = '({feed:1d},{pol:1d}){t.bold}{scan:04d}{t.normal}'.format(scan=scan,t=self.term,feed=feed,pol=pol),
+                    #    progress = '({feed:1d},{pol:1d}){scan:04d}'.format(scan=scan,feed=feed,pol=pol),
+                    with self.term.location(5 + 5*printOffset, self.start + window + 2):
                         if percent_done>=100:
-                            print '{t.bold}{scan:4d}{t.normal}'.format(scan=scan,t=self.term),
+                            print '{t.bold}{scan:04d}{t.normal}/'.format(scan=scan,t=self.term,feed=feed,pol=pol),
                         else:
-                            print '{scan:4d}'.format(scan=scan),
+                            print '{scan:04d}/'.format(scan=scan,feed=feed,pol=pol),
                             
                     #with self.term.location(x=9+feed*10, y=self.start+4+window):
                         #print '{scan:>9d}'.format(t=self.term,scan=scan),

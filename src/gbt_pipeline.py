@@ -134,10 +134,10 @@ def runPipeline(term, start):
         windows = rowList.windows()
     
     with term.location(0, start):
-	print '{t.bold}win{t.normal}'.format(t=term),
-	#print ' '+'-'*80,
+	print '{t.bold}win{t.normal}      progress by scan for each feed/pol. {t.bold}bold{t.normal} means scan is complete.'.format(t=term)
+	print '-'*80,
     for ww in windows:
-	with term.location(0, start + ww + 1):
+	with term.location(0, start + ww + 2):
 	    print '{t.bold}{window:3d}{t.normal}'.format(window=ww,t=term),
 	    
     for window in windows:
