@@ -1,9 +1,7 @@
 #!/bin/bash
 
-
 fullpath=`readlink -f $0`
 me=`dirname $fullpath`
-source /home/scratch/jmasters/pipeline-install-1345495249/pipeline-env/bin/activate
 
 if [ $me = "/home/gbtpipeline/integration" ]; then
 	echo "!!!!!!!!!! TEST VERSION !!!!!!!!!!!!"
@@ -12,7 +10,6 @@ if [ $me = "/home/gbtpipeline/integration" ]; then
 	if [[ "$PATH" != */home/gbtpipeline/integration* ]]
 	then
 		PATH=/home/gbtpipeline/integration/tools:"$PATH"
-		PATH=/home/gbtpipeline/integration:"$PATH"
 	fi
 	
 	if [ -z "$PYTHONPATH" ]
@@ -27,14 +24,17 @@ if [ $me = "/home/gbtpipeline/integration" ]; then
 			PYTHONPATH=/home/gbtpipeline/integration:"$PYTHONPATH"
 		fi
 	fi
+        
+        export PATH
+        export PYTHONPATH
+        
+        VERSION = 'integregation'        
 
 elif [ $me = "/home/gbtpipeline/release" ]; then
 
 	if [[ "$PATH" != */home/gbtpipeline/release* ]]
 	then
-		PATH=/home/gbt7/norman/bin:"$PATH"
 		PATH=/home/gbtpipeline/release/tools:"$PATH"
-		PATH=/home/gbtpipeline/release:"$PATH"
 	fi
 	
 	if [ -z "$PYTHONPATH" ]
@@ -50,11 +50,12 @@ elif [ $me = "/home/gbtpipeline/release" ]; then
 		fi
 	fi
 
+        VERSION = 'release'
+
 elif [ $me = "/home/gbtpipeline/old" ]; then
 
     if [[ "$PATH" != */home/gbtpipeline/old* ]]
     then
-        PATH=/home/gbt7/norman/bin:"$PATH"
         PATH=/home/gbtpipeline/old/tools:"$PATH"
         PATH=/home/gbtpipeline/old:"$PATH"
     fi
@@ -72,13 +73,12 @@ elif [ $me = "/home/gbtpipeline/old" ]; then
         fi
     fi
 
+        VERSION = 'old'
 fi
-
-export PATH
-export PYTHONPATH
 
 if [ $# -gt 0 ]; then
     echo "gbtpipeline" $*
 fi
 
-python /home/gbtpipeline/integration/gbt_pipeline.py $*
+source /home/gbt7/pipeline/${VERSION}-env/bin/activate
+python /home/gbtpipeline/${VERSION}/gbt_pipeline.py $*

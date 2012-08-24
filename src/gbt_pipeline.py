@@ -112,11 +112,11 @@ def runPipeline(term, start):
     cl_params = cl.read(sys)
     
     with term.location(0,0):
-	print cl_params
+        print cl_params
 
     with term.location(0,term.height-1):
         raw_input('{t.bold}Press enter to continue.{t.normal}'.format(t=term))
-	print term.clear()
+        print term.clear()
     
     feeds=cl_params.feed
     pols=cl_params.pol
@@ -134,12 +134,13 @@ def runPipeline(term, start):
         windows = rowList.windows()
     
     with term.location(0, start):
-	print '{t.bold}win{t.normal}      progress by scan for each feed/pol. {t.bold}bold{t.normal} means scan is complete.'.format(t=term)
-	print '-'*80,
+        print '{t.bold}window{t.normal}   Progress by scan for each feed/pol. {t.bold}Bold{t.normal} means scan is complete.'.format(t=term)
+        print '-'*80,
     for ww in windows:
-	with term.location(0, start + ww + 2):
-	    print '{t.bold}{window:3d}{t.normal}'.format(window=ww,t=term),
-	    
+        with term.location(0, start + ww + 2):
+            #print '{t.bold}{window:3d}{t.normal}'.format(window=ww,t=term),
+            print '{window:3d}'.format(window=ww,t=term),
+            
     for window in windows:
         pipe = []
         for feed in feeds:
@@ -151,37 +152,37 @@ def runPipeline(term, start):
                 pipe.append( (mp, window, feed, pol) )
     
 
-	#for pol in pols:
-	#    with term.location(pol*36, start + ww*(len(feeds)+1)):
-	#        print '{t.bold}window {window:2d}{t.normal}'.format(window=ww,t=term),
+        #for pol in pols:
+        #    with term.location(pol*36, start + ww*(len(feeds)+1)):
+        #        print '{t.bold}window {window:2d}{t.normal}'.format(window=ww,t=term),
     
         pids = []
-	for idx, pp in enumerate(pipe):
-	    window = pp[1]
-	    feed = pp[2]
-	    pol = pp[3]
-	    
-	    #with term.location(x=14+feed*10, y=start+2):
-	    #    print '{feed:4d}'.format(feed=feed),
-	    #with term.location(x=0, y=start+4+window):
-	    #    print '{:<7d}{t.bold}|{t.normal}'.format(window,t=term),
-		    
-	    #sys.stdout.flush()
-	    
-	    # pipe output will be printed in order of window, feed
-	    if PARALLEL:
-		p = multiprocessing.Process(target=calibrateWindowFeedPol, args=(cl_params, window, feed, pol, pp[0], idx,))
-		pids.append(p)
+        for idx, pp in enumerate(pipe):
+            window = pp[1]
+            feed = pp[2]
+            pol = pp[3]
+            
+            #with term.location(x=14+feed*10, y=start+2):
+            #    print '{feed:4d}'.format(feed=feed),
+            #with term.location(x=0, y=start+4+window):
+            #    print '{:<7d}{t.bold}|{t.normal}'.format(window,t=term),
+                    
+            #sys.stdout.flush()
+            
+            # pipe output will be printed in order of window, feed
+            if PARALLEL:
+                p = multiprocessing.Process(target=calibrateWindowFeedPol, args=(cl_params, window, feed, pol, pp[0], idx,))
+                pids.append(p)
     
-	    else:
-		    calibrateWindowFeedPol(cl_params, window, feed, pol, pp[0], idx)
+            else:
+                    calibrateWindowFeedPol(cl_params, window, feed, pol, pp[0], idx)
     
-	if PARALLEL:
-	    for pp in pids:
-		pp.start()
-	
-	    for pp in pids:
-		pp.join()
+        if PARALLEL:
+            for pp in pids:
+                pp.start()
+        
+            for pp in pids:
+                pp.join()
 
     #with term.location(0,term.height-2):
     #    print 'calibration all done, start imaging'
@@ -189,9 +190,9 @@ def runPipeline(term, start):
 if __name__ == '__main__':
 
     term = Terminal()
-    start = 5
+    start = 0
     
     with term.fullscreen():
         runPipeline(term,start)
-	with term.location(0,term.height-1):
-	    raw_input( '{t.bold}Press enter to exit.{t.normal}'.format(t=term) )
+        with term.location(0,term.height-1):
+            raw_input( '{t.bold}Press enter to exit.{t.normal}'.format(t=term) )

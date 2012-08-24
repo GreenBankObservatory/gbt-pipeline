@@ -9,6 +9,7 @@ mkdir -p ${SCRATCH_DIR}
 echo created ${SCRATCH_DIR}
 
 INSTALL_DIR=/home/gbt7/pipeline
+
 mkdir -p ${INSTALL_DIR}
 echo created ${INSTALL_DIR}
 
@@ -44,8 +45,8 @@ make install
 # ------------------------------------------------------------ create virtual env
 echo 'making virtual env'
 cd ${SCRATCH_DIR}
-${INSTALL_DIR}/bin/python ./virtualenv.py pipeline-env
-source pipeline-env/bin/activate
+${INSTALL_DIR}/bin/python ./virtualenv.py ${INSTALL_DIR}/pipeline-env
+source ${INSTALL_DIR}/pipeline-env/bin/activate
 
 # ------------------------------------------------------------ install numpy
 echo 'installing numpy'
@@ -54,6 +55,22 @@ pip install numpy==${NUMPYVER}
 # ------------------------------------------------------------ install fitsio
 echo 'installing fitsio'
 pip install fitsio
+
+# ------------------------------------------------------------ install blessings
+echo 'installing blessings'
+pip install blessings
+
+# ------------------------------------------------------------ install pyfits
+echo 'installing pyfits'
+pip install pyfits
+
+# ------------------------------------------------------------ install ipython
+echo 'installing ipython'
+pip install ipython
+
+# ------------------------------------------------------------ install matplotlib
+echo 'installing matplotlib'
+pip install matplotlib
 
 # ---------------------------------------------------------- build Obit
 echo 'building Obit'
@@ -75,26 +92,17 @@ PATH=${INSTALL_DIR}/bin:${PATH} ./configure --with-obit=${SCRATCH_DIR}/ObitInsta
 make
 make install
 
+deactivate
 
 exit
 
-
 # -------------------------------------------------- other useful stuff
-#
-#cd ${SCRATCH_DIR}
-#curl -O http://pypi.python.org/packages/2.6/s/setuptools/setuptools-0.6c11-py2.6.egg
-#
-#PATH=${INSTALL_DIR}/bin:${PATH} sh setuptools-0.6c11-py2.6.egg --prefix=${INSTALL_DIR}
-#${INSTALL_DIR}/bin/easy_install pip
-#${INSTALL_DIR}/bin/pip install matplotlib
 #
 ## edit matplotlib source to get it to work
 #sed s/numpy.ma/numpy.core.ma/ ${INSTALL_DIR}/lib/python2.6/site-packages/matplotlib/numerix/npyma/__init__.py >tempfile
 #mv tempfile ${INSTALL_DIR}/lib/python2.6/site-packages/matplotlib/numerix/npyma/__init__.py
 #sed s/numpy.ma/numpy.core.ma/ ${INSTALL_DIR}/lib/python2.6/site-packages/matplotlib/numerix/ma/__init__.py >tempfile
 #mv tempfile ${INSTALL_DIR}/lib/python2.6/site-packages/matplotlib/numerix/ma/__init__.py
-#
-#${INSTALL_DIR}/bin/pip install ipython
 #
 ## --------------------------------------------- remove scratch build area
 #
