@@ -5,76 +5,35 @@ me=`dirname $fullpath`
 
 if [ $me = "/home/gbtpipeline/integration" ]; then
 	echo "!!!!!!!!!! TEST VERSION !!!!!!!!!!!!"
-
-
-	if [[ "$PATH" != */home/gbtpipeline/integration* ]]
-	then
-		PATH=/home/gbtpipeline/integration/tools:"$PATH"
-	fi
-	
-	if [ -z "$PYTHONPATH" ]
-	then
-		PYTHONPATH=/home/gbtpipeline/integration/contrib
-		PYTHONPATH=/home/gbtpipeline/integration:"$PYTHONPATH"
-	else
-		lclpythonpath="$PYTHONPATH"
-		if [[ $lclpythonpath != */home/gbtpipeline/integration* ]]
-		then
-			PYTHONPATH=/home/gbtpipeline/integration/contrib:"$PYTHONPATH"
-			PYTHONPATH=/home/gbtpipeline/integration:"$PYTHONPATH"
-		fi
-	fi
-        
-        export PATH
-        export PYTHONPATH
-        
-        VERSION = 'integregation'        
+        VERSION='integration'        
 
 elif [ $me = "/home/gbtpipeline/release" ]; then
-
-	if [[ "$PATH" != */home/gbtpipeline/release* ]]
-	then
-		PATH=/home/gbtpipeline/release/tools:"$PATH"
-	fi
-	
-	if [ -z "$PYTHONPATH" ]
-	then
-		PYTHONPATH=/home/gbtpipeline/release/contrib
-		PYTHONPATH=/home/gbtpipeline/release:"$PYTHONPATH"
-	else
-		lclpythonpath="$PYTHONPATH"
-		if [[ $lclpythonpath != */home/gbtpipeline/release* ]]
-		then
-			PYTHONPATH=/home/gbtpipeline/release/contrib:"$PYTHONPATH"
-			PYTHONPATH=/home/gbtpipeline/release:"$PYTHONPATH"
-		fi
-	fi
-
-        VERSION = 'release'
+        VERSION='release'
 
 elif [ $me = "/home/gbtpipeline/old" ]; then
-
-    if [[ "$PATH" != */home/gbtpipeline/old* ]]
-    then
-        PATH=/home/gbtpipeline/old/tools:"$PATH"
-        PATH=/home/gbtpipeline/old:"$PATH"
-    fi
-
-    if [ -z "$PYTHONPATH" ]
-    then
-        PYTHONPATH=/home/gbtpipeline/old/contrib
-        PYTHONPATH=/home/gbtpipeline/old:"$PYTHONPATH"
-    else
-        lclpythonpath="$PYTHONPATH"
-        if [[ $lclpythonpath != */home/gbtpipeline/old* ]]
-        then
-            PYTHONPATH=/home/gbtpipeline/old/contrib:"$PYTHONPATH"
-            PYTHONPATH=/home/gbtpipeline/old:"$PYTHONPATH"
-        fi
-    fi
-
-        VERSION = 'old'
+        VERSION='old'
 fi
+
+if [[ "$PATH" != */home/gbtpipeline/${VERSION}* ]]
+then
+        PATH=/home/gbtpipeline/${VERSION}/tools:"$PATH"
+fi
+
+if [ -z "$PYTHONPATH" ]
+then
+        PYTHONPATH=/home/gbtpipeline/${VERSION}/contrib
+        PYTHONPATH=/home/gbtpipeline/${VERSION}:"$PYTHONPATH"
+else
+        lclpythonpath="$PYTHONPATH"
+        if [[ $lclpythonpath != */home/gbtpipeline/${VERSION}* ]]
+        then
+                PYTHONPATH=/home/gbtpipeline/${VERSION}/contrib:"$PYTHONPATH"
+                PYTHONPATH=/home/gbtpipeline/${VERSION}:"$PYTHONPATH"
+        fi
+fi
+
+export PATH
+export PYTHONPATH
 
 if [ $# -gt 0 ]; then
     echo "gbtpipeline" $*
