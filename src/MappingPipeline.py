@@ -44,10 +44,15 @@ class MappingPipeline:
     
     def __init__(self, cl_params, rowList, feed, window, pol, term, start):
 
-        #self.term = Terminal()
         self.term = term
         self.start = start
         
+        if None == cl_params.mapscans:
+            with self.term.location(0, self.term.height-2):
+                print '{t.bold}ERROR{t.normal}: Need map scan(s).'.format(t=self.term)
+                print ''
+                sys.exit()
+            
         self.cal = Calibration()
         self.pu = Pipeutils()
         self.weather = Weather()
@@ -705,11 +710,11 @@ class MappingPipeline:
                     #        print '|',
 
                     #with self.term.location(6 + 5*printOffset, self.start + window + 1):
-                    with self.term.location(4 + 5*printOffset, self.start + window + 1):
+                    with self.term.location(5 + 5*printOffset, self.start + window + 2):
                         if percent_done>=100:
-                            print '{t.bold}{scan:4d}{t.normal}'.format(scan=scan,t=self.term),
+                            print '{t.bold}{scan:04d}{t.normal}/'.format(scan=scan,t=self.term,feed=feed,pol=pol),
                         else:
-                            print '{scan:4d}'.format(scan=scan),
+                            print '{scan:04d}/'.format(scan=scan,feed=feed,pol=pol),
                     #
                     #with self.term.location(0, self.start + (printOffset+1)):
                     #    print '{offset:2d} -- feed {feed:2d} window {window:2d} pol {pol:2d} scan {scan:4d} : {percent_done:3d} %'.format(feed=feed, window=window, pol=pol, scan=scan, percent_done=percent_done, offset=printOffset),
