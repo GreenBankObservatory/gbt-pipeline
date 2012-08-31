@@ -93,7 +93,7 @@ def calibrateWindowFeedPol(log, cl_params, window, feed, pol, pipe, printOffset)
     
 def doImaging(log, term, cl_params, pipe):
     
-    log.doMessage('INFO', '{t.bold}Start imaging.{t.normal}'.format(t=term) )
+    log.doMessage('INFO', '{t.underline}Start imaging.{t.normal}'.format(t=term) )
     
     # ------------------------------------------------- identify imaging scripts
     
@@ -129,9 +129,8 @@ def doImaging(log, term, cl_params, pipe):
         mapScript = RELCONTRIBDIR + MAPSCRIPT
 
     else:
-        log.doMessage('ERR',"Imaging script(s) not found.")
-        imagingoff = True
-
+        log.doMessage('ERR',"Imaging script(s) not found.  Stopping after calibration.")
+        sys.exit()
         
     windows = set([])
     for pp in pipe:
@@ -224,7 +223,7 @@ def runPipeline(term):
     
     
     log = Logging(cl_params, 'pipeline')
-    log.doMessage('INFO','Command summary')
+    log.doMessage('INFO','{t.underline}Command summary{t.normal}'.format(t=term))
     for x in cl_params._get_kwargs():
         log.doMessage('INFO','\t',x[0],'=',str(x[1]))
     
@@ -239,12 +238,23 @@ def runPipeline(term):
     except IOError:
         sys.exit()
     
+    scanlist = rowList.scans()
+    missingscan = False
+    for scan in cl_params.mapscans:
+	if scan not in scanlist:
+	    log.doMessage('ERR', 'Scan',scan,'not found.')
+	    missingscan = True
+    if missingscan:
+	sys.exit()
+
     if not feeds:
         feeds = rowList.feeds()
     if not pols:
         pols = rowList.pols()
     if not windows:
         windows = rowList.windows()
+    
+    log.doMessage('INFO','{t.underline}Start calibration.{t.normal}'.format(t=term))
     
     for window in windows:
         log.doMessage('INFO', 'Window',window,'started')

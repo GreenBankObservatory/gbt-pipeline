@@ -77,8 +77,7 @@ class MappingPipeline:
         try:
             self.create_output_sdfits(feed, window, pol)
         except KeyError:
-            raise
-        
+            raise            
 
         if not cl_params.mapscans:
             self.cl.mapscans = rowList.scans()
@@ -185,15 +184,6 @@ class MappingPipeline:
     
     def create_output_sdfits(self, feed, window, pol):
         
-        scanlist = self.rowList.scans()
-        missingscan = False
-        for scan in self.cl.mapscans:
-            if scan not in scanlist:
-                self.log.doMessage('ERR', '{t.bold}ERROR{t.normal}: Scan {scan} not found.'.format(scan=scan,t=self.term))
-                missingscan = True
-        if missingscan:
-            sys.exit()
-            
         try:
             signalRows = self.rowList.get(self.cl.mapscans[0], feed, window, pol)
             ext = signalRows['EXTENSION']

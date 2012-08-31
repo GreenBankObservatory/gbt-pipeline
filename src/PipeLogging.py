@@ -25,6 +25,7 @@
 import logging
 import sys
 import time
+from blessings import Terminal
 
 class Logging:
     """Class for screen and text file logging of pipeline operation.
@@ -32,6 +33,8 @@ class Logging:
     """
 
     def __init__(self,opt,prefix,toconsole=True):
+
+        self.t = Terminal()
 
         logfilename = prefix + '_' + self.timestamp() + '.log'
         self.configure_logfile(opt,logfilename,toconsole)
@@ -57,13 +60,11 @@ class Logging:
         """
         message = ' '.join(map(str,(args)))
         if 'CRIT' == level:
-            self.logger.critical(message)
-            sys.exit()
+            self.logger.error('{t.bold}CRITICAL:{t.normal} {m}'.format(m=message,t=self.t))
         elif 'ERR' == level:
-            self.logger.error('ERROR: '+message)
-            sys.exit()            
+            self.logger.error('{t.bold}ERROR:{t.normal} {m}'.format(m=message,t=self.t))
         elif 'WARN' == level:
-            self.logger.warning('WARNING: '+message)
+            self.logger.error('{t.bold}WARNING:{t.normal} {m}'.format(m=message,t=self.t))
         elif 'INFO' == level:
             self.logger.info(message)
         elif 'DBG' == level:
