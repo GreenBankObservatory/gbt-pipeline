@@ -23,14 +23,15 @@
 # $Id$
 
 import fitsio
-#from blessings import Terminal
 
 from Integration import Integration
 from Calibration import Calibration
 from SdFitsIO import SdFits
 from Pipeutils import Pipeutils
-import numpy as np
 from Weather import Weather
+from PipeLogging import Logging
+
+import numpy as np
 
 import os
 import sys
@@ -42,19 +43,18 @@ if CREATE_PLOTS:
 
 class MappingPipeline:
     
-    def __init__(self, cl_params, rowList, feed, window, pol, term, start):
+    def __init__(self, log, cl_params, rowList, feed, window, pol, term):
 
         self.term = term
-        self.start = start
         
         if None == cl_params.mapscans:
-            with self.term.location(0, self.term.height-2):
-                print '{t.bold}ERROR{t.normal}: Need map scan(s).'.format(t=self.term)
-                print ''
-                sys.exit()
+            log.doMessage('ERR', '{t.bold}ERROR{t.normal}: Need map scan(s).\n'.format(t=self.term))
+            sys.exit()
             
-        self.cal = Calibration()
+        self.log = None
+            
         self.pu = Pipeutils()
+        self.cal = Calibration()
         self.weather = Weather()
         self.sdf = SdFits()
 
@@ -66,7 +66,7 @@ class MappingPipeline:
         try:
             self.infile = fitsio.FITS( cl_params.infilename )
         except ValueError,e:
-            print 'Input',e
+            self.log.doMessage('ERR', 'Input',e)
             sys.exit()
             
         self.outfile = None
@@ -168,7 +168,7 @@ class MappingPipeline:
         avgCref,avgTref,avgTimestamp,avgTambient,avgElevation = \
             self.cal.getReferenceAverage(crefs, trefs, exposures, timestamps, tambients, elevations)
         
-        #print 'System Temperature for reference scan',scan,'with feed',feed,'window',window,'pol',pol,':',avgTref
+        self.log.doMessage('INFO', 'System Temperature for reference scan',scan,'with feed',feed,'window',window,'pol',pol,':',avgTref)
         
         return avgCref,avgTref,avgTimestamp,avgTambient,avgElevation
     
@@ -185,6 +185,15 @@ class MappingPipeline:
     
     def create_output_sdfits(self, feed, window, pol):
         
+        scanlist = self.rowList.scans()
+        missingscan = False
+        for scan in self.cl.mapscans:
+            if scan not in scanlist:
+                self.log.doMessage('ERR', '{t.bold}ERROR{t.normal}: Scan {scan} not found.'.format(scan=scan,t=self.term))
+                missingscan = True
+        if missingscan:
+            sys.exit()
+            
         try:
             signalRows = self.rowList.get(self.cl.mapscans[0], feed, window, pol)
             ext = signalRows['EXTENSION']
@@ -195,11 +204,12 @@ class MappingPipeline:
         except KeyError:
             raise
         
-        outfilename = targetname + '_scan_' + str(self.cl.mapscans[0]) + '_' + str(self.cl.mapscans[-1]) + '_feed' + str(feed) \
-            + '_window' + str(window) + '_pol' + str(pol) + '.fits'
+        outfilename = targetname + '_scan_' + str(self.cl.mapscans[0]) + '_' + str(self.cl.mapscans[-1]) + '_window' + str(window) + '_feed' + str(feed) + '_pol' + str(pol) + '.fits'
+
+        self.log = Logging(self.cl, outfilename.rstrip('.fits'))
+
         if False == self.CLOBBER and os.path.exists(outfilename):
-            print 'WARNING:  Will not overwrite existing pipeline output.'
-            print 'Consider using \'--clobber\' option to overwrite.'
+            self.log.doMessage('WARN', ' Will not overwrite existing pipeline output.\nConsider using \'--clobber\' option to overwrite.')
             sys.exit()
         
         # create a new table
@@ -266,8 +276,7 @@ class MappingPipeline:
         if not self.OPACITY:
             ref1_zenith_opacity = self.weather.retrieve_zenith_opacity(crefTime1, obsfreqHz)
             if not ref1_zenith_opacity:
-                print 'ERROR: Not able to retrieve reference 1 zenith opacity',
-                print '  Please supply a zenith opacity or calibrate to Ta.'
+                self.log.doMessage('ERR', 'Not able to retrieve reference 1 zenith opacity\n  Please supply a zenith opacity or calibrate to Ta.')
                 sys.exit(9)
         else:
             ref1_zenith_opacity = self.OPACITY
@@ -284,9 +293,7 @@ class MappingPipeline:
             if not self.OPACITY:
                 ref2_zenith_opacity = self.weather.retrieve_zenith_opacity(crefTime2, obsfreqHz)
                 if not ref2_zenith_opacity:
-                    print 'ERROR: Not able to retrieve reference 2 zenith opacity for',
-                    print 'calibration to:',self.cl.units
-                    print '  Please supply a zenith opacity or calibrate to Ta.'
+                    self.log.doMessage('ERR', 'Not able to retrieve reference 2 zenith opacity for calibration to:',self.cl.units,'\n  Please supply a zenith opacity or calibrate to Ta.')
                     sys.exit(9)
             else:
                 ref2_zenith_opacity = self.OPACITY
@@ -311,12 +318,12 @@ class MappingPipeline:
         
     def calibrate_fs_sdfits_integrations(self, feed, window, pol, \
                                             beam_scaling, printOffset):
-        
+
         dtype = self.get_dtype(feed, window, pol)
         if None == dtype:
             return
-        #else:
-        #    print 'calibrating feed',feed,'window',window,'polarization',pol
+        else:
+            self.log.doMessage('DBG', 'calibrating feed',feed,'window',window,'polarization',pol)
         
         for scan in self.cl.mapscans:
 
@@ -333,9 +340,10 @@ class MappingPipeline:
             
             cal_switching, sigref = self.determineSetup(rows, ext)
             
-            if not cal_switching and not sigref:
-                print 'ERROR:  scan',scan,'does not have 2 signal states'
-                print '    and 2 noise diode (cal) states'
+            if not cal_switching or not sigref:
+                self.log.doMessage('ERR', 'Expected frequency-switched scan',scan,'does not have 2 signal states and 2 noise diode (cal) states')
+                sys.stdout.flush()
+                sys.exit()
             
             # break the input rows into chunks as buffers to write out
             #   so that we don't write out rows one at a time
@@ -360,17 +368,17 @@ class MappingPipeline:
                     if row['SIG'] == 'T':
                         if row['CAL'] == 'T':
                             sigrefState[0]['calON'] = row
-                            #print 'sig, calON', rowNum
+                            #self.log.doMessage( 'sig, calON', rowNum
                         else:
                             sigrefState[0]['calOFF'] = row
-                            #print 'sig, calOFF', rowNum
+                            #self.log.doMessage( 'sig, calOFF', rowNum
                     else:
                         if row['CAL'] == 'T':
                             sigrefState[1]['calON'] = row
-                            #print 'ref, calON', rowNum
+                            #self.log.doMessage( 'ref, calON', rowNum
                         else:
                             sigrefState[1]['calOFF'] = row
-                            #print 'ref, calOFF', rowNum
+                            #self.log.doMessage( 'ref, calOFF', rowNum
                     
                     # we need 4 states to calibrate FS integrations
                     if sigrefState[0]['calON'] and sigrefState[0]['calOFF'] and \
@@ -402,9 +410,7 @@ class MappingPipeline:
                         if not self.OPACITY:
                             intOpacity = self.weather.retrieve_zenith_opacity(intTime, obsfreqHz)
                             if not intOpacity:
-                                print 'ERROR: Not able to retrieve integration zenith opacity for',
-                                print 'calibration to:',self.cl.units
-                                print '  Please supply a zenith opacity or calibrate to Ta.'
+                                self.log.doMessage('ERR', 'Not able to retrieve integration zenith opacity for calibration to:',self.cl.units,'\n  Please supply a zenith opacity or calibrate to Ta.')
                                 sys.exit(9)
                         else:
                             intOpacity = self.OPACITY
@@ -449,7 +455,7 @@ class MappingPipeline:
                     elif 'jy' == self.cl.units:
                         row['DATA'] = jy
                     else:
-                        print 'ERROR: units not recognized.  Can not write data.'
+                        self.log.doMessage('ERR', 'units not recognized.  Can not write data.')
                         sys.exit(9)
                         
                     row['TSYS'] = tsys
@@ -460,25 +466,6 @@ class MappingPipeline:
                     outputidx = outputidx + 1
                     percent_done = int((outputidx/float(rows2write))*100)
 
-                    #with self.term.location(3+5*printOffset, self.start + window + 1):
-                    #    if printOffset%2: # 2 should be replaced with npols
-                    #        print '|',
-
-                    #with self.term.location(6 + 5*printOffset, self.start + window + 1):
-                    #with self.term.location(4 + 10*printOffset, self.start + window + 2):
-                    #    boldprogress = '({feed:1d},{pol:1d}){t.bold}{scan:04d}{t.normal}'.format(scan=scan,t=self.term,feed=feed,pol=pol),
-                    #    progress = '({feed:1d},{pol:1d}){scan:04d}'.format(scan=scan,feed=feed,pol=pol),
-                    with self.term.location(5 + 5*printOffset, self.start + window + 2):
-                        if percent_done>=100:
-                            print '{t.bold}{scan:04d}{t.normal}/'.format(scan=scan,t=self.term,feed=feed,pol=pol),
-                        else:
-                            print '{scan:04d}/'.format(scan=scan,feed=feed,pol=pol),
-                            
-                    #with self.term.location(x=9+feed*10, y=self.start+4+window):
-                        #print '{scan:>9d}'.format(t=self.term,scan=scan),
-                        
-                    sys.stdout.flush()
-                    
                     # done looping over rows in a chunk
                 
                 # done looping over chunks
@@ -502,7 +489,7 @@ class MappingPipeline:
         if None == dtype:
             return
         #else:
-        #    print 'calibrating feed',feed,'window',window,'polarization',pol
+        #    self.log.doMessage( 'calibrating feed',feed,'window',window,'polarization',pol
 
         if self.cl.units != 'ta':
             tsky1,tsky2 = self.getReferenceTsky(feed, window, pol, crefTime1, refTambient1, refElevation1, \
@@ -513,6 +500,7 @@ class MappingPipeline:
             try:
                 signalRows = self.rowList.get(scan, feed, window, pol)
             except:
+                self.log.doMessage('WARN', '{t.bold}WARNING{t.normal}: Scan {scan} not found.'.format(scan=scan,t=self.term))
                 continue
             
             # get integration rows
@@ -619,7 +607,7 @@ class MappingPipeline:
                             elif tsky1 and not tsky2:
                                 tsky_ref =  tsky1
                             else:
-                                print 'ERROR: no reference tsky value'
+                                self.log.doMessage('ERR', 'no reference tsky value')
                                 sys.exit()
 
                             # ASSUMES a given opacity
@@ -628,9 +616,7 @@ class MappingPipeline:
                             if not self.OPACITY:
                                 intOpacity = self.weather.retrieve_zenith_opacity(intTime, obsfreqHz)
                                 if not intOpacity:
-                                    print 'ERROR: Not able to retrieve integration zenith opacity for',
-                                    print 'calibration to:',self.cl.units
-                                    print '  Please supply a zenith opacity or calibrate to Ta.'
+                                    self.log.doMessage('ERR', 'Not able to retrieve integration zenith opacity for calibration to:',self.cl.units,'\n  Please supply a zenith opacity or calibrate to Ta.')
                                     sys.exit(9)
                             else:
                                 intOpacity = self.OPACITY
@@ -694,7 +680,7 @@ class MappingPipeline:
                         elif 'jy' == self.cl.units:
                             row['DATA'] = jy
                         else:
-                            print 'ERROR: units not recognized.  Can not write data.'
+                            self.log.doMessage('ERR', 'units not recognized.  Can not write data.')
                             sys.exit(9)
                             
                         row['TSYS'] = tsys
@@ -704,23 +690,9 @@ class MappingPipeline:
                     outputidx = outputidx + 1
                     
                     percent_done = int((outputidx/float(rows2write))*100)
+                    if percent_done%25 == 0:
+                        sys.stdout.write('.')
 
-                    #with self.term.location(5*printOffset, self.start + window + 1):
-                    #    if printOffset%2:
-                    #        print '|',
-
-                    #with self.term.location(6 + 5*printOffset, self.start + window + 1):
-                    with self.term.location(5 + 5*printOffset, self.start + window + 2):
-                        if percent_done>=100:
-                            print '{t.bold}{scan:04d}{t.normal}/'.format(scan=scan,t=self.term,feed=feed,pol=pol),
-                        else:
-                            print '{scan:04d}/'.format(scan=scan,feed=feed,pol=pol),
-                    #
-                    #with self.term.location(0, self.start + (printOffset+1)):
-                    #    print '{offset:2d} -- feed {feed:2d} window {window:2d} pol {pol:2d} scan {scan:4d} : {percent_done:3d} %'.format(feed=feed, window=window, pol=pol, scan=scan, percent_done=percent_done, offset=printOffset),
-
-                    #with self.term.location(x=9+feed*10, y=self.start+4+window):
-                    #    print '{scan:>9d}'.format(t=self.term,scan=scan),
                     sys.stdout.flush()
                 
                 # done looping over a chunk
@@ -768,7 +740,6 @@ class MappingPipeline:
             pylab.clf()
         
         # done with scans
-        #sys.stdout.write('\n')
         self.outfile.close()
         
     def CalibrateSdfitsIntegrations(self, feed, window, pol, \

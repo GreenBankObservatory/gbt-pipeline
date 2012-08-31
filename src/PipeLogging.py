@@ -22,23 +22,31 @@
 
 # $Id$
 
+import logging
+import sys
+import time
+
 class Logging:
     """Class for screen and text file logging of pipeline operation.
 
     """
 
+    def __init__(self,opt,prefix,toconsole=True):
+
+        logfilename = prefix + '_' + self.timestamp() + '.log'
+        self.configure_logfile(opt,logfilename,toconsole)
+        
     def timestamp(self):
         """Return a string with the current date and time
-    
-        The format of the string is: dd.mm.yyyy_hh:mm:ss
-    
-        """
-        lt = time.localtime(time.time())
-        return "%02d.%02d.%04d_%02d:%02d:%02d" % (lt[2], lt[1], lt[0], lt[3],
-                                                  lt[4], lt[5])
         
-      
-    def doMessage(self,logger,level,*args):
+        The format of the string is: dd.mm.yyyy_hh:mm:ss
+        
+        """
+        
+        lt = time.localtime(time.time())
+        return "%02d.%02d.%04d_%02d:%02d:%02d" % (lt[2], lt[1], lt[0], lt[3], lt[4], lt[5])
+
+    def doMessage(self,level,*args):
         """Write a message to the log file
     
         Keyword arguments:
@@ -48,18 +56,20 @@ class Logging:
     
         """
         message = ' '.join(map(str,(args)))
-        if msg.CRIT == level:
-            logger.critical(message)
-        elif msg.ERR == level:
-            logger.error(message)
-        elif msg.WARN == level:
-            logger.warning(message)
-        elif msg.INFO == level:
-            logger.info(message)
-        elif msg.DBG == level:
-            logger.debug(message)
+        if 'CRIT' == level:
+            self.logger.critical(message)
+            sys.exit()
+        elif 'ERR' == level:
+            self.logger.error('ERROR: '+message)
+            sys.exit()            
+        elif 'WARN' == level:
+            self.logger.warning('WARNING: '+message)
+        elif 'INFO' == level:
+            self.logger.info(message)
+        elif 'DBG' == level:
+            self.logger.debug(message)
         else:
-            logger.critical(message)
+            print 'ERROR: please check logging level.',level
     
     def configure_logfile(self, opt,logfilename,toconsole=True):
         """Configure the format and levels for the logfile
@@ -80,17 +90,17 @@ class Logging:
         level = LEVELS.get(opt.verbose, logging.DEBUG)
     
         loggername = logfilename.split('.')[0]
-        logger = logging.getLogger(loggername)
+        self.logger = logging.getLogger(loggername)
         
         # logging level defaults to WARN, so we need to override it
-        logger.setLevel(logging.DEBUG)
+        self.logger.setLevel(logging.DEBUG)
         
         # create file handler which logs even debug messages
         fh = logging.FileHandler(filename=logfilename,mode='w')
         fh.setLevel(logging.DEBUG)
-        fh_formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        fh_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
         fh.setFormatter(fh_formatter)
-        logger.addHandler(fh)
+        self.logger.addHandler(fh)
     
         if toconsole:
             # create console handler with a higher log level
@@ -100,7 +110,4 @@ class Logging:
             ch_formatter = logging.Formatter("%(message)s")
             ch.setFormatter(ch_formatter)
             # add the handlers to logger
-            logger.addHandler(ch)
-        
-        return logger
-    
+            self.logger.addHandler(ch)

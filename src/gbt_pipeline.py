@@ -27,15 +27,19 @@ PARALLEL = True # useful to turn off when debugging
 import commandline
 from MappingPipeline import MappingPipeline
 from SdFitsIO import SdFits
+from Pipeutils import Pipeutils
+from PipeLogging import Logging
 
 import fitsio
 from blessings import Terminal
 
 import multiprocessing
 import sys
-import pprint
+import glob
+import os
+import subprocess
 
-def calibrateWindowFeedPol(cl_params, window, feed, pol, pipe, printOffset):
+def calibrateWindowFeedPol(log, cl_params, window, feed, pol, pipe, printOffset):
 
     refSpectrum1 = None
     refTsys1 = None
@@ -54,7 +58,9 @@ def calibrateWindowFeedPol(cl_params, window, feed, pol, pipe, printOffset):
         try:
             pipe.rowList.get(cl_params.refscans[0], feed, window, pol)
         except:
-            print 'ERROR: missing 2nd reference scan #',cl_params.refscans[0],'for feed',feed,'window',window,'polarization',pol
+            log.doMessage('ERR','missing 2nd reference scan #',
+                          cl_params.refscans[0],'for feed',feed,'window',window,
+                          'polarization',pol)
             return
         
         refSpectrum1, refTsys1, refTimestamp1, refTambient1, refElevation1 = \
@@ -65,8 +71,7 @@ def calibrateWindowFeedPol(cl_params, window, feed, pol, pipe, printOffset):
             try:
                 pipe.rowList.get(cl_params.refscans[1], feed, window, pol)
             except:
-                print 'ERROR: missing 2nd reference scan #',cl_params.refscans[1],
-                print 'for feed',feed,'window',window,'polarization',pol
+                log.doMessage('ERR', 'missing 2nd reference scan #',cl_params.refscans[1],'for feed',feed,'window',window,'polarization',pol)
                 return
             
             refSpectrum2, refTsys2, refTimestamp2, refTambient2, refElevation2 = \
@@ -77,9 +82,7 @@ def calibrateWindowFeedPol(cl_params, window, feed, pol, pipe, printOffset):
         try:
             beam_scaling = cl_params.gainfactors[feed+pol]
         except IndexError:
-            print 'ERORR: can not get a gainfactor for feed and polarization.',feed
-            print '  You need to supply a factor for each feed and'
-            print '  polarization for the receiver.'
+            log.doMessage('ERR', 'ERORR: can not get a gainfactor for feed and polarization.',feed,'\n  You need to supply a factor for each feed and\n  polarization for the receiver.')
     else:
         beam_scaling = cl_params.gainfactors
     
@@ -88,35 +91,142 @@ def calibrateWindowFeedPol(cl_params, window, feed, pol, pipe, printOffset):
             refSpectrum2, refTsys2, refTimestamp2, refTambient2, refElevation2, \
             beam_scaling, printOffset )
     
-def printTableHeader(term, start):
-    print term.clear()
-    for xx in range(term.height):
-        print
-
-    with term.location(x=0, y=start+0):
-        print '{t.bold}progress by scan number{t.normal}'.format(t=term),
-    with term.location(x=0, y=start+2):
-        print '{t.bold}window |{t.normal} {t.bold}feed{t.normal}'.format(t=term),
-    with term.location(x=0, y=start+3):
-        print '{t.bold}{!s}{t.normal}'.format('-'*90,t=term)
-    sys.stdout.flush()
-
+def doImaging(log, term, cl_params, pipe):
     
-def runPipeline(term, start):
+    log.doMessage('INFO', '{t.bold}Start imaging.{t.normal}'.format(t=term) )
+    
+    # ------------------------------------------------- identify imaging scripts
+    
+    # look in integration or release contrib directories for imaging script
+    # if no script is found, turn imaging off
+    
+    RELCONTRIBDIR = '/home/gbtpipeline/release/contrib'
+    TESTCONTRIBDIR = '/home/gbtpipeline/integration/contrib'
+    DBCONSCRIPT = '/' + 'dbcon.py'
+    MAPSCRIPT = '/' + 'mapDefault.py'
+    
+    # if the user opted to do imaging, then check for the presence of
+    # the necessary imaging scripts (dbcon.py, mapDefault.py). the path
+    # to the scripts depends on the version (release vs. test) of the
+    # pipeline which is running.
+    dbconScript = 'None'
+    mapScript = 'None'
+    
+    
+    # test version of pipeline
+    if TESTCONTRIBDIR in sys.path and \
+      os.path.isfile(TESTCONTRIBDIR + DBCONSCRIPT) and \
+      os.path.isfile(TESTCONTRIBDIR + MAPSCRIPT):
 
-    #printTableHeader(term, start)
+        dbconScript = TESTCONTRIBDIR + DBCONSCRIPT
+        mapScript = TESTCONTRIBDIR + MAPSCRIPT
+
+    # release version of pipeline
+    elif os.path.isfile(RELCONTRIBDIR + DBCONSCRIPT) and \
+      os.path.isfile(RELCONTRIBDIR + MAPSCRIPT):
+
+        dbconScript = RELCONTRIBDIR + DBCONSCRIPT
+        mapScript = RELCONTRIBDIR + MAPSCRIPT
+
+    else:
+        log.doMessage('ERR',"Imaging script(s) not found.")
+        imagingoff = True
+
+        
+    windows = set([])
+    for pp in pipe:
+        windows.add(str(pp[1]))
+    
+    imagefiles = []
+    for window in windows:
+        scanrange = str(cl_params.mapscans[0])+'_'+str(cl_params.mapscans[-1])
+
+        for pp in pipe:
+            win = str(pp[1])
+            feed = str(pp[2])
+            pol = str(pp[3])
+	    imfile = glob.glob('*' + scanrange + '*window' + win + '_feed' +  feed + '_pol' + pol + '.fits')[0]
+	    print 'IMFILE',imfile
+            imagefiles.append(imfile)
+        print 'IMAGEFILES',imagefiles
+        aipsinputs = []
+        for imagefile in imagefiles:
+            
+            # set the idlToSdfits output file name
+            aipsinname = imagefile.replace('.fits','.sdf')
+            aipsinputs.append(aipsinname)
+        
+            # run idlToSdfits, which converts calibrated sdfits into a format
+            options = ''
+        
+            if bool(cl_params.average):
+                options = options + ' -a ' + str(cl_params.average)
+        
+            if cl_params.channels:
+                options = options + ' -c ' + str(cl_params.channels) + ' '
+        
+            if not cl_params.display_idlToSdfits:
+                options = options + ' -l '
+        
+            if cl_params.idlToSdfits_rms_flag:
+                options = options + ' -n ' + cl_params.idlToSdfits_rms_flag + ' '
+                
+            if cl_params.verbose > 4:
+                options = options + ' -v 2 '
+            else:
+                options = options + ' -v 0 '
+        
+            if cl_params.idlToSdfits_baseline_subtract:
+                options = options + ' -w ' + cl_params.idlToSdfits_baseline_subtract + ' '
+                
+            idlcmd = '/home/gbtpipeline/bin/idlToSdfits -o ' + aipsinname + options + imagefile
+            
+            log.doMessage('DBG', idlcmd)
+            
+            os.system(idlcmd)
+        
+        aipsNumber = str(os.getuid())
+        aipsinfiles = ' '.join(aipsinputs)
+        doimg_cmd = ' '.join(('/home/gbtpipeline/integration/tools/doImage',dbconScript,aipsNumber,aipsinfiles))
+        log.doMessage('DBG',doimg_cmd)
+
+        p = subprocess.Popen(doimg_cmd.split(),stdout=subprocess.PIPE,\
+                             stderr=subprocess.PIPE)
+        try:
+            aips_stdout,aips_stderr = p.communicate()
+        except:	
+            log.doMessage('ERR',doimg_cmd,'failed.')
+            sys.exit()
+
+        log.doMessage('DBG',aips_stdout)
+        log.doMessage('ERR',aips_stderr)
+        log.doMessage('INFO','... (1/2) done')
+
+        # define command to invoke mapping script
+        # which in turn invokes AIPS via ParselTongue
+        channel_average = 3
+        doimg_cmd = ' '.join(('doImage',mapScript,aipsNumber,str(channel_average)))
+        log.doMessage('DBG',doimg_cmd)
+
+        p = subprocess.Popen(doimg_cmd.split(),stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        aips_stdout,aips_stderr = p.communicate()
+
+        log.doMessage('DBG',aips_stdout)
+        log.doMessage('DBG',aips_stderr)
+        log.doMessage('INFO','... (2/2) done')            
+    
+def runPipeline(term):
 
     # create instance of CommandLine object to parse input, then
     # parse all the input parameters and store them as attributes in param structure
     cl = commandline.CommandLine()
     cl_params = cl.read(sys)
     
-    with term.location(0,0):
-        print cl_params
-
-    with term.location(0,term.height-1):
-        raw_input('{t.bold}Press enter to continue.{t.normal}'.format(t=term))
-        print term.clear()
+    
+    log = Logging(cl_params, 'pipeline')
+    log.doMessage('INFO','Command summary')
+    for x in cl_params._get_kwargs():
+        log.doMessage('INFO','\t',x[0],'=',str(x[1]))
     
     feeds=cl_params.feed
     pols=cl_params.pol
@@ -124,7 +234,10 @@ def runPipeline(term, start):
     
     sdf = SdFits()
     indexfile = sdf.nameIndexFile( cl_params.infilename )
-    rowList = sdf.parseSdfitsIndex( indexfile )
+    try:
+        rowList = sdf.parseSdfitsIndex( indexfile )
+    except IOError:
+        sys.exit()
     
     if not feeds:
         feeds = rowList.feeds()
@@ -133,66 +246,52 @@ def runPipeline(term, start):
     if not windows:
         windows = rowList.windows()
     
-    with term.location(0, start):
-        print '{t.bold}window{t.normal}   Progress by scan for each feed/pol. {t.bold}Bold{t.normal} means scan is complete.'.format(t=term)
-        print '-'*80,
-    for ww in windows:
-        with term.location(0, start + ww + 2):
-            #print '{t.bold}{window:3d}{t.normal}'.format(window=ww,t=term),
-            print '{window:3d}'.format(window=ww,t=term),
-            
     for window in windows:
+        log.doMessage('INFO', 'Window',window,'started')
         pipe = []
         for feed in feeds:
             for pol in pols:
                 try:
-                    mp = MappingPipeline(cl_params, rowList, feed, window, pol, term, start)
+                    mp = MappingPipeline(log, cl_params, rowList, feed, window, pol, term)
                 except KeyError:
                     continue
                 pipe.append( (mp, window, feed, pol) )
-    
-
-        #for pol in pols:
-        #    with term.location(pol*36, start + ww*(len(feeds)+1)):
-        #        print '{t.bold}window {window:2d}{t.normal}'.format(window=ww,t=term),
-    
+        
         pids = []
         for idx, pp in enumerate(pipe):
             window = pp[1]
             feed = pp[2]
             pol = pp[3]
-            
-            #with term.location(x=14+feed*10, y=start+2):
-            #    print '{feed:4d}'.format(feed=feed),
-            #with term.location(x=0, y=start+4+window):
-            #    print '{:<7d}{t.bold}|{t.normal}'.format(window,t=term),
-                    
-            #sys.stdout.flush()
-            
+           
             # pipe output will be printed in order of window, feed
             if PARALLEL:
-                p = multiprocessing.Process(target=calibrateWindowFeedPol, args=(cl_params, window, feed, pol, pp[0], idx,))
+                p = multiprocessing.Process(target=calibrateWindowFeedPol, args=(log, cl_params, window, feed, pol, pp[0], idx,))
                 pids.append(p)
     
             else:
-                    calibrateWindowFeedPol(cl_params, window, feed, pol, pp[0], idx)
+                log.doMessage('INFO', 'Feed {feed} Pol {pol} started.'.format(feed=pp[2],pol=pp[3]))
+                calibrateWindowFeedPol(log, cl_params, window, feed, pol, pp[0], idx)
+                log.doMessage('INFO', 'Feed {feed} Pol {pol} finished.'.format(feed=pp[2],pol=pp[3]))
     
         if PARALLEL:
             for pp in pids:
                 pp.start()
+            for pp in pipe:
+                log.doMessage('INFO', 'Feed {feed} Pol {pol} started.'.format(feed=pp[2],pol=pp[3]))
+                
         
             for pp in pids:
                 pp.join()
+            for pp in pipe:
+                log.doMessage('INFO', 'Feed {feed} Pol {pol} finished.'.format(feed=pp[2],pol=pp[3]))
+                
+    if not cl_params.imagingoff:
 
-    #with term.location(0,term.height-2):
-    #    print 'calibration all done, start imaging'
+        doImaging(log, term, cl_params, pipe)
 
 if __name__ == '__main__':
 
     term = Terminal()
-    start = 0
     
-    with term.fullscreen():
-        runPipeline(term,start)
-        with term.location(0,term.height-1):
-            raw_input( '{t.bold}Press enter to exit.{t.normal}'.format(t=term) )
+    # clear the screen
+    runPipeline(term)

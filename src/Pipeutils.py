@@ -32,17 +32,12 @@ import glob
 
 import numpy as np
 
-# message levels
-class msg:
-    CRIT = 1
-    ERR = 2
-    WARN = 3
-    INFO = 4
-    DBG = 5
-
 class Pipeutils:
-
+    
+    def __init__(self, log=None):
         
+        self.log = log
+
     def gd2jd(self, day,month,year,hour,minute,second):
         """Converts a gregorian date to julian date.
     
@@ -376,24 +371,6 @@ class Pipeutils:
         
     
    
-    def sampler_summary(self, logger,samplermap):
-        """Print a summary of samplers used in a map
-    
-        Keywords:
-        logger -- where to send output
-        samplermap -- data structure holding sampler information
-    
-        """
-        
-        import operator
-        samplermap_sorted = sorted(samplermap.iteritems(), key=operator.itemgetter(1))
-        doMessage(logger,msg.INFO,'Map sampler summary:')
-        doMessage(logger,msg.INFO,'sampler\tfeed\tpol\tcenterfreq')
-        doMessage(logger,msg.INFO,'-------\t----\t---\t----------')
-        for sampler in samplermap_sorted:
-            message = '%s\t%s\t%s\t%g' % (sampler[0],sampler[1][0],sampler[1][1],sampler[1][2])
-            doMessage(logger,msg.INFO,message)
-    
     def parserange(self, rangelist):
         """Given a range string, produce a list of integers
     
@@ -524,46 +501,46 @@ class Pipeutils:
             def __repr__(self):
                 return "%0.2g" % self
     
-        doMessage(logger,msg.INFO,"---------------")
-        doMessage(logger,msg.INFO,"Command summary")
-        doMessage(logger,msg.INFO,"---------------")
-        doMessage(logger,msg.INFO,"Input file....................",opt.infile)
-        doMessage(logger,msg.INFO,"Calibrating to units of.......",opt.units)
+        self.log.doMessage('INFO',"---------------")
+        self.log.doMessage('INFO',"Command summary")
+        self.log.doMessage('INFO',"---------------")
+        self.log.doMessage('INFO',"Input file....................",opt.infile)
+        self.log.doMessage('INFO',"Calibrating to units of.......",opt.units)
         if not opt.allmaps:
-            doMessage(logger,msg.INFO,"Map scans.....................",opt.mapscans[0],'to',opt.mapscans[-1])
-        doMessage(logger,msg.INFO,"creating all maps.............",opt.allmaps)
-        doMessage(logger,msg.INFO,"display idlToSdfits plots ....",opt.display_idlToSdfits)
-        doMessage(logger,msg.INFO,"spillover factor (eta_l)......",str(opt.spillover))
-        doMessage(logger,msg.INFO,"aperture efficiency (eta_A0)..",str(opt.aperture_eff))
-        doMessage(logger,msg.INFO,"main beam efficiency (eta_B0)..",str(opt.mainbeam_eff))
+            self.log.doMessage('INFO',"Map scans.....................",opt.mapscans[0],'to',opt.mapscans[-1])
+        self.log.doMessage('INFO',"creating all maps.............",opt.allmaps)
+        self.log.doMessage('INFO',"display idlToSdfits plots ....",opt.display_idlToSdfits)
+        self.log.doMessage('INFO',"spillover factor (eta_l)......",str(opt.spillover))
+        self.log.doMessage('INFO',"aperture efficiency (eta_A0)..",str(opt.aperture_eff))
+        self.log.doMessage('INFO',"main beam efficiency (eta_B0)..",str(opt.mainbeam_eff))
         
         if opt.gaincoeffs:
             pretty_gaincoeffs = map(prettyfloat, opt.gaincoeffs)
-            doMessage(logger,msg.INFO,"gain coefficiencts............",str(pretty_gaincoeffs))
+            self.log.doMessage('INFO',"gain coefficiencts............",str(pretty_gaincoeffs))
         
         if opt.gain_left:
             pretty_gains_left = map(prettyfloat, opt.gain_left)
-            doMessage(logger,msg.INFO,"relative gain factors (LL) ...",str(pretty_gains_left))
+            self.log.doMessage('INFO',"relative gain factors (LL) ...",str(pretty_gains_left))
     
         if opt.gain_right:
             pretty_gains_right = map(prettyfloat, opt.gain_right)
-            doMessage(logger,msg.INFO,"relative gain factors (RR) ...",str(pretty_gains_right))
+            self.log.doMessage('INFO',"relative gain factors (RR) ...",str(pretty_gains_right))
     
-        doMessage(logger,msg.INFO,"disable mapping ..............",opt.imagingoff)
-        doMessage(logger,msg.INFO,"map scans for scale ..........",opt.mapscansforscale)
+        self.log.doMessage('INFO',"disable mapping ..............",opt.imagingoff)
+        self.log.doMessage('INFO',"map scans for scale ..........",opt.mapscansforscale)
         if opt.feed:
-            doMessage(logger,msg.INFO,"feed(s) ......................",opt.feed)
+            self.log.doMessage('INFO',"feed(s) ......................",opt.feed)
         else:
-            doMessage(logger,msg.INFO,"feed(s) ...................... All")
+            self.log.doMessage('INFO',"feed(s) ...................... All")
             
         if opt.pol:
-            doMessage(logger,msg.INFO,"polarization .................",opt.pol)
+            self.log.doMessage('INFO',"polarization .................",opt.pol)
         else:
-            doMessage(logger,msg.INFO,"polarization ................. All")
+            self.log.doMessage('INFO',"polarization ................. All")
     
-        doMessage(logger,msg.INFO,"verbosity level...............",str(opt.verbose))
+        self.log.doMessage('INFO',"verbosity level...............",str(opt.verbose))
     
-        doMessage(logger,msg.INFO,"overwrite existing output.....",str(opt.clobber))
+        self.log.doMessage('INFO',"overwrite existing output.....",str(opt.clobber))
     
     def string_to_floats(self, string_list):
         """Change a list of numbers to a list of floats
@@ -654,11 +631,11 @@ class Pipeutils:
         # set relative gain factors for each beam/pol
         #  if they are supplied
         if opt.gain_left and samplermap[sampler][1]=='LL':
-            doMessage(logger,msg.DBG,'Multiplying by gain factor',
+            self.log.doMessage('DBG','Multiplying by gain factor',
                 opt.gain_left[samplermap[sampler][0]-1])
             gain_factor = opt.gain_left[samplermap[sampler][0]-1]
         elif opt.gain_right and samplermap[sampler][1]=='RR':
-            doMessage(logger,msg.DBG,'Multiplying by gain factor',
+            self.log.doMessage('DBG','Multiplying by gain factor',
                 opt.gain_right[samplermap[sampler][0]-1])
             gain_factor = opt.gain_right[samplermap[sampler][0]-1]
         else:
