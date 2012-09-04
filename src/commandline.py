@@ -56,8 +56,8 @@ class CommandLine:
             usage='%(prog)s [options]')
         
         input_group = self.parser.add_argument_group('Input')
-        input_group.add_argument("-i", "--infile", dest="infilename", default='',
-                        help="SDFITS file name containing map scans", metavar="FILE")
+        input_group.add_argument("-i", "--infile", dest="infilename", default='', required=True,
+                        help="SDFITS file name containing map scans", metavar="FILE", type=str)
         
         data_selection = self.parser.add_argument_group('Data Selection')
         data_selection.add_argument("-m", "--map-scans", dest="mapscans", default=None,
@@ -157,6 +157,7 @@ class CommandLine:
                 
             if opt.refscans:
                 opt.refscans = self.pu.parserange(opt.refscans)
+                
         except ValueError:
             print 'ERROR: there is a malformed parameter option'
             print '   please check your command line settings and try again.'

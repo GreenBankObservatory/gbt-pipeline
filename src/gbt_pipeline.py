@@ -136,23 +136,19 @@ def doImaging(log, term, cl_params, pipe):
     for pp in pipe:
         windows.add(str(pp[1]))
     
-    imagefiles = []
     for window in windows:
         scanrange = str(cl_params.mapscans[0])+'_'+str(cl_params.mapscans[-1])
 
+        aipsinputs = []
         for pp in pipe:
             win = str(pp[1])
             feed = str(pp[2])
             pol = str(pp[3])
-	    imfile = glob.glob('*' + scanrange + '*window' + win + '_feed' +  feed + '_pol' + pol + '.fits')[0]
-	    print 'IMFILE',imfile
-            imagefiles.append(imfile)
-        print 'IMAGEFILES',imagefiles
-        aipsinputs = []
-        for imagefile in imagefiles:
+            imfiles = glob.glob('*' + scanrange + '*window' + win + '_feed' +  feed + '*' + '.fits')
+            print 'IMFILE',','.join(imfiles)
             
             # set the idlToSdfits output file name
-            aipsinname = imagefile.replace('.fits','.sdf')
+            aipsinname = '_'.join(imfiles[0].split('_')[:-1])+'.sdf'
             aipsinputs.append(aipsinname)
         
             # run idlToSdfits, which converts calibrated sdfits into a format
@@ -178,7 +174,7 @@ def doImaging(log, term, cl_params, pipe):
             if cl_params.idlToSdfits_baseline_subtract:
                 options = options + ' -w ' + cl_params.idlToSdfits_baseline_subtract + ' '
                 
-            idlcmd = '/home/gbtpipeline/bin/idlToSdfits -o ' + aipsinname + options + imagefile
+            idlcmd = '/home/gbtpipeline/bin/idlToSdfits -o ' + aipsinname + options + ' '.join(imfiles)
             
             log.doMessage('DBG', idlcmd)
             
@@ -193,7 +189,7 @@ def doImaging(log, term, cl_params, pipe):
                              stderr=subprocess.PIPE)
         try:
             aips_stdout,aips_stderr = p.communicate()
-        except:	
+        except: 
             log.doMessage('ERR',doimg_cmd,'failed.')
             sys.exit()
 
@@ -214,38 +210,26 @@ def doImaging(log, term, cl_params, pipe):
         log.doMessage('DBG',aips_stderr)
         log.doMessage('INFO','... (2/2) done')            
     
-def runPipeline(term):
-
-    # create instance of CommandLine object to parse input, then
-    # parse all the input parameters and store them as attributes in param structure
-    cl = commandline.CommandLine()
-    cl_params = cl.read(sys)
-    
-    
-    log = Logging(cl_params, 'pipeline')
-    log.doMessage('INFO','{t.underline}Command summary{t.normal}'.format(t=term))
-    for x in cl_params._get_kwargs():
-        log.doMessage('INFO','\t',x[0],'=',str(x[1]))
+def process_map(log,cl_params,rowList):
     
     feeds=cl_params.feed
     pols=cl_params.pol
     windows=cl_params.window
     
-    sdf = SdFits()
-    indexfile = sdf.nameIndexFile( cl_params.infilename )
-    try:
-        rowList = sdf.parseSdfitsIndex( indexfile )
-    except IOError:
-        sys.exit()
-    
     scanlist = rowList.scans()
+
+    if cl_params.refscans:
+        log.doMessage('INFO','Refscan(s):', ','.join([str(xx) for xx in cl_params.refscans]) )
+    if cl_params.mapscans:
+        log.doMessage('INFO','Mapscan(s):', ','.join([str(xx) for xx in cl_params.mapscans]) )
+        
     missingscan = False
     for scan in cl_params.mapscans:
-	if scan not in scanlist:
-	    log.doMessage('ERR', 'Scan',scan,'not found.')
-	    missingscan = True
+        if scan not in scanlist:
+            log.doMessage('ERR', 'Scan',scan,'not found.')
+            missingscan = True
     if missingscan:
-	sys.exit()
+        sys.exit()
 
     if not feeds:
         feeds = rowList.feeds()
@@ -258,6 +242,7 @@ def runPipeline(term):
     
     for window in windows:
         log.doMessage('INFO', 'Window',window,'started')
+        sys.stdout.flush()
         pipe = []
         for feed in feeds:
             for pol in pols:
@@ -298,7 +283,50 @@ def runPipeline(term):
     if not cl_params.imagingoff:
 
         doImaging(log, term, cl_params, pipe)
+    
 
+def set_map_scans(cl_params, map_params):
+    if map_params.refscan1:
+        cl_params.refscans.append(map_params.refscan1)
+    if map_params.refscan2:
+        cl_params.refscans.append(map_params.refscan2)
+    cl_params.mapscans = map_params.mapscans
+    return cl_params
+
+def runPipeline(term):
+
+    # create instance of CommandLine object to parse input, then
+    # parse all the input parameters and store them as attributes in param structure
+    cl = commandline.CommandLine()
+    cl_params = cl.read(sys)
+    
+    
+    log = Logging(cl_params, 'pipeline')
+    log.doMessage('INFO','{t.underline}Command summary{t.normal}'.format(t=term))
+    for x in cl_params._get_kwargs():
+        log.doMessage('INFO','\t',x[0],'=',str(x[1]))
+    
+    sdf = SdFits()
+    indexfile = sdf.nameIndexFile( cl_params.infilename )
+    try:
+        rowList = sdf.parseSdfitsIndex( indexfile )
+        maps = sdf.get_maps( indexfile )
+    except IOError:
+        log.doMessage('ERR','Could not open index file',indexfile )
+        sys.exit()
+
+    if not cl_params.mapscans:
+        if cl_params.refscans:
+            log.doMessage('WARN', 'Refscan(s) given without map scans, ignoring refscan settings.')
+        cl_params.refscans = []
+        log.doMessage('INFO','Found',len(maps),'map(s).' )
+        for map_number,map_params in enumerate(maps):
+            cl_params = set_map_scans(cl_params, map_params)
+            log.doMessage('INFO','Processing map:',str(map_number),'of',len(maps) )
+            process_map(log,cl_params,rowList)
+    else:
+            process_map(log,cl_params,rowList)
+        
 if __name__ == '__main__':
 
     term = Terminal()

@@ -25,6 +25,7 @@
 import os
 import sys
 import csv
+from collections import namedtuple
 
 import fitsio
 
@@ -239,11 +240,10 @@ class SdFits:
         
         return mask
     
-    def get_maps_and_samplers(self, allmaps,indexfile,debug=False):
+    def get_maps(self, indexfile, debug=False):
         """Find mapping blocks. Also find samplers used in each map
     
         Keywords:
-        allmaps -- when this flag is set, mapping block discovery is enabled
         indexfile -- input required to search for maps and samplers
         debug -- optional debug flag
     
@@ -251,11 +251,7 @@ class SdFits:
         a (list) of map blocks, with each entry a (tuple) of the form:
         (int) reference 1,
         (list of ints) mapscans,
-        (int) reference 2,
-        samplermap,
-            (dictionary) [sampler] = (int)feed, (string)pol, (float)centerfreq
-        'PS' -- default representing Position-switched
-                this will change to when FS-mode is supported with map discovery
+        (int) reference 2
         
         """
     
@@ -264,29 +260,23 @@ class SdFits:
         scans = {}
         map_scans = {}
     
+        MapParams = namedtuple("MapParams", "refscan1 mapscans refscan2")
+        
         # skip over the index file header lines
         while True:
-            row = myFile.readline().split()
-            if len(row)==40:
-                # we just found the column keywords, so read the next line
+            line = myFile.readline()
+            # look for start of row data or EOF (i.e. not line)
+            if '[rows]' in line or not line:
+                row = myFile.readline().split()
                 row = myFile.readline().split()
                 break
-    
-        samplermap = {}
+            
+        #import pdb; pdb.set_trace()
         while row:
     
             obsid = row[7]
             scan = int(row[10])
-            sampler = row[20]
-            feed = int(row[14])
-            pol = row[11]
-            centerfreq = float(row[29])
-    
-            if not scan in scans:
-                samplermap = {}
-    
-            samplermap[sampler] = (feed,pol,centerfreq)
-            scans[scan] = (obsid,samplermap)
+            scans[scan] = (obsid)
     
             # read the next row
             row = myFile.readline().split()
@@ -297,12 +287,12 @@ class SdFits:
         if debug:
             print '------------------------- All scans'
             for scan in scans:
-                print 'scan',scan,scans[scan][0]
+                print 'scan',scan,scans[scan]
     
             print '------------------------- Relavant scans'
     
         for scan in scans:
-            if scans[scan][0].upper()=='MAP' or scans[scan][0].upper()=='OFF':
+            if scans[scan].upper()=='MAP' or scans[scan].upper()=='OFF':
                 map_scans[scan] = scans[scan]
     
         mapkeys = map_scans.keys()
@@ -310,35 +300,29 @@ class SdFits:
     
         if debug:
             for scan in mapkeys:
-                print 'scan',scan,map_scans[scan][0]
+                print 'scan',scan,map_scans[scan]
     
         maps = [] # final list of maps
-        ref1 = False
-        ref2 = False
-        prev_ref2 = False
+        ref1 = None
+        ref2 = None
+        prev_ref2 = None
         mapscans = [] # temporary list of map scans for a single map
     
         if debug:
             print 'mapkeys', mapkeys
     
-        samplermap = {}
-    
-        if not allmaps:
-            return scans
-            
         for idx,scan in enumerate(mapkeys):
     
             # look for the offs
-            if (map_scans[scan][0]).upper()=='OFF':
+            if (map_scans[scan]).upper()=='OFF':
                 # if there is no ref1 or this is another ref1
                 if not ref1 or (ref1 and bool(mapscans)==False):
                     ref1 = scan
-                    samplermap = map_scans[scan][1]
                 else:
                     ref2 = scan
                     prev_ref2 = ref2
     
-            elif (map_scans[scan][0]).upper()=='MAP':
+            elif (map_scans[scan]).upper()=='MAP':
                 if not ref1 and prev_ref2:
                     ref1 = prev_ref2
             
@@ -348,7 +332,7 @@ class SdFits:
             # or see if we have a ref2
             # if so, close out
             if ref2 or idx==len(mapkeys)-1:
-                maps.append((ref1,mapscans,ref2,samplermap,'PS'))
+                maps.append(MapParams(ref1,mapscans,ref2))
                 ref1 = False
                 ref2 = False
                 mapscans = []
@@ -364,7 +348,6 @@ class SdFits:
                 else:
                     print "\tReference scan......",mm[0]
                 print "\tMap scans...........",mm[1]
-                print "\tMap type...........",mm[4]
     
         return maps
     

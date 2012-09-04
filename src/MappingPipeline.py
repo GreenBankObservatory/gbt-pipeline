@@ -314,6 +314,7 @@ class MappingPipeline:
             return
         else:
             self.log.doMessage('DBG', 'calibrating feed',feed,'window',window,'polarization',pol)
+            sys.stdout.flush()
         
         for scan in self.cl.mapscans:
 
@@ -332,7 +333,6 @@ class MappingPipeline:
             
             if not cal_switching or not sigref:
                 self.log.doMessage('ERR', 'Expected frequency-switched scan',scan,'does not have 2 signal states and 2 noise diode (cal) states')
-                sys.stdout.flush()
                 sys.exit()
             
             # break the input rows into chunks as buffers to write out
