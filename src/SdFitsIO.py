@@ -24,7 +24,7 @@
     
 import os
 import sys
-import csv
+import re
 from collections import namedtuple
 
 import fitsio
@@ -33,6 +33,17 @@ from Calibration import Calibration
 from Pipeutils import Pipeutils
 from ObservationRows import ObservationRows
 
+class SdFitsIndexRowReader:
+    
+    def __init__(self,lookup_table):
+        self.lookup = lookup_table
+        
+    def setrow(self,row):
+        self.row = row
+    
+    def __getitem__(self,key):
+        return self.row[self.lookup[key]].lstrip()
+        
 class SdFits:
     """Class contains methods to read and write to the GBT SdFits format.
     
@@ -46,7 +57,7 @@ class SdFits:
     def __init__(self):
         
         self.pu = Pipeutils()
-    
+        
     def check_for_sdfits_file( self, infile, sdfitsdir, beginscan, endscan,\
                                refscan1, refscan2, VERBOSE ):
         """Check for the existence of the SDFITS input file.
@@ -163,82 +174,6 @@ class SdFits:
         start_mjd = dateToMjd(dateobs)
         myFile.close()
         return int(start_mjd)
-    
-    def get_masks(self, indexfile,fitsfile=None,samplers=[],verbose=0):
-        """Create a mask on the input file for each sampler
-    
-    
-        Keywords:
-        indexfile -- used to find integrations for each sampler
-        fitsfile -- used to get length of table
-        samplers -- (list) of samplers which is set when only masks for some
-            samplers are desired
-        verbose -- optional verbosity on output
-    
-        Returns:
-        a (dictionary) of the form:
-        mask[fits block][sampler name] = boolean mask on block table
-    
-        """
-        myFile = open(indexfile,'rU')
-        table_length = []
-        if fitsfile:
-    
-            # one set of masks per FITS extension
-            # each set of masks has a mask for each sampler
-            mask = []
-            for blockid in range(1,len(fd)):
-                header = fd.read_header(fitsfile, blockid)
-                table_length.append(header['naxis2'])
-                mask.append({})
-    
-        else:
-            if not bool(table_length):
-                print 'ERROR: either fits file or table size must be provided'
-                return False
-    
-        # skip over the index file header lines
-        while True:
-            row = myFile.readline().split()
-            if len(row)==40:
-                # we just found the column keywords, so read the next line
-                row = myFile.readline().split()
-                break
-    
-        while row:
-            
-            sampler = row[20]
-            ii = int(row[4])
-            extension_idx = int(row[3])-1  # FITS extention index, same as blockid +1 (above)
-    
-            # if samplers is empty, assume all samplers
-            # i.e. not samplers == all samplers
-            # if 1 or more sampler is specified, only use those for masks
-            if (not samplers) or (sampler in samplers):
-                
-                # add a mask for a new sampler
-                if not sampler in mask[extension_idx]:
-                    mask[extension_idx][sampler] = np.zeros((table_length[extension_idx]),dtype='bool')
-    
-                mask[extension_idx][sampler][ii] = True
-                
-            # read the next row
-            row = myFile.readline().split()
-    
-        # print results
-        for idx,maskblock in enumerate(mask):
-            total = 0
-            if verbose: print '-------------------'
-            if verbose: print 'EXTENSION',idx+1
-            if verbose: print '-------------------'
-            for sampler in maskblock:
-                total = total + maskblock[sampler].tolist().count(True)
-                if verbose: print sampler,maskblock[sampler].tolist().count(True)
-            if verbose: print 'total',total
-            
-        myFile.close()
-        
-        return mask
     
     def get_maps(self, indexfile, debug=False):
         """Find mapping blocks. Also find samplers used in each map
@@ -359,26 +294,35 @@ class SdFits:
             print "ERROR: Could not open file.  Please check and try again."
             raise
         
-        #print 'Input index file is', infile
-    
+        observation = ObservationRows()
+        
         while True:
             line = ifile.readline()
             # look for start of row data or EOF (i.e. not line)
             if '[rows]' in line or not line:
                 break
     
-        reader = csv.DictReader(ifile,delimiter=' ',skipinitialspace=True)
+        lookup_table = {}
+        header = ifile.readline()
         
-        observation = ObservationRows()
+        fields = [xx.lstrip() for xx in re.findall(r' *\S+',header)]
         
-        for row in reader:
-    
-            scanid = int(row['SCAN'])
-            feed = int(row['FDNUM'])
-            windowNum = int(row['IFNUM'])
-            pol = int(row['PLNUM'])
-            fitsExtension = int(row['EXT'])
-            rowOfFitsFile = int(row['ROW'])
+        iterator = re.finditer(r' *\S+',header)
+        for idx,mm in enumerate(iterator):
+            lookup_table[fields[idx]] = slice(mm.start(),mm.end())
+        
+        rr = SdFitsIndexRowReader(lookup_table)
+        
+        for row in ifile:
+        
+            rr.setrow(row)
+            
+            scanid = int(rr['SCAN'])
+            feed = int(rr['FDNUM'])
+            windowNum = int(rr['IFNUM'])
+            pol = int(rr['PLNUM'])
+            fitsExtension = int(rr['EXT'])
+            rowOfFitsFile = int(rr['ROW'])
             typeOfScan = ''
             
             # we can assume all integrations of a single scan are within the same
