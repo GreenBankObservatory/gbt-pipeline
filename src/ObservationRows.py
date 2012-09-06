@@ -24,7 +24,6 @@
 
 from collections import OrderedDict
 from collections import namedtuple
-import sys
 
 class ObservationRows:
     def __init__(self):
@@ -34,8 +33,8 @@ class ObservationRows:
     def addRow(self, scan, feed, window, polarization,
                        fitsExtension, rowOfFitsFile, typeOfScan):
         
-        key = self.Key(scan,feed,window,polarization)
-        #key = (scan,feed,window,polarization)
+        key = self.Key(scan, feed, window, polarization)
+        #key = (scan, feed, window, polarization)
         if key in self.rows:
             self.rows[key]['ROW'].append(rowOfFitsFile)
         else:
@@ -43,9 +42,9 @@ class ObservationRows:
                               'ROW': [rowOfFitsFile],
                               'TYPE': typeOfScan }
             
-    def get(self,scan,feed,window,polarization):
+    def get(self, scan, feed, window, polarization):
         try:
-            key = (scan,feed,window,polarization)
+            key = (scan, feed, window, polarization)
             return self.rows[key]
         except(KeyError):
             raise

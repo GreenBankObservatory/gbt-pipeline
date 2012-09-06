@@ -43,12 +43,12 @@ if CREATE_PLOTS:
 
 class MappingPipeline:
     
-    def __init__(self, log, cl_params, rowList, feed, window, pol, term):
+    def __init__(self, log, cl_params, row_list, feed, window, pol, term):
 
         self.term = term
         
         if None == cl_params.mapscans:
-            log.doMessage('ERR', '{t.bold}ERROR{t.normal}: Need map scan(s).\n'.format(t=self.term))
+            log.doMessage('ERR', '{t.bold}ERROR{t.normal}: Need map scan(s).\n'.format(t = self.term))
             sys.exit()
             
         self.log = None
@@ -65,13 +65,13 @@ class MappingPipeline:
 
         try:
             self.infile = fitsio.FITS( cl_params.infilename )
-        except ValueError,e:
-            self.log.doMessage('ERR', 'Input',e)
+        except ValueError, eee:
+            self.log.doMessage('ERR', 'Input', eee)
             sys.exit()
             
         self.outfile = None
 
-        self.rowList = rowList
+        self.row_list = row_list
         self.CLOBBER = cl_params.clobber
 
         try:
@@ -80,7 +80,7 @@ class MappingPipeline:
             raise            
 
         if not cl_params.mapscans:
-            self.cl.mapscans = rowList.scans()
+            self.cl.mapscans = row_list.scans()
 
         # command line options
         self.OPACITY  = cl_params.zenithtau
@@ -100,8 +100,8 @@ class MappingPipeline:
         lookahead_sig_states = set([])
         
         # fill the buffers
-        for idx,rowNum in enumerate(sdfits_row_structure[:4]):
-            columns = ('CAL','SIG')
+        for rowNum in sdfits_row_structure[:4]:
+            columns = ('CAL', 'SIG')
             row = Integration(self.infile[ext][columns][rowNum])
             
             lookahead_cal_states.add(row['CAL'])
@@ -120,7 +120,7 @@ class MappingPipeline:
     
     def getReference(self, scan, feed, window, pol):
         
-        referenceRows = self.rowList.get(scan, feed, window, pol)
+        referenceRows = self.row_list.get(scan, feed, window, pol)
 
         if not referenceRows:
             return None
@@ -149,7 +149,7 @@ class MappingPipeline:
                 calOFF = row
             
             if calOFF and calON:
-                cref,tref,exposure,timestamp,tambient,elevation = self.sdf.getReferenceIntegration(calON, calOFF)
+                cref, tref, exposure, timestamp, tambient, elevation = self.sdf.getReferenceIntegration(calON, calOFF)
                 
                 # used these, so clear for the next iteration
                 calOFF = None
@@ -164,17 +164,17 @@ class MappingPipeline:
                 tambients.append(tambient)
                 elevations.append(elevation)
         
-        avgCref,avgTref,avgTimestamp,avgTambient,avgElevation = \
+        avgCref, avgTref, avgTimestamp, avgTambient, avgElevation = \
             self.cal.getReferenceAverage(crefs, trefs, exposures, timestamps, tambients, elevations)
         
-        self.log.doMessage('INFO', 'System Temperature for reference scan',scan,'with feed',feed,'window',window,'pol',pol,':',avgTref)
+        self.log.doMessage('INFO', 'System Temperature for reference scan', scan, 'with feed', feed, 'window', window, 'pol', pol, ':', avgTref)
         
-        return avgCref,avgTref,avgTimestamp,avgTambient,avgElevation
+        return avgCref, avgTref, avgTimestamp, avgTambient, avgElevation
     
     def get_dtype(self, feed, window, pol):
         
         try:
-            signalRows = self.rowList.get(self.cl.mapscans[0], feed, window, pol)
+            signalRows = self.row_list.get(self.cl.mapscans[0], feed, window, pol)
             ext = signalRows['EXTENSION']
         except KeyError:
             raise
@@ -185,7 +185,7 @@ class MappingPipeline:
     def create_output_sdfits(self, feed, window, pol):
         
         try:
-            signalRows = self.rowList.get(self.cl.mapscans[0], feed, window, pol)
+            signalRows = self.row_list.get(self.cl.mapscans[0], feed, window, pol)
             ext = signalRows['EXTENSION']
             rows = signalRows['ROW']
             columns = tuple(self.infile[ext].colnames)
@@ -207,13 +207,13 @@ class MappingPipeline:
         from cStringIO import StringIO
         sys.stdout = StringIO()
         # redirect stdout to not get clobber file warnings
-        self.outfile = fitsio.FITS(outfilename,'rw',clobber=True)
+        self.outfile = fitsio.FITS(outfilename, 'rw', clobber = True)
         sys.stdout = old_stdout
 
         dtype = self.infile[ext][0].dtype
         
         input_header = fitsio.read_header(self.infilename, ext)
-        self.outfile.create_table_hdu(dtype=dtype, header=input_header)
+        self.outfile.create_table_hdu(dtype = dtype, header = input_header)
         
         return dtype
 
@@ -224,7 +224,7 @@ class MappingPipeline:
         else:
             return False
     
-    def set_row_chunks(self,rows, WRITESIZE=100):
+    def set_row_chunks(self, rows, WRITESIZE = 100):
 
         nrows = len(rows)
         rowchunks = []
@@ -242,7 +242,7 @@ class MappingPipeline:
     def getObsFreq(self, feed, window, pol):
 
         # get integration rows of input table
-        signalRows = self.rowList.get(self.cl.mapscans[0], feed, window, pol)
+        signalRows = self.row_list.get(self.cl.mapscans[0], feed, window, pol)
         ext = signalRows['EXTENSION']
         rows = signalRows['ROW']
         columns = tuple(self.infile[ext].colnames)
@@ -283,7 +283,7 @@ class MappingPipeline:
             if not self.OPACITY:
                 ref2_zenith_opacity = self.weather.retrieve_zenith_opacity(crefTime2, obsfreqHz)
                 if not ref2_zenith_opacity:
-                    self.log.doMessage('ERR', 'Not able to retrieve reference 2 zenith opacity for calibration to:',self.cl.units,'\n  Please supply a zenith opacity or calibrate to Ta.')
+                    self.log.doMessage('ERR', 'Not able to retrieve reference 2 zenith opacity for calibration to:', self.cl.units, '\n  Please supply a zenith opacity or calibrate to Ta.')
                     sys.exit(9)
             else:
                 ref2_zenith_opacity = self.OPACITY
@@ -293,7 +293,7 @@ class MappingPipeline:
             # get tsky at center frequency
             tsky2 = self.cal.tsky(refTambient2, obsfreqHz, opacity2)
             
-        return tsky1,tsky2
+        return tsky1, tsky2
     
     def nOutputRows(self, listOfRows, cal_switching, sigref):
 
@@ -307,19 +307,19 @@ class MappingPipeline:
         return rows2write
         
     def calibrate_fs_sdfits_integrations(self, feed, window, pol, \
-                                            beam_scaling, printOffset):
+                                            beam_scaling):
 
         dtype = self.get_dtype(feed, window, pol)
         if None == dtype:
             return
         else:
-            self.log.doMessage('DBG', 'calibrating feed',feed,'window',window,'polarization',pol)
+            self.log.doMessage('DBG', 'calibrating feed', feed, 'window', window, 'polarization', pol)
             sys.stdout.flush()
         
         for scan in self.cl.mapscans:
 
             try:
-                inputRows = self.rowList.get(scan, feed, window, pol)
+                inputRows = self.row_list.get(scan, feed, window, pol)
             except:
                 continue
             
@@ -332,7 +332,7 @@ class MappingPipeline:
             cal_switching, sigref = self.determineSetup(rows, ext)
             
             if not cal_switching or not sigref:
-                self.log.doMessage('ERR', 'Expected frequency-switched scan',scan,'does not have 2 signal states and 2 noise diode (cal) states')
+                self.log.doMessage('ERR', 'Expected frequency-switched scan', scan, 'does not have 2 signal states and 2 noise diode (cal) states')
                 sys.exit()
             
             # break the input rows into chunks as buffers to write out
@@ -345,30 +345,30 @@ class MappingPipeline:
 
                 rows2write = self.nOutputRows(chunk, cal_switching, sigref)
                 
-                output_data = np.zeros(rows2write, dtype=dtype)
+                output_data = np.zeros(rows2write, dtype = dtype)
                 
                 sigrefState = [{'calON':None, 'calOFF':None, 'TP':None}, \
                                {'calON':None, 'calOFF':None, 'TP':None}]
                
                 # now start at the beginning and calibrate all the integrations
-                for idx,rowNum in enumerate(chunk):
+                for rowNum in chunk:
                     
                     row = Integration(self.infile[ext][columns][rowNum])
                     
                     if row['SIG'] == 'T':
                         if row['CAL'] == 'T':
                             sigrefState[0]['calON'] = row
-                            #self.log.doMessage( 'sig, calON', rowNum
+                            
                         else:
                             sigrefState[0]['calOFF'] = row
-                            #self.log.doMessage( 'sig, calOFF', rowNum
+                            
                     else:
                         if row['CAL'] == 'T':
                             sigrefState[1]['calON'] = row
-                            #self.log.doMessage( 'ref, calON', rowNum
+                            
                         else:
                             sigrefState[1]['calOFF'] = row
-                            #self.log.doMessage( 'ref, calOFF', rowNum
+                            
                     
                     # we need 4 states to calibrate FS integrations
                     if sigrefState[0]['calON'] and sigrefState[0]['calOFF'] and \
@@ -394,13 +394,10 @@ class MappingPipeline:
                         
                         obsfreqHz = self.getObsFreq(feed, window, pol)
                         
-                        # ASSUMES a given opacity
-                        #   the opacity needs to come from the command line or Ron's
-                        #   model database.
                         if not self.OPACITY:
                             intOpacity = self.weather.retrieve_zenith_opacity(intTime, obsfreqHz)
                             if not intOpacity:
-                                self.log.doMessage('ERR', 'Not able to retrieve integration zenith opacity for calibration to:',self.cl.units,'\n  Please supply a zenith opacity or calibrate to Ta.')
+                                self.log.doMessage('ERR', 'Not able to retrieve integration zenith opacity for calibration to:', self.cl.units, '\n  Please supply a zenith opacity or calibrate to Ta.')
                                 sys.exit(9)
                         else:
                             intOpacity = self.OPACITY
@@ -408,22 +405,18 @@ class MappingPipeline:
                         opacity_el = self.cal.elevation_adjusted_opacity(intOpacity, elevation)
                             
                         # get tsky for the current integration
-                        tambient_current = calOFF['TAMBIENT']
+                        #tambient_current = sigrefState[0]['calOFF']['TAMBIENT']
                                 
                     if self.cl.units=='ta*' or self.cl.units=='tmb' or self.cl.units=='jy':
-                        tastar = self.cal.TaStar(tsrc, beam_scaling, opacity=opacity_el, spillover=self.SPILLOVER)
+                        tastar = self.cal.TaStar(ta, beam_scaling, opacity = opacity_el, spillover = self.SPILLOVER)
                         
                         
                     if self.cl.units=='tmb':
-                        # ASSUMES a reference value for etaB.  This should be made available
-                        #   at the command line.  The assumed value is for KFPA only.
                         main_beam_efficiency = self.cal.main_beam_efficiency(self.ETAB_REF, obsfreqHz)
                         tmb = tastar / main_beam_efficiency
                         
                             
                     if self.cl.units=='jy':
-                        # ASSUMES a reference value for etaA.  This should be made available
-                        #   at the command line.  The assumed value is for KFPA only.
                         aperture_efficiency = self.cal.aperture_efficiency(self.ETAA_REF, obsfreqHz)
                         jy = tastar / (2.85 * aperture_efficiency)
     
@@ -436,8 +429,6 @@ class MappingPipeline:
 
                     if 'ta' == self.cl.units:
                         row['DATA'] = ta
-                    elif 'tsrc' == self.cl.units:
-                        row['DATA'] = tsrc
                     elif 'ta*' == self.cl.units:
                         row['DATA'] = tastar
                     elif 'tmb' == self.cl.units:
@@ -454,7 +445,6 @@ class MappingPipeline:
                     output_data[outputidx] = row.data
                     
                     outputidx = outputidx + 1
-                    percent_done = int((outputidx/float(rows2write))*100)
 
                     # done looping over rows in a chunk
                 
@@ -473,24 +463,24 @@ class MappingPipeline:
     def calibrate_ps_sdfits_integrations(self, feed, window, pol, \
                           avgCref1, avgTref1, crefTime1, refTambient1, refElevation1, \
                           avgCref2, avgTref2, crefTime2, refTambient2, refElevation2, \
-                          beam_scaling, printOffset):
+                          beam_scaling):
         
         dtype = self.get_dtype(feed, window, pol)
         if None == dtype:
             return
         #else:
-        #    self.log.doMessage( 'calibrating feed',feed,'window',window,'polarization',pol
+        #    self.log.doMessage( 'calibrating feed', feed, 'window', window, 'polarization', pol
 
         if self.cl.units != 'ta':
-            tsky1,tsky2 = self.getReferenceTsky(feed, window, pol, crefTime1, refTambient1, refElevation1, \
+            tsky1, tsky2 = self.getReferenceTsky(feed, window, pol, crefTime1, refTambient1, refElevation1, \
                             crefTime2, refTambient2, refElevation2)
         
         for scan in self.cl.mapscans:
             
             try:
-                signalRows = self.rowList.get(scan, feed, window, pol)
+                signalRows = self.row_list.get(scan, feed, window, pol)
             except:
-                self.log.doMessage('WARN', '{t.bold}WARNING{t.normal}: Scan {scan} not found.'.format(scan=scan,t=self.term))
+                self.log.doMessage('WARN', '{t.bold}WARNING{t.normal}: Scan {scan} not found.'.format(scan = scan, t = self.term))
                 continue
             
             # get integration rows
@@ -525,10 +515,10 @@ class MappingPipeline:
                 
                 rows2write = self.nOutputRows(chunk, cal_switching, sigref)
                 
-                output_data = np.zeros(rows2write, dtype=dtype)
+                output_data = np.zeros(rows2write, dtype = dtype)
                 
                 # now start at the beginning and calibrate all the integrations
-                for idx,rowNum in enumerate(chunk):
+                for rowNum in chunk:
                     
                     row = Integration(self.infile[ext][columns][rowNum])
                     
@@ -606,7 +596,7 @@ class MappingPipeline:
                             if not self.OPACITY:
                                 intOpacity = self.weather.retrieve_zenith_opacity(intTime, obsfreqHz)
                                 if not intOpacity:
-                                    self.log.doMessage('ERR', 'Not able to retrieve integration zenith opacity for calibration to:',self.cl.units,'\n  Please supply a zenith opacity or calibrate to Ta.')
+                                    self.log.doMessage('ERR', 'Not able to retrieve integration zenith opacity for calibration to:', self.cl.units, '\n  Please supply a zenith opacity or calibrate to Ta.')
                                     sys.exit(9)
                             else:
                                 intOpacity = self.OPACITY
@@ -630,7 +620,7 @@ class MappingPipeline:
                             #   model database.  Gain coefficients can optionally come
                             #   from the command line.
                             
-                            tastar = self.cal.TaStar(tsrc, beam_scaling, opacity=opacity_el, spillover=self.SPILLOVER)
+                            tastar = self.cal.TaStar(tsrc, beam_scaling, opacity = opacity_el, spillover = self.SPILLOVER)
                             
                             if CREATE_PLOTS:
                                 tastars.append(tastar)
@@ -719,13 +709,13 @@ class MappingPipeline:
                 ref_tsyss = np.array(ref_tsyss)
                 exposures = np.array(exposures)
                 weights = exposures / ref_tsyss**2
-                averaged_integrations = np.average(calibrated_integrations,axis=0,weights=weights)
-                pylab.plot(averaged_integrations,label=str(scan)+' tsys('+str(ref_tsyss.mean())[:5]+')')
+                averaged_integrations = np.average(calibrated_integrations, axis = 0, weights = weights)
+                pylab.plot(averaged_integrations, label = str(scan)+' tsys('+str(ref_tsyss.mean())[:5]+')')
             
         if CREATE_PLOTS:
             pylab.ylabel(self.cl.units)
             pylab.xlabel('channel')
-            pylab.legend(title='scan',loc='upper right')
+            pylab.legend(title='scan', loc='upper right')
             pylab.savefig('calibratedScans_f'+str(feed)+'_w'+str(window)+'_p'+str(pol)+'.png')
             pylab.clf()
         
@@ -733,18 +723,18 @@ class MappingPipeline:
         self.outfile.close()
         
     def CalibrateSdfitsIntegrations(self, feed, window, pol, \
-                          avgCref1=None, avgTref1=None, crefTime1=None, refTambient1=None, refElevation1=None, \
-                          avgCref2=None, avgTref2=None, crefTime2=None, refTambient2=None, refElevation2=None, \
-                          beam_scaling=None, printOffset=0):
+                          avgCref1 = None, avgTref1 = None, crefTime1 = None, refTambient1 = None, refElevation1 = None, \
+                          avgCref2 = None, avgTref2 = None, crefTime2 = None, refTambient2 = None, refElevation2 = None, \
+                          beam_scaling = None):
         
         if avgCref1 != None:
             self.calibrate_ps_sdfits_integrations(feed, window, pol, \
                           avgCref1, avgTref1, crefTime1, refTambient1, refElevation1, \
                           avgCref2, avgTref2, crefTime2, refTambient2, refElevation2, \
-                          beam_scaling, printOffset)
+                          beam_scaling)
         else:
             self.calibrate_fs_sdfits_integrations(feed, window, pol, \
-                          beam_scaling, printOffset)
+                          beam_scaling)
             
     def __del__(self):
         pass

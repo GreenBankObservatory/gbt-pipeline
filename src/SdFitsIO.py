@@ -27,21 +27,20 @@ import sys
 import re
 from collections import namedtuple
 
-import fitsio
-
 from Calibration import Calibration
 from Pipeutils import Pipeutils
 from ObservationRows import ObservationRows
 
 class SdFitsIndexRowReader:
     
-    def __init__(self,lookup_table):
+    def __init__(self, lookup_table):
         self.lookup = lookup_table
+        self.row = None
         
-    def setrow(self,row):
+    def setrow(self, row):
         self.row = row
     
-    def __getitem__(self,key):
+    def __getitem__(self, key):
         return self.row[self.lookup[key]].lstrip()
         
 class SdFits:
@@ -58,123 +57,6 @@ class SdFits:
         
         self.pu = Pipeutils()
         
-    def check_for_sdfits_file( self, infile, sdfitsdir, beginscan, endscan,\
-                               refscan1, refscan2, VERBOSE ):
-        """Check for the existence of the SDFITS input file.
-        
-        If the SDFITS input file exists, then use it. Otherwise,
-        recreate it from the project directory, if it is provided.
-        
-        Keywords:
-        infile -- an SDFITS file path
-        sdfitsdir -- an archive directory path as an alternative to an SDFITS file
-        beginscan -- optional begin scan number for filling by sdfits
-        endscan -- optional end scan number for filling by sdfits
-        refscan1 -- optional reference scan number for filling by sdfits
-        refscan2 -- optional reference scan number for filling by sdfits
-        VERBOSE -- verbosity level
-        
-        Returns:
-        SDFITS input file path
-        
-        """
-        # if the SDFITS input file doesn't exist, generate it
-        if (not os.path.isfile(infile) and os.path.isdir(sdfitsdir)):
-            if VERBOSE > 0:
-                print "SDFITS input file does not exist; trying to generate it from",\
-                      "sdfits-dir input parameter directory and user-provided",\
-                      "begin and end scan numbers."
-    
-            if not os.path.exists('/opt/local/bin/sdfits'):
-                print "ERROR: input sdfits file does not exist and we can not"
-                print "    regenerate it using the 'sdfits' filler program in"
-                print "    Green Bank. (/opt/local/bin/sdfits).  Exiting"
-                sys.exit(2)
-    
-            if beginscan and endscan:
-                if not beginscan <= endscan:
-                    print 'ERROR: begin scan is greater than end scan',beginscan,'>',endscan
-                    sys.exit(9)
-    
-            if beginscan or endscan or refscan1 or refscan2:
-    
-                scanslist = [beginscan,endscan,refscan1,refscan2]
-                while(True):
-                    try:
-                        scanslist.remove(False)
-                    except(ValueError):
-                        break
-    
-                minscan = min(scanslist)
-                maxscan = max(scanslist)
-    
-            if minscan and not maxscan:
-                scanrange = '-scans=' + str(minscan) + ': '
-            elif maxscan and not minscan:
-                scanrange = '-scans=:'+ str(maxscan) + ' '
-            elif minscan and maxscan:
-                scanrange = '-scans=' + str(minscan) + ':' + str(maxscan) + ' '
-            else:
-                scanrange = ''
-    
-            sdfitsstr = '/opt/local/bin/sdfits -fixbadlags ' + \
-                        scanrange + sdfitsdir
-    
-            if VERBOSE > 0:
-                print sdfitsstr
-    
-            os.system(sdfitsstr)
-            
-            filelist = glob.glob(os.path.basename(sdfitsdir)+'.raw.*fits')
-            if 1==len(filelist):
-                infile = filelist[0]
-            elif len(filelist) > 1:
-                print "ERROR: too many possible SDFITS input files for pipeline"
-                print "    please check input directory for a single"
-                print "    raw fits file with matching index file"
-                sys.exit(3)
-            else:
-                print "ERROR: could not identify an input SDFITS file for the"
-                print "    pipeline.  Please check input directory."
-                sys.exit(5)
-    
-            # if the SDFITS input file exists, then use it to create the map
-            if os.path.isfile(infile):
-                if VERBOSE > 2:
-                    print "infile OK"
-            else:
-                if VERBOSE > 2:
-                    print "infile not OK"
-    
-        return infile
-    
-  
-    def get_start_mjd(self, indexfile,verbose=0):
-        """Get the start date (mjd) of the session
-    
-        Keywords:
-        indexfile -- file which contains integrations with time stamps
-        verbose -- optional verbosity level
-    
-        Returns:
-        The session start date (mjd) as an integer
-        
-        """
-        myFile = open(indexfile,'rU')
-    
-        # skip over the index file header lines
-        while True:
-            row = myFile.readline().split()
-            if len(row)==40:
-                # we just found the column keywords, so read the next line
-                row = myFile.readline().split()
-                break
-    
-        dateobs = row[34]
-        start_mjd = dateToMjd(dateobs)
-        myFile.close()
-        return int(start_mjd)
-    
     def get_maps(self, indexfile, debug=False):
         """Find mapping blocks. Also find samplers used in each map
     
@@ -343,9 +225,7 @@ class SdFits:
         calONdata = calON['DATA']
         calOFFdata = calOFF['DATA']
         cref = cal.Cavg(calONdata, calOFFdata)
-        ccal = cal.Cdiff(calONdata, calOFFdata)
         tcal = calOFF['TCAL']
-        #tref = cal.Tref( tcal, calONdata, calOFFdata )
         tref = cal.idlTsys80( tcal, calONdata, calOFFdata )
         
         dateobs = calOFF['DATE-OBS']

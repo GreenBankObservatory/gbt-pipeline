@@ -44,11 +44,11 @@ class Calibration:
 
     # eqn. (2) in PS spec as "Cref"
     # part of eqn. (5) in PS spec as "Csig"
-    def Cavg(self,calON,calOFF):  
-        return np.mean((calON,calOFF),axis=0)
+    def Cavg(self, calON, calOFF):  
+        return np.mean((calON, calOFF), axis = 0)
 
     # eqn. (3) in PS spec as "Ccal"
-    def Cdiff(self,calON,calOFF):
+    def Cdiff(self, calON, calOFF):
         return calON - calOFF
 
     def tsky_corr(self, tsky_sig, tsky_ref, spillover):
@@ -91,7 +91,7 @@ class Calibration:
         gain = 0
         zz = 90. - elevation
     
-        for idx,coeff in enumerate(gain_coeff):
+        for idx, coeff in enumerate(gain_coeff):
             gain = gain + coeff * zz**idx
             
         return gain
@@ -111,7 +111,7 @@ class Calibration:
     
         return corrected_opacity
     
-    def natm(self,elDeg):
+    def natm(self, elDeg):
         """Compute number of atmospheres at elevation (deg)
     
         Keyword arguments:
@@ -148,11 +148,11 @@ class Calibration:
         else:
             nAtmos = math.sin(DEGREE*elDeg)
     
-        #print 'Model Number of Atmospheres:', nAtmos,' at elevation ',elDeg
+        #print 'Model Number of Atmospheres:', nAtmos,' at elevation ', elDeg
         return nAtmos
         
     
-    def tatm(self,freqHz, tmpC):
+    def tatm(self, freqHz, tmpC):
         """Estimates the atmospheric effective temperature
         
         Keyword arguments:
@@ -218,7 +218,7 @@ class Calibration:
         # The A and B coefficients are:
         A = [259.69185966, -1.66599001, 0.226962192,
              -0.0100909636,  0.00018402955, -0.00000119516 ]
-        B = [0.42557717,    0.033932476,0.0002579834,
+        B = [0.42557717,    0.033932476, 0.0002579834,
              -0.00006539032, 0.00000157104, -0.00000001182]
         freqGHz = float(freqHz)/1e9
         FREQ  = float(freqGHz)
@@ -233,7 +233,7 @@ class Calibration:
         airTempK = TATM
         return airTempK
     
-    def corrected_opacity(self,zenith_opacities,elevation):
+    def corrected_opacity(self, zenith_opacities, elevation):
         """Compute elevation-corrected opacities.
         
         Keywords:
@@ -262,14 +262,14 @@ class Calibration:
         N_CHANNELS_doubled = N_CHANNELS_start*2
     
         # double the size of the array
-        spectra = np.append(spectra, np.zeros(shape=spectra.shape),axis=1)
+        spectra = np.append(spectra, np.zeros(shape = spectra.shape), axis = 1)
     
         # shift the spectra to the center, with zeros padding either end
         ROLLDISTANCE = N_CHANNELS_start/2
-        spectra = np.roll(np.array(spectra),ROLLDISTANCE)
+        spectra = np.roll(np.array(spectra), ROLLDISTANCE)
     
         # pad out spectrum on both sides with end values
-        for idx,row in enumerate(spectra):
+        for idx, _row in enumerate(spectra):
             spectra[idx][:ROLLDISTANCE] = spectra[idx][ROLLDISTANCE]
             spectra[idx][-ROLLDISTANCE:] = spectra[idx][-ROLLDISTANCE-1]
     
@@ -285,11 +285,11 @@ class Calibration:
         amplitude = np.sqrt(real**2 + imag**2)
     
         # eqn. 8
-        phase = np.arctan2(imag,real)
+        phase = np.arctan2(imag, real)
     
         # eqn. 10
-        kk = [np.mod(ii,N_CHANNELS_doubled/2) for ii in range(N_CHANNELS_doubled)]
-        kk = np.array(kk,dtype=float)
+        kk = [np.mod(ii, N_CHANNELS_doubled/2) for ii in range(N_CHANNELS_doubled)]
+        kk = np.array(kk, dtype = float)
     
         ## eqn. 11
         amplitude = amplitude * (1 - (kk/N_CHANNELS_doubled)**2)
@@ -329,11 +329,11 @@ class Calibration:
             if np.array(freq).mean() < 2:
                 result = np.ones(np.array(freq).shape)*self.UNDER_2GHZ_ZENITH_TAU
                 return result
-            result=0
-            for idx,term in enumerate(coeffs):
+            result = 0
+            for idx, term in enumerate(coeffs):
                 if idx>0: result = result + term*freq**idx
                 else:
-                    result=term
+                    result = term
             return result
     
         zenith_opacity = interpolated_zenith_opacity(freqGHz)
@@ -344,11 +344,11 @@ class Calibration:
     # same as Tsys for the reference scan
     ################################################## DEPRECATED
     def Tref(self, Tcal, calON, calOFF): # eqn. (4) in PS spec
-        Cref = self.Cavg(calON,calOFF)
-        Ccal = self.Cdiff(calON,calOFF)
+        Cref = self.Cavg(calON, calOFF)
+        Ccal = self.Cdiff(calON, calOFF)
         return Tcal*(Cref/Ccal)
     
-    def idlTsys80(self, tcal,calON,calOFF):
+    def idlTsys80(self, tcal, calON, calOFF):
         nchan = len(calOFF)
         lo = int(.1*nchan)
         hi = int(.9*nchan)
@@ -356,19 +356,19 @@ class Calibration:
         calON = (calON[lo:hi]).mean()
         return tcal*(calOFF/(calON-calOFF))+tcal/2
 
-    def Ta(self,Tref,Csig,Cref):   # eqn. (5) in PS spec
-        Cref_smoothed = smoothing.boxcar(Cref,self.SMOOTHING_WINDOW)
+    def Ta(self, Tref, Csig, Cref):   # eqn. (5) in PS spec
+        Cref_smoothed = smoothing.boxcar(Cref, self.SMOOTHING_WINDOW)
         result = Tref * ((Csig-Cref_smoothed)/Cref_smoothed)
         return result
     
     def Ta_fs_one_state(self, sigrefState, sigid, refid):
 
-        lo = len(sigrefState[0]['TP'])*.1
-        hi = len(sigrefState[0]['TP'])*.9
+
+
 
         sig = sigrefState[sigid]['TP']
-        sig_calON   = sigrefState[sigid]['calON']
-        sig_calOFF  = sigrefState[sigid]['calOFF']
+
+
 
         ref = sigrefState[refid]['TP']
         ref_calON  = sigrefState[refid]['calON']
@@ -377,8 +377,8 @@ class Calibration:
         tcal = ref_calOFF['TCAL']
         
         tsys = self.idlTsys80(tcal,  ref_calON['DATA'],  ref_calOFF['DATA'])
-        #tsys = self.Tref(tcal,  ref_calON['DATA'],  ref_calOFF['DATA'])[lo:hi].mean()
-        #print tsys
+
+
         ta = self.Ta(tsys, sig, ref )
         
         return ta, tsys
@@ -388,8 +388,8 @@ class Calibration:
         ta0, tsys0 = self.Ta_fs_one_state(sigrefState, 0, 1)
         ta1, tsys1 = self.Ta_fs_one_state(sigrefState, 1, 0)
 
-        tsys = np.mean((tsys0,tsys1))
-        #print 'Tsys in fs integration',tsys
+        tsys = np.mean((tsys0, tsys1))
+        #print 'Tsys in fs integration', tsys
                                                         
         # shift in frequency
         sig_centerfreq = sigrefState[0]['calOFF']['OBSFREQ']
@@ -399,21 +399,21 @@ class Calibration:
         channel_shift = -((sig_centerfreq-ref_centerfreq)/sig_delta)
 
         # do integer channel shift to second spectrum
-        ta1_ishifted = np.roll(ta1,int(channel_shift))
+        ta1_ishifted = np.roll(ta1, int(channel_shift))
         
         if channel_shift > 0:
-            ta1_ishifted[:channel_shift]=0
+            ta1_ishifted[:channel_shift] = 0
         elif channel_shift < 0:
-            ta1_ishifted[channel_shift:]=0
+            ta1_ishifted[channel_shift:] = 0
 
         # do fractional channel shift
         fractional_shift = channel_shift - int(channel_shift)
-        #doMessage(logger,msg.DBG,'Fractional channel shift is',fractional_shift)
+        #doMessage(logger, msg.DBG,'Fractional channel shift is', fractional_shift)
         xp = range(len(ta1_ishifted))
         yp = ta1_ishifted
         xx = xp-fractional_shift
 
-        yy = np.interp(xx,xp,yp)
+        yy = np.interp(xx, xp, yp)
         
         # average shifted spectra
         ta = (ta0+yy)/2.
@@ -425,12 +425,12 @@ class Calibration:
         # opacity is corrected for elevation
         return Tsrc*((beam_scaling*(math.e**opacity))/spillover)
         
-    def jansky(self,TaStar,aperture_efficiency): # eqn. (16) in PS spec
+    def jansky(self, TaStar, aperture_efficiency): # eqn. (16) in PS spec
         return TaStar/(2.85*aperture_efficiency)
     
     
     # eqn. (6) and eqn. (7) is PS spec
-    def interpolate_by_time(self,reference1, reference2,
+    def interpolate_by_time(self, reference1, reference2,
                    firstRef_timestamp, secondRef_timestamp,
                    integration_timestamp):
         
@@ -441,11 +441,6 @@ class Calibration:
 
     def getReferenceAverage(self, crefs, trefs, exposures, timestamps, tambients, elevations):
         
-        # middle 80%
-        number_of_data_channels = len(crefs[0])
-        lo = int(.1*number_of_data_channels)
-        hi = int(.9*number_of_data_channels)
-        
         # convert to numpy arrays
         crefs = np.array(crefs)
         trefs = np.array(trefs)
@@ -454,20 +449,11 @@ class Calibration:
         tambients = np.array(tambients)
         elevations = np.array(elevations)        
 
-#------------------
-        # uncomment if using idl Tsys
         weights = exposures / trefs**2
-        avgTref = np.average(trefs,axis=0,weights=weights)
-#^^^^^^^^^^^^^^^^^^
-#------------------
-        # uncomment if using SPEC Tref
-        #tref80s = trefs[:,lo:hi].mean(axis=1)
-        #weights = exposures / tref80s**2
-        #avgTref = np.average(trefs[:,lo:hi],axis=0,weights=weights)
-#^^^^^^^^^^^^^^^^^^
+        avgTref = np.average(trefs, axis = 0, weights = weights)
         
         avgTref80 = avgTref.mean(0) # single value for mid 80% of band
-        avgCref = np.average(crefs,axis=0,weights=weights)
+        avgCref = np.average(crefs, axis = 0, weights = weights)
         
         avgTimestamp = timestamps.mean()
         avgTambient = tambients.mean() # do not know if this should be weighted

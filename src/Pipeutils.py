@@ -22,23 +22,15 @@
 
 # $Id$
 
-import math
-import os
-import subprocess
-import sys
-import logging
-import time
-import glob
-
 import numpy as np
 
 class Pipeutils:
     
-    def __init__(self, log=None):
+    def __init__(self, log = None):
         
         self.log = log
 
-    def gd2jd(self, day,month,year,hour,minute,second):
+    def gd2jd(self, day, month, year, hour, minute, second):
         """Converts a gregorian date to julian date.
     
         Keyword arguments:
@@ -53,19 +45,17 @@ class Pipeutils:
         a floating point value which is the julian date
         """
     
-        dd=int(day)
-        mm=int(month)
-        yyyy=int(year)
-        hh=float(hour)
-        min=float(minute)
-        sec=float(second)
+        dd = int(day)
+        mm = int(month)
+        yyyy = int(year)
+        hh = float(hour)
+        minute = float(minute)
+        sec = float(second)
     
-        UT=hh+min/60+sec/3600
-    
-        total_seconds=hh*3600+min*60+sec
+        UT = hh+minute/60+sec/3600
     
         if (100*yyyy+mm-190002.5)>0:
-            sig=1
+            sig = 1
         else:
             sig=-1
     
@@ -92,43 +82,9 @@ class Pipeutils:
         second= dateString[17:]
     
         # now convert from julian day to mjd
-        jd = self.gd2jd(day,month,year,hour,minute,second)
+        jd = self.gd2jd(day, month, year, hour, minute, second)
         mjd = jd - 2400000.5
         return mjd
-    
-    def interpolate(self, vals,xx,yy):
-        """Interpolate with increasing or decreasing x-axis values
-        
-        Keywords:
-        vals -- vector of x values to interpolate
-        xx -- known x-axis values
-        yy -- known y-axis values (must be same length as xx)
-        
-        """
-        
-        decreasing_xx_axis=False
-        
-        interp_vals = np.zeros((len(yy),len(vals)))
-    
-        # see if xx is decreasing
-        if xx.ndim==1 and xx[0] > xx[-1] or xx.ndim==2 and xx[0][0] > xx[0][-1]:
-            if xx.ndim==1:
-                xx_reversed = xx[::-1]
-                yy_reversed = yy[::-1]
-                interp_vals = np.interp(vals,xx_reversed,yy_reversed)
-            elif xx.ndim==2:
-                xx_reversed = [ee[::-1] for ee in xx]
-                yy_reversed = [ee[::-1] for ee in yy]
-                for idx,ee in enumerate(yy_reversed):
-                    interp_vals[idx] = np.interp(vals,xx_reversed[idx],ee)
-        else:
-            if xx.ndim==1:
-                interp_vals = np.interp(vals,xx,yy)
-            if xx.ndim==2:
-                for idx,ee in enumerate(yy):
-                    interp_vals[idx] = np.interp(vals,xx[idx],ee)
-    
-        return interp_vals
     
     def hz2wavelength(self, f):
         """Simple frequency (Hz) to wavelength conversion
@@ -159,7 +115,7 @@ class Pipeutils:
         32.800331933144086
     
         """
-        wavelength = hz2wavelength(hz) # in meters
+        wavelength = self.hz2wavelength(hz) # in meters
         diameter = 100. # estimate of telescope diameter in meters
         rayleigh_criterion_factor = 1.22
         arcseconds_per_radian = 206265
@@ -167,7 +123,7 @@ class Pipeutils:
         return ((rayleigh_criterion_factor * wavelength)/diameter) \
                 * arcseconds_per_radian
        
-    def interpolate_reference(self, refs,dates,tskys,tsyss, mjds):
+    def interpolate_reference(self, refs, dates, tskys, tsyss, mjds):
         """Compute time-interpolated reference spectrum, tsky and tsys
         
         Keywords:
@@ -193,8 +149,8 @@ class Pipeutils:
         for chan in range(len(refs[0])):
             chan_lo = refs[0][chan]
             chan_hi = refs[1][chan]
-            lo_hi = (chan_lo,chan_hi)
-            spectra.append(np.interp(mjds,dates,lo_hi))
+            lo_hi = (chan_lo, chan_hi)
+            spectra.append(np.interp(mjds, dates, lo_hi))
         spec = np.array(spectra).transpose()
     
         # dumb way
@@ -204,21 +160,21 @@ class Pipeutils:
             for chan in range(len(tskys[0])):
                 tsky_lo = tskys[0][chan]
                 tsky_hi = tskys[1][chan]
-                tskylo_hi = (tsky_lo,tsky_hi)
-                newvals = np.interp(mjds,dates,tskylo_hi)
+                tskylo_hi = (tsky_lo, tsky_hi)
+                newvals = np.interp(mjds, dates, tskylo_hi)
                 tsky.append(newvals)
             tsky = np.array(tsky).transpose()
         
         # interpolate reference tsys
-        tsys = np.interp(mjds,dates,tsyss)
-        tsys = tsys.reshape((len(tsys),1))
+        tsys = np.interp(mjds, dates, tsyss)
+        tsys = tsys.reshape((len(tsys), 1))
         
-        return spec,tsky,tsys
+        return spec, tsky, tsys
 
     
-    def _gain(self, gain_coeff,elevation):
+    def _gain(self, gain_coeff, elevation):
         """
-        >>> _gain((.91,.00434,-5.22e-5),60)
+        >>> _gain((.91, .00434, -5.22e-5), 60)
         0.99321999999999999
     
         """
@@ -226,136 +182,10 @@ class Pipeutils:
         gain = 0
         zz = 90. - elevation
     
-        for idx,coeff in enumerate(gain_coeff):
+        for idx, coeff in enumerate(gain_coeff):
             gain = gain + coeff * zz**idx
             
         return gain
-    
-    def ta_correction(self, zenithtau,gain_coeff,spillover,\
-            opacity_coefficients,mjds,elevations,freq,verbose=0):
-        """Compute correction to Ta for determining Ta*
-        
-        Correction is for atmospheric attenuation, rear spillover, ohmic loss
-        and blockage efficiency.
-        
-        Keywords:
-        zenithtau -- (float) zenith opacity value set by user; it overrides the
-            use of zenith values obtained from GB weather forecasting scripts
-        gain_coeff -- (list) of gain coefficients set with default values or
-            overriden by the user
-        spillover -- (float) constant set by default or overriden by the user
-        opacity_coefficients -- a (list) of coefficent values read from GBT
-            weather files stored on the GB network
-        mjds -- (numpy 1d array) of dates, one for each output row
-            read from the FITS input table as DATE
-        elevations -- (numpy 1d array) of elevations, either one for each output
-            row or a single value if all integrations are at the same elevation
-            read from the FITS input table at ELEVATION
-        freq -- (numpy 2d array) of first and last channel frequency values, one
-            pair for each output row in GHz
-        
-        All of this equates to the right part of equation 13 in the PS document
-        and equation 15 in the FS document.
-        
-        Returns:
-        Ta correction factor at every frequency for every time and elevation
-        
-        """
-        opacities = []
-        meanfreq = freq[0].mean()
-    
-        if meanfreq >= 2 and not opacity_coefficients and not zenithtau:
-            return False
-        else:
-            for idx,mjd in enumerate(mjds):
-                if len(elevations)>1:
-                    elevation = elevations[idx]
-                    gain = _gain(gain_coeff,elevation)
-    
-                    if zenithtau:
-                        zenith_opacities = np.ones(freq.shape) * zenithtau
-                    else:
-                        # get the correct set of coefficients for this time
-                        if meanfreq < 2:
-                            coeffs = ()
-                        else:
-                            for coeffs_line in opacity_coefficients:
-                                if mjd > coeffs_line[0]:
-                                    if (meanfreq >= 2 and meanfreq <= 22):
-                                        coeffs = coeffs_line[1]
-                                    elif (meanfreq > 22 and meanfreq <= 50):
-                                        coeffs = coeffs_line[2]
-                                    elif (meanfreq > 50 and meanfreq <= 116):
-                                        coeffs = coeffs_line[3]
-    
-                        # get the zenith opacity of the first and last frequency for
-                        #    every integration of the scan
-                        zenith_opacities = zenith_opacity(coeffs,freq)
-                        # get a more accurate list of opacities by correcting for
-                        #    elevation
-                    opacities.append(corrected_opacity(zenith_opacities[idx],elevation))
-    
-                else:
-                    elevation = elevations[0]
-                    gain = _gain(gain_coeff,elevation)
-    
-                    if zenithtau:
-                        zenith_opacities = np.ones(freq.shape) * zenithtau
-                    else:
-                        # get the correct set of coefficients for this time
-                        if meanfreq < 2:
-                            coeffs = ()
-                        else:
-                            for coeffs_line in opacity_coefficients:
-                                    if mjd > coeffs_line[0]:
-                                        if (meanfreq >= 2 and meanfreq <= 22):
-                                            coeffs = coeffs_line[1]
-                                        elif (meanfreq > 22 and meanfreq <= 50):
-                                            coeffs = coeffs_line[2]
-                                        elif (meanfreq > 50 and meanfreq <= 116):
-                                            coeffs = coeffs_line[3]
-    
-                        zenith_opacities = zenith_opacity(coeffs,freq)
-                    opacities.append(corrected_opacity(zenith_opacities,elevation))
-    
-            opacities = np.array(opacities)
-    
-            if opacities.ndim == opacities.size:
-                opacities = opacities[0]
-    
-            # return right part of equation 13
-            return (np.array(opacities)) / (spillover * gain)
-        
-    def tsky(self, ambient_temp,freq,opacity_factors):
-        """Determine the sky temperature contribution at each frequency
-        
-        Keywords:
-        ambient_temp -- (float) mean ambient temperature value for scan, as read
-            from the TAMBIENT column in the SDFITS input file
-        freq -- (numpy 1d array) with the first and last frequency values on an
-            axis
-        opacity_factors -- (numpy 1d array) with an opacity value (e^-tau) for
-             each frequency
-        Returns:
-        the sky model temperature contribution at every frequncy channel of the
-        spectrum
-        """
-        freq_lo = freq[0]
-        freq_hi = freq[-1]
-    
-        airTemp_lo = tatm(freq_lo,ambient_temp-273.15)
-        airTemp_hi = tatm(freq_hi,ambient_temp-273.15)
-        
-        tsky_lo = airTemp_lo * (1-opacity_factors[0])
-        tsky_hi = airTemp_hi * (1-opacity_factors[-1])
-        
-        nchan = len(freq)
-        delta_tsky = (tsky_hi - tsky_lo) / float(nchan)
-        
-        # interpolate between lo and hi frequency opacities
-        tskys = interpolate(freq,np.array([freq_lo,freq_hi]),np.array([tsky_lo,tsky_hi]))
-        
-        return tskys
     
     def masked_array(self, array):
         """Mask nans in an array
@@ -367,7 +197,7 @@ class Pipeutils:
         numpy masked array with nans masked out
         
         """
-        return np.ma.masked_array(array,np.isnan(array))
+        return np.ma.masked_array(array, np.isnan(array))
         
     
    
@@ -406,35 +236,35 @@ class Pipeutils:
             try:
                 int_item = [ int(ii) for ii in item ]
             except(ValueError):
-                print repr(':'.join(item)),'not convertable to integer'
+                print repr(':'.join(item)), 'not convertable to integer'
                 raise
     
-            if 1==len(int_item):
+            if 1 == len(int_item):
                 # single inclusive or exclusive item
                 if int_item[0] < 0:
                     excludelist.add(abs(int_item[0]))
                 else:
                     oklist.add(int_item[0])
     
-            elif 2==len(int_item):
+            elif 2 == len(int_item):
                 # range
                 if int_item[0] <= int_item[1]:
                     if int_item[0] < 0:
-                        print item[0],',',item[1],'must start with a non-negative number'
+                        print item[0], ',', item[1], 'must start with a non-negative number'
                         return []
     
                     if int_item[0]==int_item[1]:
                         thisrange = [int_item[0]]
                     else:
-                        thisrange = range(int_item[0],int_item[1]+1)
+                        thisrange = range(int_item[0], int_item[1]+1)
     
                     for ii in thisrange:
                         oklist.add(ii)
                 else:
-                    print item[0],',',item[1],'needs to be in increasing order'
+                    print item[0], ',', item[1], 'needs to be in increasing order'
                     raise
             else:
-                print item,'has more than 2 values'
+                print item, 'has more than 2 values'
     
         for exitem in excludelist:
             try:
@@ -475,73 +305,18 @@ class Pipeutils:
             try:
                 int_item = [ int(ii) for ii in item ]
             except(ValueError):
-                print repr(':'.join(item)),'not convertable to integer'
+                print repr(':'.join(item)), 'not convertable to integer'
                 raise
     
             # single inclusive or exclusive item
-            if 1==len(int_item) and int_item[0] >= 0:
+            if 1 == len(int_item) and int_item[0] >= 0:
                 return True
     
-            elif 2==len(int_item):
+            elif 2 == len(int_item):
                 return True
     
         return False
-    
-    
-    def commandSummary(self, logger,opt):
-        """Print a summary of the options controlling the pipeline run.
-    
-        Keywords:
-        logger -- where the output will be written
-        opt -- command options
-    
-        """
-    
-        class prettyfloat(float):
-            def __repr__(self):
-                return "%0.2g" % self
-    
-        self.log.doMessage('INFO',"---------------")
-        self.log.doMessage('INFO',"Command summary")
-        self.log.doMessage('INFO',"---------------")
-        self.log.doMessage('INFO',"Input file....................",opt.infile)
-        self.log.doMessage('INFO',"Calibrating to units of.......",opt.units)
-        if not opt.allmaps:
-            self.log.doMessage('INFO',"Map scans.....................",opt.mapscans[0],'to',opt.mapscans[-1])
-        self.log.doMessage('INFO',"creating all maps.............",opt.allmaps)
-        self.log.doMessage('INFO',"display idlToSdfits plots ....",opt.display_idlToSdfits)
-        self.log.doMessage('INFO',"spillover factor (eta_l)......",str(opt.spillover))
-        self.log.doMessage('INFO',"aperture efficiency (eta_A0)..",str(opt.aperture_eff))
-        self.log.doMessage('INFO',"main beam efficiency (eta_B0)..",str(opt.mainbeam_eff))
         
-        if opt.gaincoeffs:
-            pretty_gaincoeffs = map(prettyfloat, opt.gaincoeffs)
-            self.log.doMessage('INFO',"gain coefficiencts............",str(pretty_gaincoeffs))
-        
-        if opt.gain_left:
-            pretty_gains_left = map(prettyfloat, opt.gain_left)
-            self.log.doMessage('INFO',"relative gain factors (LL) ...",str(pretty_gains_left))
-    
-        if opt.gain_right:
-            pretty_gains_right = map(prettyfloat, opt.gain_right)
-            self.log.doMessage('INFO',"relative gain factors (RR) ...",str(pretty_gains_right))
-    
-        self.log.doMessage('INFO',"disable mapping ..............",opt.imagingoff)
-        self.log.doMessage('INFO',"map scans for scale ..........",opt.mapscansforscale)
-        if opt.feed:
-            self.log.doMessage('INFO',"feed(s) ......................",opt.feed)
-        else:
-            self.log.doMessage('INFO',"feed(s) ...................... All")
-            
-        if opt.pol:
-            self.log.doMessage('INFO',"polarization .................",opt.pol)
-        else:
-            self.log.doMessage('INFO',"polarization ................. All")
-    
-        self.log.doMessage('INFO',"verbosity level...............",str(opt.verbose))
-    
-        self.log.doMessage('INFO',"overwrite existing output.....",str(opt.clobber))
-    
     def string_to_floats(self, string_list):
         """Change a list of numbers to a list of floats
     
@@ -559,103 +334,3 @@ class Pipeutils:
         string_list = string_list.split(',')
         return [ float(item) for item in string_list ]
     
-    def maptype(self, firstscan,indexfile,debug=False):
-        """Return a string describing the type of the mapping block
-    
-        Typically, this will say whether a map used position-switched (PS) calibration
-        or frequency-switched (FS) calibration.
-    
-        Keywords:
-        firstscan -- the first scan number of the map
-        indexfile -- used to determine the number of switching states
-        debug -- optional debug flag
-    
-        Returns:
-        a string describing the type of the mapping block
-        'PS' == position-switched
-        'FS' == frequency-switched
-        'UNKNOWN' == other
-    
-        """
-        myFile = open(indexfile,'rU')
-    
-        scans = {}
-        map_scans = {}
-    
-        # skip over the index file header lines
-        while True:
-            row = myFile.readline().split()
-            if len(row)==40:
-                # we just found the column keywords, so read the next line
-                row = myFile.readline().split()
-                break
-    
-        states = set([])
-        while row:
-    
-            scan = int(row[10])
-    
-            if scan == firstscan:
-                states.add(row[18])
-            elif scan > firstscan:
-                break
-    
-            # read the next row
-            row = myFile.readline().split()
-    
-        myFile.close()
-    
-        if debug:
-            print states
-    
-        if len(states) == 2:
-            return 'FS'
-        elif len(states) == 1:
-            return 'PS'
-        else:
-            return 'UKNOWN'
-    
-    def gainfactor(self, logger,opt,samplermap,sampler):
-        """Returns gain factor set for a given beam and polarization
-    
-        Keywords:
-        logger -- where to write output
-        opt -- structure which holds gain factors
-        samplermap -- lists samplers for each mapping block
-        sampler -- sampler representing beam and polarization which needs gain adjustment
-    
-        Returns:
-        (float) gain for a given feed number and sampler name
-    
-        """
-        # set relative gain factors for each beam/pol
-        #  if they are supplied
-        if opt.gain_left and samplermap[sampler][1]=='LL':
-            self.log.doMessage('DBG','Multiplying by gain factor',
-                opt.gain_left[samplermap[sampler][0]-1])
-            gain_factor = opt.gain_left[samplermap[sampler][0]-1]
-        elif opt.gain_right and samplermap[sampler][1]=='RR':
-            self.log.doMessage('DBG','Multiplying by gain factor',
-                opt.gain_right[samplermap[sampler][0]-1])
-            gain_factor = opt.gain_right[samplermap[sampler][0]-1]
-        else:
-            gain_factor = float(1)
-    
-        return gain_factor
-    
-    def string_to_floats(self, string_list):
-        """Change a list of numbers to a list of floats
-    
-        Keywords:
-        string_list -- a comma-seperated list of numbers
-        
-        Returns:
-        a (list) of floats
-    
-        >>> string_to_floats('1.1,-5.55555,6e6')
-        [1.1000000000000001, -5.5555500000000002, 6000000.0]
-    
-        """
-        string_list = string_list.replace(' ','')
-        string_list = string_list.split(',')
-        return [ float(item) for item in string_list ]

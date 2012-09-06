@@ -32,12 +32,13 @@ class Logging:
 
     """
 
-    def __init__(self,opt,prefix,toconsole=True):
+    def __init__(self, opt, prefix, toconsole = True):
 
         self.t = Terminal()
+        self.logger = None
 
         logfilename = prefix + '_' + self.timestamp() + '.log'
-        self.configure_logfile(opt,logfilename,toconsole)
+        self.configure_logfile(opt, logfilename, toconsole)
         
     def timestamp(self):
         """Return a string with the current date and time
@@ -49,33 +50,33 @@ class Logging:
         lt = time.localtime(time.time())
         return "%02d.%02d.%04d_%02d:%02d:%02d" % (lt[2], lt[1], lt[0], lt[3], lt[4], lt[5])
 
-    def doMessage(self,level,*args):
+    def doMessage(self, level,*args):
         """Write a message to the log file
     
         Keyword arguments:
         logger -- the log handler object
-        level -- the level of the message (ERR,WARN,INFO,etc.)
+        level -- the level of the message (ERR, WARN, INFO, etc.)
         args -- the message text; this is a variable lengh list
     
         """
         message = ' '.join(map(str,(args)))
         if 'CRIT' == level:
-            self.logger.error('{t.bold}CRITICAL:{t.normal} {m}'.format(m=message,t=self.t))
+            self.logger.error('{t.bold}CRITICAL:{t.normal} {m}'.format(m = message, t = self.t))
             sys.stdout.flush()
         elif 'ERR' == level:
-            self.logger.error('{t.bold}ERROR:{t.normal} {m}'.format(m=message,t=self.t))
+            self.logger.error('{t.bold}ERROR:{t.normal} {m}'.format(m = message, t = self.t))
             sys.stdout.flush()
         elif 'WARN' == level:
-            self.logger.error('{t.bold}WARNING:{t.normal} {m}'.format(m=message,t=self.t))
+            self.logger.error('{t.bold}WARNING:{t.normal} {m}'.format(m = message, t = self.t))
             sys.stdout.flush()
         elif 'INFO' == level:
             self.logger.info(message)
         elif 'DBG' == level:
             self.logger.debug(message)
         else:
-            print 'ERROR: please check logging level.',level
+            print 'ERROR: please check logging level.', level
     
-    def configure_logfile(self, opt,logfilename,toconsole=True):
+    def configure_logfile(self, opt, logfilename, toconsole = True):
         """Configure the format and levels for the logfile
     
         Keyword arguments:
@@ -100,7 +101,7 @@ class Logging:
         self.logger.setLevel(logging.DEBUG)
         
         # create file handler which logs even debug messages
-        fh = logging.FileHandler(filename=logfilename,mode='w')
+        fh = logging.FileHandler(filename = logfilename, mode='w')
         fh.setLevel(logging.DEBUG)
         fh_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
         fh.setFormatter(fh_formatter)

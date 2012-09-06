@@ -27,10 +27,10 @@ PARALLEL = True # useful to turn off when debugging
 import commandline
 from MappingPipeline import MappingPipeline
 from SdFitsIO import SdFits
-from Pipeutils import Pipeutils
+
 from PipeLogging import Logging
 
-import fitsio
+
 from blessings import Terminal
 
 import multiprocessing
@@ -39,7 +39,7 @@ import glob
 import os
 import subprocess
 
-def calibrateWindowFeedPol(log, cl_params, window, feed, pol, pipe, printOffset):
+def calibrateWindowFeedPol(log, cl_params, window, feed, pol, pipe):
 
     refSpectrum1 = None
     refTsys1 = None
@@ -54,13 +54,13 @@ def calibrateWindowFeedPol(log, cl_params, window, feed, pol, pipe, printOffset)
     
     # -------------- reference 1
     if cl_params.refscans:
-
+        
         try:
-            pipe.rowList.get(cl_params.refscans[0], feed, window, pol)
+            pipe.row_list.get(cl_params.refscans[0], feed, window, pol)
         except:
             log.doMessage('ERR','missing 2nd reference scan #',
-                          cl_params.refscans[0],'for feed',feed,'window',window,
-                          'polarization',pol)
+                          cl_params.refscans[0],'for feed', feed,'window', window,
+                          'polarization', pol)
             return
         
         refSpectrum1, refTsys1, refTimestamp1, refTambient1, refElevation1 = \
@@ -69,9 +69,9 @@ def calibrateWindowFeedPol(log, cl_params, window, feed, pol, pipe, printOffset)
         if len(cl_params.refscans)>1:
             # -------------- reference 2
             try:
-                pipe.rowList.get(cl_params.refscans[1], feed, window, pol)
+                pipe.row_list.get(cl_params.refscans[1], feed, window, pol)
             except:
-                log.doMessage('ERR', 'missing 2nd reference scan #',cl_params.refscans[1],'for feed',feed,'window',window,'polarization',pol)
+                log.doMessage('ERR', 'missing 2nd reference scan #', cl_params.refscans[1],'for feed', feed,'window', window,'polarization', pol)
                 return
             
             refSpectrum2, refTsys2, refTimestamp2, refTambient2, refElevation2 = \
@@ -82,18 +82,18 @@ def calibrateWindowFeedPol(log, cl_params, window, feed, pol, pipe, printOffset)
         try:
             beam_scaling = cl_params.gainfactors[feed+pol]
         except IndexError:
-            log.doMessage('ERR', 'ERORR: can not get a gainfactor for feed and polarization.',feed,'\n  You need to supply a factor for each feed and\n  polarization for the receiver.')
+            log.doMessage('ERR', 'ERORR: can not get a gainfactor for feed and polarization.', feed,'\n  You need to supply a factor for each feed and\n  polarization for the receiver.')
     else:
         beam_scaling = cl_params.gainfactors
     
     pipe.CalibrateSdfitsIntegrations( feed, window, pol,\
             refSpectrum1, refTsys1, refTimestamp1, refTambient1, refElevation1, \
             refSpectrum2, refTsys2, refTimestamp2, refTambient2, refElevation2, \
-            beam_scaling, printOffset )
+            beam_scaling )
     
-def doImaging(log, term, cl_params, pipe):
+def doImaging(log, terminal, cl_params, pipe):
     
-    log.doMessage('INFO', '{t.underline}Start imaging.{t.normal}'.format(t=term) )
+    log.doMessage('INFO', '{t.underline}Start imaging.{t.normal}'.format(t = terminal) )
     
     # ------------------------------------------------- identify imaging scripts
     
@@ -136,14 +136,14 @@ def doImaging(log, term, cl_params, pipe):
     for pp in pipe:
         windows.add(str(pp[1]))
     
-    for window in windows:
+    for _window in windows:
         scanrange = str(cl_params.mapscans[0])+'_'+str(cl_params.mapscans[-1])
 
         aipsinputs = []
         for pp in pipe:
             win = str(pp[1])
             feed = str(pp[2])
-            pol = str(pp[3])
+            
             imfiles = glob.glob('*' + scanrange + '*window' + win + '_feed' +  feed + '*' + '.fits')
             print 'IMFILE',','.join(imfiles)
             
@@ -182,41 +182,41 @@ def doImaging(log, term, cl_params, pipe):
         
         aipsNumber = str(os.getuid())
         aipsinfiles = ' '.join(aipsinputs)
-        doimg_cmd = ' '.join(('/home/gbtpipeline/integration/tools/doImage',dbconScript,aipsNumber,aipsinfiles))
-        log.doMessage('DBG',doimg_cmd)
+        doimg_cmd = ' '.join(('/home/gbtpipeline/integration/tools/doImage', dbconScript, aipsNumber, aipsinfiles))
+        log.doMessage('DBG', doimg_cmd)
 
-        p = subprocess.Popen(doimg_cmd.split(),stdout=subprocess.PIPE,\
-                             stderr=subprocess.PIPE)
+        p = subprocess.Popen(doimg_cmd.split(), stdout = subprocess.PIPE,\
+                             stderr = subprocess.PIPE)
         try:
-            aips_stdout,aips_stderr = p.communicate()
+            aips_stdout, aips_stderr = p.communicate()
         except: 
-            log.doMessage('ERR',doimg_cmd,'failed.')
+            log.doMessage('ERR', doimg_cmd,'failed.')
             sys.exit()
 
-        log.doMessage('DBG',aips_stdout)
-        log.doMessage('ERR',aips_stderr)
+        log.doMessage('DBG', aips_stdout)
+        log.doMessage('ERR', aips_stderr)
         log.doMessage('INFO','... (1/2) done')
 
         # define command to invoke mapping script
         # which in turn invokes AIPS via ParselTongue
         channel_average = 3
-        doimg_cmd = ' '.join(('doImage',mapScript,aipsNumber,str(channel_average)))
-        log.doMessage('DBG',doimg_cmd)
+        doimg_cmd = ' '.join(('doImage', mapScript, aipsNumber, str(channel_average)))
+        log.doMessage('DBG', doimg_cmd)
 
-        p = subprocess.Popen(doimg_cmd.split(),stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-        aips_stdout,aips_stderr = p.communicate()
+        p = subprocess.Popen(doimg_cmd.split(), stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+        aips_stdout, aips_stderr = p.communicate()
 
-        log.doMessage('DBG',aips_stdout)
-        log.doMessage('DBG',aips_stderr)
+        log.doMessage('DBG', aips_stdout)
+        log.doMessage('DBG', aips_stderr)
         log.doMessage('INFO','... (2/2) done')            
     
-def process_map(log,cl_params,rowList):
+def process_map(log, cl_params, row_list):
     
-    feeds=cl_params.feed
-    pols=cl_params.pol
-    windows=cl_params.window
+    feeds = cl_params.feed
+    pols = cl_params.pol
+    windows = cl_params.window
     
-    scanlist = rowList.scans()
+    scanlist = row_list.scans()
 
     if cl_params.refscans:
         log.doMessage('INFO','Refscan(s):', ','.join([str(xx) for xx in cl_params.refscans]) )
@@ -226,28 +226,28 @@ def process_map(log,cl_params,rowList):
     missingscan = False
     for scan in cl_params.mapscans:
         if scan not in scanlist:
-            log.doMessage('ERR', 'Scan',scan,'not found.')
+            log.doMessage('ERR', 'Scan', scan,'not found.')
             missingscan = True
     if missingscan:
         sys.exit()
 
     if not feeds:
-        feeds = rowList.feeds()
+        feeds = row_list.feeds()
     if not pols:
-        pols = rowList.pols()
+        pols = row_list.pols()
     if not windows:
-        windows = rowList.windows()
+        windows = row_list.windows()
     
-    log.doMessage('INFO','{t.underline}Start calibration.{t.normal}'.format(t=term))
+    log.doMessage('INFO','{t.underline}Start calibration.{t.normal}'.format(t = term))
     
     for window in windows:
-        log.doMessage('INFO', 'Window',window,'started')
+        log.doMessage('INFO', 'Window', window,'started')
         sys.stdout.flush()
         pipe = []
         for feed in feeds:
             for pol in pols:
                 try:
-                    mp = MappingPipeline(log, cl_params, rowList, feed, window, pol, term)
+                    mp = MappingPipeline(log, cl_params, row_list, feed, window, pol, term)
                 except KeyError:
                     continue
                 pipe.append( (mp, window, feed, pol) )
@@ -260,25 +260,25 @@ def process_map(log,cl_params,rowList):
            
             # pipe output will be printed in order of window, feed
             if PARALLEL:
-                p = multiprocessing.Process(target=calibrateWindowFeedPol, args=(log, cl_params, window, feed, pol, pp[0], idx,))
+                p = multiprocessing.Process(target = calibrateWindowFeedPol, args = (log, cl_params, window, feed, pol, pp[0], ))
                 pids.append(p)
     
             else:
-                log.doMessage('INFO', 'Feed {feed} Pol {pol} started.'.format(feed=pp[2],pol=pp[3]))
-                calibrateWindowFeedPol(log, cl_params, window, feed, pol, pp[0], idx)
-                log.doMessage('INFO', 'Feed {feed} Pol {pol} finished.'.format(feed=pp[2],pol=pp[3]))
+                log.doMessage('INFO', 'Feed {feed} Pol {pol} started.'.format(feed = pp[2], pol = pp[3]))
+                calibrateWindowFeedPol(log, cl_params, window, feed, pol, pp[0])
+                log.doMessage('INFO', 'Feed {feed} Pol {pol} finished.'.format(feed = pp[2], pol = pp[3]))
     
         if PARALLEL:
             for pp in pids:
                 pp.start()
             for pp in pipe:
-                log.doMessage('INFO', 'Feed {feed} Pol {pol} started.'.format(feed=pp[2],pol=pp[3]))
+                log.doMessage('INFO', 'Feed {feed} Pol {pol} started.'.format(feed = pp[2], pol = pp[3]))
                 
         
             for pp in pids:
                 pp.join()
             for pp in pipe:
-                log.doMessage('INFO', 'Feed {feed} Pol {pol} finished.'.format(feed=pp[2],pol=pp[3]))
+                log.doMessage('INFO', 'Feed {feed} Pol {pol} finished.'.format(feed = pp[2], pol = pp[3]))
                 
     if not cl_params.imagingoff:
 
@@ -302,30 +302,30 @@ def runPipeline(term):
     
     
     log = Logging(cl_params, 'pipeline')
-    log.doMessage('INFO','{t.underline}Command summary{t.normal}'.format(t=term))
+    log.doMessage('INFO','{t.underline}Command summary{t.normal}'.format(t = term))
     for x in cl_params._get_kwargs():
-        log.doMessage('INFO','\t',x[0],'=',str(x[1]))
+        log.doMessage('INFO','\t', x[0],'=', str(x[1]))
     
     sdf = SdFits()
     indexfile = sdf.nameIndexFile( cl_params.infilename )
     try:
-        rowList = sdf.parseSdfitsIndex( indexfile )
+        row_list = sdf.parseSdfitsIndex( indexfile )
         maps = sdf.get_maps( indexfile )
     except IOError:
-        log.doMessage('ERR','Could not open index file',indexfile )
+        log.doMessage('ERR','Could not open index file', indexfile )
         sys.exit()
 
     if not cl_params.mapscans:
         if cl_params.refscans:
             log.doMessage('WARN', 'Refscan(s) given without map scans, ignoring refscan settings.')
         cl_params.refscans = []
-        log.doMessage('INFO','Found',len(maps),'map(s).' )
-        for map_number,map_params in enumerate(maps):
+        log.doMessage('INFO','Found', len(maps),'map(s).' )
+        for map_number, map_params in enumerate(maps):
             cl_params = set_map_scans(cl_params, map_params)
-            log.doMessage('INFO','Processing map:',str(map_number),'of',len(maps) )
-            process_map(log,cl_params,rowList)
+            log.doMessage('INFO','Processing map:', str(map_number),'of', len(maps) )
+            process_map(log, cl_params, row_list)
     else:
-            process_map(log,cl_params,rowList)
+        process_map(log, cl_params, row_list)
         
 if __name__ == '__main__':
 
