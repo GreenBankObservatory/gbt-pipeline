@@ -36,7 +36,7 @@ import numpy as np
 import os
 import sys
 
-CREATE_PLOTS = False
+CREATE_PLOTS = True
 
 if CREATE_PLOTS:
     import pylab
@@ -130,8 +130,8 @@ class MappingPipeline:
     
         crefs = []
         trefs = []
-        calON = None
-        calOFF = None
+        cal_on = None
+        cal_off = None
         exposures = [] # used for weighting the average of reference integrations
         timestamps = [] # will get an average to use for interpolation bt/wn references
         tambients = [] # used for tsky computation for ta* and beyond
@@ -144,16 +144,16 @@ class MappingPipeline:
             row = Integration(self.infile[ext][columns][rowNum])
         
             if row['CAL'] == 'T':
-                calON = row
+                cal_on = row
             else:
-                calOFF = row
+                cal_off = row
             
-            if calOFF and calON:
-                cref, tref, exposure, timestamp, tambient, elevation = self.sdf.getReferenceIntegration(calON, calOFF)
+            if cal_off and cal_on:
+                cref, tref, exposure, timestamp, tambient, elevation = self.sdf.getReferenceIntegration(cal_on, cal_off)
                 
                 # used these, so clear for the next iteration
-                calOFF = None
-                calON = None
+                cal_off = None
+                cal_on = None
                 
                 # collect raw spectra and tsys values for each integration
                 #   these will be averaged to use for calibration
@@ -347,8 +347,8 @@ class MappingPipeline:
                 
                 output_data = np.zeros(rows2write, dtype = dtype)
                 
-                sigrefState = [{'calON':None, 'calOFF':None, 'TP':None}, \
-                               {'calON':None, 'calOFF':None, 'TP':None}]
+                sigrefState = [{'cal_on':None, 'cal_off':None, 'TP':None}, \
+                               {'cal_on':None, 'cal_off':None, 'TP':None}]
                
                 # now start at the beginning and calibrate all the integrations
                 for rowNum in chunk:
@@ -357,38 +357,38 @@ class MappingPipeline:
                     
                     if row['SIG'] == 'T':
                         if row['CAL'] == 'T':
-                            sigrefState[0]['calON'] = row
+                            sigrefState[0]['cal_on'] = row
                             
                         else:
-                            sigrefState[0]['calOFF'] = row
+                            sigrefState[0]['cal_off'] = row
                             
                     else:
                         if row['CAL'] == 'T':
-                            sigrefState[1]['calON'] = row
+                            sigrefState[1]['cal_on'] = row
                             
                         else:
-                            sigrefState[1]['calOFF'] = row
+                            sigrefState[1]['cal_off'] = row
                             
                     
                     # we need 4 states to calibrate FS integrations
-                    if sigrefState[0]['calON'] and sigrefState[0]['calOFF'] and \
-                       sigrefState[1]['calON'] and sigrefState[1]['calOFF']:
+                    if sigrefState[0]['cal_on'] and sigrefState[0]['cal_off'] and \
+                       sigrefState[1]['cal_on'] and sigrefState[1]['cal_off']:
 
                         # noise diode is being fired during signal integrations
                         sigrefState[0]['TP'] = \
-                            self.cal.Cavg(sigrefState[0]['calON']['DATA'], sigrefState[0]['calOFF']['DATA'])
+                            self.cal.cavg(sigrefState[0]['cal_on']['DATA'], sigrefState[0]['cal_off']['DATA'])
                         sigrefState[1]['TP'] = \
-                            self.cal.Cavg(sigrefState[1]['calON']['DATA'], sigrefState[1]['calOFF']['DATA'])
+                            self.cal.cavg(sigrefState[1]['cal_on']['DATA'], sigrefState[1]['cal_off']['DATA'])
                                                     
                     else:
                         continue  # read more rows until we have all 4 states
 
                     # integration timestamp and elevation
                     #  should be same for all states
-                    intTime = self.pu.dateToMjd( sigrefState[0]['calOFF']['DATE-OBS'] )
-                    elevation = sigrefState[0]['calOFF']['ELEVATIO'] 
+                    intTime = self.pu.dateToMjd( sigrefState[0]['cal_off']['DATE-OBS'] )
+                    elevation = sigrefState[0]['cal_off']['ELEVATIO'] 
                     
-                    ta, tsys = self.cal.Ta_fs(sigrefState)
+                    ta, tsys = self.cal.ta_fs(sigrefState)
                     
                     if self.cl.units != 'ta':
                         
@@ -405,10 +405,10 @@ class MappingPipeline:
                         opacity_el = self.cal.elevation_adjusted_opacity(intOpacity, elevation)
                             
                         # get tsky for the current integration
-                        #tambient_current = sigrefState[0]['calOFF']['TAMBIENT']
+                        #tambient_current = sigrefState[0]['cal_off']['TAMBIENT']
                                 
                     if self.cl.units=='ta*' or self.cl.units=='tmb' or self.cl.units=='jy':
-                        tastar = self.cal.TaStar(ta, beam_scaling, opacity = opacity_el, spillover = self.SPILLOVER)
+                        tastar = self.cal.ta_star(ta, beam_scaling, opacity = opacity_el, spillover = self.SPILLOVER)
                         
                         
                     if self.cl.units=='tmb':
@@ -422,8 +422,8 @@ class MappingPipeline:
     
                         
                     # used these, so clear for the next iteration
-                    sigrefState = [{'calON':None, 'calOFF':None, 'TP':None}, \
-                                   {'calON':None, 'calOFF':None, 'TP':None}]
+                    sigrefState = [{'cal_on':None, 'cal_off':None, 'TP':None}, \
+                                   {'cal_on':None, 'cal_off':None, 'TP':None}]
                     
                     # --------------------------------  write data out to FITS file
 
@@ -502,8 +502,8 @@ class MappingPipeline:
     
             cal_switching, sigref = self.determineSetup(rows, ext)
             
-            calON = None
-            calOFF = None
+            cal_on = None
+            cal_off = None
             
             # break the input rows into chunks as buffers to write out
             #   so that we don't write out rows one at a time
@@ -523,25 +523,25 @@ class MappingPipeline:
                     row = Integration(self.infile[ext][columns][rowNum])
                     
                     if row['CAL'] == 'T':
-                        calON = row
+                        cal_on = row
                     else:
-                        calOFF = row
+                        cal_off = row
                     
                     csig = None
                     
-                    if cal_switching and calOFF and calON:
+                    if cal_switching and cal_off and cal_on:
                         # noise diode is being fired during signal integrations
         
-                        csig = self.cal.Cavg(calON['DATA'], calOFF['DATA'])
+                        csig = self.cal.cavg(cal_on['DATA'], cal_off['DATA'])
         
                         if CREATE_PLOTS:
-                            exposure = calON['EXPOSURE']+calOFF['EXPOSURE']
+                            exposure = cal_on['EXPOSURE']+cal_off['EXPOSURE']
                             exposures.append(exposure)
         
                     # if there is more than one row, this isn't the last one, this and the next are CAL=='F',
                     #    then the diode is not firing
                     elif not cal_switching:
-                        csig = calOFF['DATA']
+                        csig = cal_off['DATA']
                     
                     # we are cal switching but we only have one cal state,
                     #   then read the next row
@@ -550,8 +550,8 @@ class MappingPipeline:
                     
                     if csig != None:
                         
-                        intTime = self.pu.dateToMjd( calOFF['DATE-OBS'] ) # integration timestamp
-                        elevation = calOFF['ELEVATIO'] # integration elevation
+                        intTime = self.pu.dateToMjd( cal_off['DATE-OBS'] ) # integration timestamp
+                        elevation = cal_off['ELEVATIO'] # integration elevation
                                 
                         if avgCref2!=None and crefTime2!=None:
                             crefInterp = \
@@ -562,11 +562,11 @@ class MappingPipeline:
                                 self.cal.interpolate_by_time(avgTref1, avgTref2,
                                                              crefTime1, crefTime2, intTime)
             
-                            ta = self.cal.Ta(avgTrefInterp, csig, crefInterp )
+                            ta = self.cal.antenna_temp(avgTrefInterp, csig, crefInterp )
                             tsys = avgTrefInterp
                         else:
                             #import pdb; pdb.set_trace()
-                            ta = self.cal.Ta(avgTref1, csig, avgCref1 )
+                            ta = self.cal.antenna_temp(avgTref1, csig, avgCref1 )
                             
                             tsys = avgTref1
                                             
@@ -604,7 +604,7 @@ class MappingPipeline:
                             opacity_el = self.cal.elevation_adjusted_opacity(intOpacity, elevation)
                                 
                             # get tsky for the current integration
-                            tambient_current = calOFF['TAMBIENT']
+                            tambient_current = cal_off['TAMBIENT']
                             tsky_current = self.cal.tsky(tambient_current, obsfreqHz, opacity_el)
                            
                             tsky_corr = self.cal.tsky_corr(tsky_current, tsky_ref, self.SPILLOVER)
@@ -620,7 +620,7 @@ class MappingPipeline:
                             #   model database.  Gain coefficients can optionally come
                             #   from the command line.
                             
-                            tastar = self.cal.TaStar(tsrc, beam_scaling, opacity = opacity_el, spillover = self.SPILLOVER)
+                            tastar = self.cal.ta_star(tsrc, beam_scaling, opacity = opacity_el, spillover = self.SPILLOVER)
                             
                             if CREATE_PLOTS:
                                 tastars.append(tastar)
@@ -644,8 +644,8 @@ class MappingPipeline:
                                 jys.append(jy)
                             
                         # used these, so clear for the next iteration
-                        calOFF = None
-                        calON = None
+                        cal_off = None
+                        cal_on = None
                         
                         # --------------------------------  write data out to FITS file
     

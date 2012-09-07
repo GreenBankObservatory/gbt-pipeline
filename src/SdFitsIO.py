@@ -219,21 +219,21 @@ class SdFits:
         
         return observation
 
-    def getReferenceIntegration(self, calON, calOFF):
+    def getReferenceIntegration(self, cal_on, cal_off):
         
         cal = Calibration()
-        calONdata = calON['DATA']
-        calOFFdata = calOFF['DATA']
-        cref = cal.Cavg(calONdata, calOFFdata)
-        tcal = calOFF['TCAL']
-        tref = cal.idlTsys80( tcal, calONdata, calOFFdata )
+        cal_ondata = cal_on['DATA']
+        cal_offdata = cal_off['DATA']
+        cref = cal.cavg(cal_ondata, cal_offdata)
+        tcal = cal_off['TCAL']
+        tref = cal.tsys( tcal, cal_ondata, cal_offdata )
         
-        dateobs = calOFF['DATE-OBS']
+        dateobs = cal_off['DATE-OBS']
         timestamp = self.pu.dateToMjd(dateobs)
             
-        exposure = calON['EXPOSURE'] + calOFF['EXPOSURE']
-        tambient = calOFF['TAMBIENT']
-        elevation = calOFF['ELEVATIO']
+        exposure = cal_on['EXPOSURE'] + cal_off['EXPOSURE']
+        tambient = cal_off['TAMBIENT']
+        elevation = cal_off['ELEVATIO']
         
         return cref,tref,exposure,timestamp,tambient,elevation
 

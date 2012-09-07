@@ -1,3 +1,8 @@
+"""Module containing all the calibration methods for the GBT Pipeline.
+
+This includes both Position-switched and Frequency-switched calibration.
+
+"""
 # Copyright (C) 2007 Associated Universities, Inc. Washington DC, USA.
 # 
 # This program is free software; you can redistribute it and/or modify
@@ -42,24 +47,20 @@ class Calibration:
 
     # ------------- Unit methods: do not depend on any other pipeline methods
 
-    # eqn. (2) in PS spec as "Cref"
-    # part of eqn. (5) in PS spec as "Csig"
-    def Cavg(self, calON, calOFF):  
-        return np.mean((calON, calOFF), axis = 0)
-
-    # eqn. (3) in PS spec as "Ccal"
-    def Cdiff(self, calON, calOFF):
-        return calON - calOFF
+    # eqn. (2) in PS spec as "cref"
+    # part of eqn. (5) in PS spec as "csig"
+    def cavg(self, cal_on, cal_off):  
+        return np.mean((cal_on, cal_off), axis = 0)
 
     def tsky_corr(self, tsky_sig, tsky_ref, spillover):
         return spillover*(tsky_sig-tsky_ref)
     
     # eqn. (11) in PS spec
-    def aperture_efficiency(self, reference_etaA, freqHz):
+    def aperture_efficiency(self, reference_eta_a, freq_hz):
         """Determine aperture efficiency
         
         Keyword attributes:
-        freqHz -- input frequency in Hz
+        freq_hz -- input frequency in Hz
     
         Returns:
         eta -- point or main beam efficiency (range 0 to 1)
@@ -73,10 +74,10 @@ class Calibration:
         0.82987213898727774
         """
       
-        freqGHz = float(freqHz)/1e9
-        return reference_etaA * math.e**-((self.BB * freqGHz)**2)
+        freq_ghz = float(freq_hz)/1e9
+        return reference_eta_a * math.e**-((self.BB * freq_ghz)**2)
         
-    def main_beam_efficiency(self, reference_etaB, freqHz):
+    def main_beam_efficiency(self, reference_eta_b, freq_hz):
         """Determine main beam efficiency, given reference etaB value and freq.
         
         This is the same equation as is used to determine aperture efficiency.
@@ -84,18 +85,8 @@ class Calibration:
         
         """
         
-        return self.aperture_efficiency( reference_etaB, freqHz )
+        return self.aperture_efficiency( reference_eta_b, freq_hz )
     
-    def gain(self, gain_coeff, elevation):
-        # comput gain based on elevation, eqn. (12) in PS specification
-        gain = 0
-        zz = 90. - elevation
-    
-        for idx, coeff in enumerate(gain_coeff):
-            gain = gain + coeff * zz**idx
-            
-        return gain
-
     def elevation_adjusted_opacity(self, zenith_opacity, elevation):
         """Compute elevation-corrected opacities.
 
@@ -105,20 +96,20 @@ class Calibration:
         elevation -- (float) elevation angle of integration or scan
         
         """
-        number_of_atmospheres = self.natm( elevation )
+        number_of_atmospheres = self._natm( elevation )
     
         corrected_opacity = zenith_opacity * number_of_atmospheres
     
         return corrected_opacity
     
-    def natm(self, elDeg):
+    def _natm(self, el_deg):
         """Compute number of atmospheres at elevation (deg)
     
         Keyword arguments:
-        elDeg -- input elevation in degrees
+        el_deg -- input elevation in degrees
     
         Returns:
-        nAtmos -- output number of atmospheres
+        n_atmos -- output number of atmospheres
     
         Estimate the number of atmospheres along the line of site
         at an input elevation
@@ -142,25 +133,25 @@ class Calibration:
     
         DEGREE = math.pi/180.
     
-        if (elDeg < 39.):
-            nAtmos = -0.023437 + \
-                (1.0140 / math.sin( DEGREE*(elDeg + 5.1774 / (elDeg + 3.3543))))
+        if (el_deg < 39.):
+            n_atmos = -0.023437 + \
+                (1.0140 / math.sin( DEGREE*(el_deg + 5.1774 / (el_deg + 3.3543))))
         else:
-            nAtmos = math.sin(DEGREE*elDeg)
+            n_atmos = math.sin(DEGREE*el_deg)
     
-        #print 'Model Number of Atmospheres:', nAtmos,' at elevation ', elDeg
-        return nAtmos
+        #print 'Model Number of Atmospheres:', n_atmos, ' at elevation ', el_deg
+        return n_atmos
         
     
-    def tatm(self, freqHz, tmpC):
+    def _tatm(self, freq_hz, tmp_c):
         """Estimates the atmospheric effective temperature
         
         Keyword arguments:
-        freqHz -- input frequency in Hz
-        where: tmpC     - input ground temperature in Celsius
+        freq_hz -- input frequency in Hz
+        where: tmp_c     - input ground temperature in Celsius
     
         Returns:
-        airTempK -- output Air Temperature in Kelvin
+        air_temp_k -- output Air Temperature in Kelvin
     
         Based on local ground temperature measurements.  These estimates
         come from a model reported by Ron Maddalena
@@ -205,126 +196,47 @@ class Calibration:
     
         tatm model is provided by Ron Maddalena
     
-        >>> tatm(23e9,40)
+        >>> _tatm(23e9, 40)
         298.88517422006998
-        >>> tatm(23e9,30)
+        >>> _tatm(23e9, 30)
         289.78060278466995
-        >>> tatm(1.42e9,30)
+        >>> _tatm(1.42e9, 30)
         271.97866556636637
     
         """
     
         # where TMPC = ground-level air temperature in C and Freq is in GHz.
         # The A and B coefficients are:
-        A = [259.69185966, -1.66599001, 0.226962192,
+        aaa = [259.69185966, -1.66599001, 0.226962192,
              -0.0100909636,  0.00018402955, -0.00000119516 ]
-        B = [0.42557717,    0.033932476, 0.0002579834,
+        bbb = [0.42557717,    0.033932476, 0.0002579834,
              -0.00006539032, 0.00000157104, -0.00000001182]
-        freqGHz = float(freqHz)/1e9
-        FREQ  = float(freqGHz)
-        FREQ2 = FREQ*FREQ
-        FREQ3 = FREQ2*FREQ
-        FREQ4 = FREQ3*FREQ
-        FREQ5 = FREQ4*FREQ
+        freq_ghz = float(freq_hz)/1e9
+        freq  = float(freq_ghz)
+        freq2 = freq*freq
+        freq3 = freq2*freq
+        freq4 = freq3*freq
+        freq5 = freq4*freq
     
-        TATM = A[0] + A[1]*FREQ + A[2]*FREQ2 +A[3]*FREQ3 + A[4]*FREQ4 + A[5]*FREQ5
-        TATM = TATM + (B[0] + B[1]*FREQ + B[2]*FREQ2 + B[3]*FREQ3 + B[4]*FREQ4 + B[5]*FREQ5)*float(tmpC)
+        air_temp_k = aaa[0] + aaa[1]*freq + aaa[2]*freq2 +aaa[3]*freq3 + aaa[4]*freq4 + aaa[5]*freq5
+        air_temp_k = air_temp_k + (bbb[0] + bbb[1]*freq + bbb[2]*freq2 + bbb[3]*freq3 + bbb[4]*freq4 + bbb[5]*freq5)*float(tmp_c)
     
-        airTempK = TATM
-        return airTempK
+        return air_temp_k
     
-    def corrected_opacity(self, zenith_opacities, elevation):
-        """Compute elevation-corrected opacities.
-        
-        Keywords:
-        zenith_opacities -- opacity based only on time
-        elevation -- (float) elevation angle of integration or scan
-    
-        """
-        n_atmos = self.natm(elevation)
-    
-        corrected_opacities = [math.exp(-xx/n_atmos) for xx in zenith_opacities]
-    
-        return corrected_opacities
-
-    def fractional_shift(self, spectra, delta_f):
-        """Returns gain factor set for a given beam and polarization
-    
-        Keywords:
-        spectra -- (numpy 2d array) of one or more spectra to be shifted
-        delta_f -- (float) the channel amount to shift the spectra (< 1)
-    
-        Returns:
-        (numpy 2d array) of shifted spectra
-    
-        """
-        N_CHANNELS_start = spectra.shape[-1]
-        N_CHANNELS_doubled = N_CHANNELS_start*2
-    
-        # double the size of the array
-        spectra = np.append(spectra, np.zeros(shape = spectra.shape), axis = 1)
-    
-        # shift the spectra to the center, with zeros padding either end
-        ROLLDISTANCE = N_CHANNELS_start/2
-        spectra = np.roll(np.array(spectra), ROLLDISTANCE)
-    
-        # pad out spectrum on both sides with end values
-        for idx, _row in enumerate(spectra):
-            spectra[idx][:ROLLDISTANCE] = spectra[idx][ROLLDISTANCE]
-            spectra[idx][-ROLLDISTANCE:] = spectra[idx][-ROLLDISTANCE-1]
-    
-        # inverse fft of spetrum, 0
-        ifft = np.fft.ifft(spectra)
-        real = ifft.real
-        imag = ifft.imag
-    
-        # eqn. 9
-        delta_p = 2.0 * np.pi * delta_f / N_CHANNELS_doubled
-    
-        # eqn. 7
-        amplitude = np.sqrt(real**2 + imag**2)
-    
-        # eqn. 8
-        phase = np.arctan2(imag, real)
-    
-        # eqn. 10
-        kk = [np.mod(ii, N_CHANNELS_doubled/2) for ii in range(N_CHANNELS_doubled)]
-        kk = np.array(kk, dtype = float)
-    
-        ## eqn. 11
-        amplitude = amplitude * (1 - (kk/N_CHANNELS_doubled)**2)
-    
-        ## eqn. 12
-        phase = phase + delta_p * kk
-    
-        # eqn. 13
-        real = amplitude * np.cos(phase)
-    
-        # eqn. 14
-        imag = amplitude * np.sin(phase)
-    
-        # finally fft to get back to spectra
-        shifted = np.fft.fft(real+imag*1j)
-    
-        shifted = np.roll(shifted,-ROLLDISTANCE)
-        shifted = shifted[:,:N_CHANNELS_start]
-    
-        return abs(shifted)
-
-    def zenith_opacity(self, coeffs, freqGHz):
+    def zenith_opacity(self, coeffs, freq_ghz):
         """Interpolate low and high opacities across a vector of frequencies
     
         Keywords:
         coeffs -- (list) opacitiy coefficients from archived text file, produced by
             GBT weather prediction code
-        freqGHz -- frequency value in GHz
+        freq_ghz -- frequency value in GHz
     
         Returns:
         A zenith opacity at requested frequency.
         
         """
         # interpolate between the coefficients based on time for a given frequency
-        def interpolated_zenith_opacity(freq):
+        def _interpolated_zenith_opacity(freq):
             # for frequencies < 2 GHz, return a default zenith opacity
             if np.array(freq).mean() < 2:
                 result = np.ones(np.array(freq).shape)*self.UNDER_2GHZ_ZENITH_TAU
@@ -336,66 +248,59 @@ class Calibration:
                     result = term
             return result
     
-        zenith_opacity = interpolated_zenith_opacity(freqGHz)
+        zenith_opacity = _interpolated_zenith_opacity(freq_ghz)
         return zenith_opacity
         
     # -------------- Functional methods: depend on underlying methods
-    
-    # same as Tsys for the reference scan
-    ################################################## DEPRECATED
-    def Tref(self, Tcal, calON, calOFF): # eqn. (4) in PS spec
-        Cref = self.Cavg(calON, calOFF)
-        Ccal = self.Cdiff(calON, calOFF)
-        return Tcal*(Cref/Ccal)
-    
-    def idlTsys80(self, tcal, calON, calOFF):
-        nchan = len(calOFF)
-        lo = int(.1*nchan)
-        hi = int(.9*nchan)
-        calOFF = (calOFF[lo:hi]).mean()
-        calON = (calON[lo:hi]).mean()
-        return tcal*(calOFF/(calON-calOFF))+tcal/2
+        
+    def tsys(self, tcal, cal_on, cal_off):
+        nchan = len(cal_off)
+        low = int(.1*nchan)
+        high = int(.9*nchan)
+        cal_off = (cal_off[low:high]).mean()
+        cal_on = (cal_on[low:high]).mean()
+        return tcal*(cal_off/(cal_on-cal_off))+tcal/2
 
-    def Ta(self, Tref, Csig, Cref):   # eqn. (5) in PS spec
-        Cref_smoothed = smoothing.boxcar(Cref, self.SMOOTHING_WINDOW)
-        result = Tref * ((Csig-Cref_smoothed)/Cref_smoothed)
+    def antenna_temp(self, tref, csig, cref):   # eqn. (5) in PS spec
+        cref_smoothed = smoothing.boxcar(cref, self.SMOOTHING_WINDOW)
+        result = tref * ((csig-cref_smoothed)/cref_smoothed)
         return result
     
-    def Ta_fs_one_state(self, sigrefState, sigid, refid):
+    def _ta_fs_one_state(self, sigref_state, sigid, refid):
 
 
 
 
-        sig = sigrefState[sigid]['TP']
+        sig = sigref_state[sigid]['TP']
 
 
 
-        ref = sigrefState[refid]['TP']
-        ref_calON  = sigrefState[refid]['calON']
-        ref_calOFF = sigrefState[refid]['calOFF']
+        ref = sigref_state[refid]['TP']
+        ref_cal_on  = sigref_state[refid]['cal_on']
+        ref_cal_off = sigref_state[refid]['cal_off']
         
-        tcal = ref_calOFF['TCAL']
+        tcal = ref_cal_off['TCAL']
         
-        tsys = self.idlTsys80(tcal,  ref_calON['DATA'],  ref_calOFF['DATA'])
+        tsys = self.tsys(tcal,  ref_cal_on['DATA'],  ref_cal_off['DATA'])
 
 
-        ta = self.Ta(tsys, sig, ref )
+        antenna_temp = self.antenna_temp(tsys, sig, ref )
         
-        return ta, tsys
+        return antenna_temp, tsys
         
-    def Ta_fs(self, sigrefState):
+    def ta_fs(self, sigref_state):
         
-        ta0, tsys0 = self.Ta_fs_one_state(sigrefState, 0, 1)
-        ta1, tsys1 = self.Ta_fs_one_state(sigrefState, 1, 0)
+        ta0, tsys0 = self._ta_fs_one_state(sigref_state, 0, 1)
+        ta1, tsys1 = self._ta_fs_one_state(sigref_state, 1, 0)
 
         tsys = np.mean((tsys0, tsys1))
         #print 'Tsys in fs integration', tsys
                                                         
         # shift in frequency
-        sig_centerfreq = sigrefState[0]['calOFF']['OBSFREQ']
-        ref_centerfreq = sigrefState[1]['calOFF']['OBSFREQ']
+        sig_centerfreq = sigref_state[0]['cal_off']['OBSFREQ']
+        ref_centerfreq = sigref_state[1]['cal_off']['OBSFREQ']
 
-        sig_delta = sigrefState[0]['calOFF']['CDELT1']
+        sig_delta = sigref_state[0]['cal_off']['CDELT1']
         channel_shift = -((sig_centerfreq-ref_centerfreq)/sig_delta)
 
         # do integer channel shift to second spectrum
@@ -408,36 +313,36 @@ class Calibration:
 
         # do fractional channel shift
         fractional_shift = channel_shift - int(channel_shift)
-        #doMessage(logger, msg.DBG,'Fractional channel shift is', fractional_shift)
-        xp = range(len(ta1_ishifted))
-        yp = ta1_ishifted
-        xx = xp-fractional_shift
+        #doMessage(logger, msg.DBG, 'Fractional channel shift is', fractional_shift)
+        xxp = range(len(ta1_ishifted))
+        yyp = ta1_ishifted
+        xxx = xxp-fractional_shift
 
-        yy = np.interp(xx, xp, yp)
+        yyy = np.interp(xxx, xxp, yyp)
         
         # average shifted spectra
-        ta = (ta0+yy)/2.
+        ta = (ta0+yyy)/2.
               
         return ta, tsys
                 
     # eqn. (13) in PS spec
-    def TaStar(self, Tsrc, beam_scaling, opacity, spillover):
+    def ta_star(self, tsrc, beam_scaling, opacity, spillover):
         # opacity is corrected for elevation
-        return Tsrc*((beam_scaling*(math.e**opacity))/spillover)
+        return tsrc*((beam_scaling*(math.e**opacity))/spillover)
         
-    def jansky(self, TaStar, aperture_efficiency): # eqn. (16) in PS spec
-        return TaStar/(2.85*aperture_efficiency)
+    def jansky(self, ta_star, aperture_efficiency): # eqn. (16) in PS spec
+        return ta_star/(2.85*aperture_efficiency)
     
     
     # eqn. (6) and eqn. (7) is PS spec
     def interpolate_by_time(self, reference1, reference2,
-                   firstRef_timestamp, secondRef_timestamp,
+                   first_ref_timestamp, second_ref_timestamp,
                    integration_timestamp):
         
-        time_btwn_ref_scans = secondRef_timestamp-firstRef_timestamp
-        a1 =  (secondRef_timestamp-integration_timestamp) / time_btwn_ref_scans
-        a2 =  (integration_timestamp-firstRef_timestamp)  / time_btwn_ref_scans
-        return a1*reference1 + a2*reference2
+        time_btwn_ref_scans = second_ref_timestamp-first_ref_timestamp
+        aa1 =  (second_ref_timestamp-integration_timestamp) / time_btwn_ref_scans
+        aa2 =  (integration_timestamp-first_ref_timestamp)  / time_btwn_ref_scans
+        return aa1*reference1 + aa2*reference2
 
     def getReferenceAverage(self, crefs, trefs, exposures, timestamps, tambients, elevations):
         
@@ -450,18 +355,18 @@ class Calibration:
         elevations = np.array(elevations)        
 
         weights = exposures / trefs**2
-        avgTref = np.average(trefs, axis = 0, weights = weights)
+        avg_tref = np.average(trefs, axis = 0, weights = weights)
         
-        avgTref80 = avgTref.mean(0) # single value for mid 80% of band
-        avgCref = np.average(crefs, axis = 0, weights = weights)
+        avg_tref80 = avg_tref.mean(0) # single value for mid 80% of band
+        avg_cref = np.average(crefs, axis = 0, weights = weights)
         
-        avgTimestamp = timestamps.mean()
-        avgTambient = tambients.mean() # do not know if this should be weighted
-        avgElevation = elevations.mean() # do not know if this should be weighted
+        avg_timestamp = timestamps.mean()
+        avg_tambient = tambients.mean() # do not know if this should be weighted
+        avg_elevation = elevations.mean() # do not know if this should be weighted
         
-        return avgCref, avgTref80, avgTimestamp, avgTambient, avgElevation
+        return avg_cref, avg_tref80, avg_timestamp, avg_tambient, avg_elevation
 
-    def tsky(self, ambient_temp_k, freqHz, tau):
+    def tsky(self, ambient_temp_k, freq_hz, tau):
         """Determine the sky temperature contribution at a frequency
         
         Keywords:
@@ -473,7 +378,7 @@ class Calibration:
         
         """
         ambient_temp_c = ambient_temp_k-273.15 # convert to celcius
-        airTemp = self.tatm(freqHz, ambient_temp_c)
+        airTemp = self._tatm(freq_hz, ambient_temp_c)
         
         tsky = airTemp * (1-math.e**(-tau))
         

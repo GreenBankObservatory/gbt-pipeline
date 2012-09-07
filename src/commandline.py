@@ -23,7 +23,6 @@
 # $Id$
 
 import argparse
-from Pipeutils import Pipeutils
 
 class myparser(argparse.ArgumentParser):
     def convert_arg_line_to_args(self, arg_line):
@@ -44,8 +43,6 @@ class CommandLine:
     """
     def __init__(self):
 
-        self.pu = Pipeutils()
-        
         self.parser = myparser(fromfile_prefix_chars='@',
             description='Calibrate spectra and create maps from GBT observations.',
             formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -97,8 +94,6 @@ class CommandLine:
                         help="aperture efficiency for freq.=0 (eta-A)", metavar="N")
         calibration.add_argument("--main-beam-efficiency",dest="mainbeam_eff", default=.91, type=float,
                         help="main beam efficiency for freq.=0 (eta-B)", metavar="N")
-        calibration.add_argument("--gain-coefficients",dest="gaincoeffs", default=".91,.00434,-5.22e-5",
-                        help="comma-separated gain coefficients", metavar="N")
         calibration.add_argument("--gain-factors",dest="gainfactors", default=1,
                         help="comma-separated gain factors for each feed", metavar="G[,G]")
         calibration.add_argument("-t", "--zenith-opacity",dest="zenithtau", type=float,
@@ -116,6 +111,81 @@ class CommandLine:
         other = self.parser.add_argument_group('Other')
         other.add_argument("--max-processors",dest="process_max", default=False, type=int,
                         help="optional max number of processors, to reduce resource usage", metavar="N")        
+
+    def _parse_range(self, rangelist):
+        """Given a range string, produce a list of integers
+    
+        Inclusive and exclusive integers are both possible.
+    
+        The range string 1:4,6:8,10 becomes 1,2,3,4,6,7,8,10
+        The range string 1:4,-2 becomes 1,3,4
+    
+        Keywords:
+        rangelist -- a range string with inclusive ranges and exclusive integers
+    
+        Returns:
+        a (list) of integers
+    
+        >>> parserange('1:4,6:8,10')
+        ['1', '10', '2', '3', '4', '6', '7', '8']
+        >>> parserange('1:4,-2')
+        ['1', '3', '4']
+    
+        """
+    
+        oklist = set([])
+        excludelist = set([])
+    
+        rangelist = rangelist.replace(' ','')
+        rangelist = rangelist.split(',')
+    
+        # item is single value or range
+        for item in rangelist:
+            item = item.split(':')
+    
+            # change to ints
+            try:
+                int_item = [ int(ii) for ii in item ]
+            except(ValueError):
+                print repr(':'.join(item)), 'not convertable to integer'
+                raise
+    
+            if 1 == len(int_item):
+                # single inclusive or exclusive item
+                if int_item[0] < 0:
+                    excludelist.add(abs(int_item[0]))
+                else:
+                    oklist.add(int_item[0])
+    
+            elif 2 == len(int_item):
+                # range
+                if int_item[0] <= int_item[1]:
+                    if int_item[0] < 0:
+                        print item[0], ',', item[1], 'must start with a non-negative number'
+                        return []
+    
+                    if int_item[0]==int_item[1]:
+                        thisrange = [int_item[0]]
+                    else:
+                        thisrange = range(int_item[0], int_item[1]+1)
+    
+                    for ii in thisrange:
+                        oklist.add(ii)
+                else:
+                    print item[0], ',', item[1], 'needs to be in increasing order'
+                    raise
+            else:
+                print item, 'has more than 2 values'
+    
+        for exitem in excludelist:
+            try:
+                oklist.remove(exitem)
+            except(KeyError):
+                oklist = [ str(item) for item in oklist ]
+                print 'ERROR: excluded item', exitem, 'does not exist in inclusive range'
+                raise
+
+        return sorted(list(oklist))
 
     def read(self,sys):
         """Read and parse the command line arguments
@@ -140,23 +210,21 @@ class CommandLine:
         try:
             if 1 != opt.gainfactors:
                 opt.gainfactors = [ float(xx) for xx in opt.gainfactors.split(',') ]
-            if opt.gaincoeffs:
-                opt.gaincoeffs = self.pu.string_to_floats(opt.gaincoeffs)
     
             if opt.feed:
-                opt.feed = self.pu.parserange(opt.feed)
+                opt.feed = self._parse_range(opt.feed)
                 
             if opt.pol:
-                opt.pol = self.pu.parserange(opt.pol)
+                opt.pol = self._parse_range(opt.pol)
     
             if opt.window:
-                opt.window = self.pu.parserange(opt.window)
+                opt.window = self._parse_range(opt.window)
     
             if opt.mapscans:
-                opt.mapscans = self.pu.parserange(opt.mapscans)
+                opt.mapscans = self._parse_range(opt.mapscans)
                 
             if opt.refscans:
-                opt.refscans = self.pu.parserange(opt.refscans)
+                opt.refscans = self._parse_range(opt.refscans)
                 
         except ValueError:
             print 'ERROR: there is a malformed parameter option'

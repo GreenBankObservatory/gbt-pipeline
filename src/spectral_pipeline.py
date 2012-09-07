@@ -276,20 +276,20 @@ if __name__ == "__main__":
                 RefData = mask_data(RefDataPols, {'CRVAL4':pol})
                 
                 # pyfits data object for 
-                # calON and calOFF sets os integrations for Target
+                # cal_on and cal_off sets os integrations for Target
                 TargOn = mask_data(TargData,{ 'CAL':'T' })
                 TargOff = mask_data(TargData,{ 'CAL':'F' })
-                # spectrum for each integration averaged calON and calOFF
+                # spectrum for each integration averaged cal_on and cal_off
                 # for Target
                 TargOnData = smooth_hanning(TargOn['DATA'],args.hanning_win)
                 TargOffData = smooth_hanning(TargOff['DATA'],args.hanning_win)
                 Targ = (TargOnData+TargOffData)/2.
 
                 # pyfits data object for 
-                # calON and calOFF sets os integrations for Reference
+                # cal_on and cal_off sets os integrations for Reference
                 RefOn = mask_data(RefData,{ 'CAL':'T' })
                 RefOff = mask_data(RefData,{ 'CAL':'F' })
-                # spectrum for each integration averaged calON and calOFF
+                # spectrum for each integration averaged cal_on and cal_off
                 # for Reference
                 RefOnData = smooth_hanning(RefOn['DATA'],args.hanning_win)
                 RefOffData = smooth_hanning(RefOff['DATA'],args.hanning_win)
