@@ -39,7 +39,7 @@ class Weather:
         self.number_of_opacity_files = None
         self.opacity_coeffs = None
         
-    def retrieve_opacity_coefficients(self, opacity_coefficients_filename):
+    def _retrieve_opacity_coefficients(self, opacity_coefficients_filename):
         """Return opacities (taus) derived from a list of coeffients
         
         These coefficients are produced from Ron Madalenna's getForecastValues script
@@ -123,16 +123,17 @@ class Weather:
                 opacity_file_timestamp.append(int(date.split('.')[0]))
             opacity_file_starttime = opacity_file_timestamp[0]
             opacity_file_stoptime = opacity_file_timestamp[1]
-        
+
             # set tooearly = True when integration_mjd_timestamp is older than available ranges
             if idx == 0 and integration_mjd_timestamp < opacity_file_starttime:
                 tooearly = True
                 break
         
-            if integration_mjd_timestamp >= opacity_file_starttime and integration_mjd_timestamp < opacity_file_stoptime:
+            if integration_mjd_timestamp >= opacity_file_starttime \
+            and integration_mjd_timestamp < opacity_file_stoptime:
                 opacity_coefficients_filename = opacity_candidate_file
                 break
-        
+
         if not opacity_coefficients_filename:
             if tooearly:
                 #doMessage(logger, msg.ERR, 'ERROR: Date is too early for opacities.')
@@ -149,22 +150,40 @@ class Weather:
         # opacities coefficients filename
         if opacity_coefficients_filename and os.path.exists(opacity_coefficients_filename):
             #doMessage(logger, msg.DBG, 'Using coefficients from', opacity_coefficients_filename)
-            self.opacity_coeffs = self.retrieve_opacity_coefficients(opacity_coefficients_filename)
+            self.opacity_coeffs = self._retrieve_opacity_coefficients(opacity_coefficients_filename)
         else:
             #doMessage(logger, msg.WARN, 'WARNING: No opacity coefficients file')
             print 'WARNING: No opacity coefficients file'
             return False
 
         for coeffs_line in self.opacity_coeffs:
-            if integration_mjd_timestamp > coeffs_line[0]:
-                if (freq_ghz >= 2 and freq_ghz <= 22):
-                    coeffs = coeffs_line[1]
-                elif (freq_ghz > 22 and freq_ghz <= 50):
-                    coeffs = coeffs_line[2]
-                elif (freq_ghz > 50 and freq_ghz <= 116):
-                    coeffs = coeffs_line[3]
 
-        zenith_opacity = self.cal.zenith_opacity(coeffs, freq_ghz)
+            if integration_mjd_timestamp >= coeffs_line[0]:
+                prev_time = coeffs_line[0]
+                if (freq_ghz >= 2 and freq_ghz <= 22):
+                    prev_coeffs = coeffs_line[1]
+                elif (freq_ghz > 22 and freq_ghz <= 50):
+                    prev_coeffs = coeffs_line[2]
+                elif (freq_ghz > 50 and freq_ghz <= 116):
+                    prev_coeffs = coeffs_line[3]
+            elif integration_mjd_timestamp < coeffs_line[0]:
+                next_time = coeffs_line[0]
+                if (freq_ghz >= 2 and freq_ghz <= 22):
+                    next_coeffs = coeffs_line[1]
+                elif (freq_ghz > 22 and freq_ghz <= 50):
+                    next_coeffs = coeffs_line[2]
+                elif (freq_ghz > 50 and freq_ghz <= 116):
+                    next_coeffs = coeffs_line[3]
+                break
+
+        time_corrected_coeffs = []
+        for xx in zip(prev_coeffs, next_coeffs):
+            new_coeff = self.cal.interpolate_by_time(xx[0], xx[1],
+                                                     prev_time, next_time,
+                                                     integration_mjd_timestamp)
+            time_corrected_coeffs.append(new_coeff)
+        
+        zenith_opacity = self.cal.zenith_opacity(time_corrected_coeffs, freq_ghz)
         self.last_zenith_opacity = zenith_opacity
         
         return zenith_opacity
