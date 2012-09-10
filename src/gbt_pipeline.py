@@ -32,6 +32,7 @@ from PipeLogging import Logging
 
 
 from blessings import Terminal
+import fitsio
 
 import multiprocessing
 import sys
@@ -145,7 +146,7 @@ def doImaging(log, terminal, cl_params, pipe):
             feed = str(pp[2])
             
             imfiles = glob.glob('*' + scanrange + '*window' + win + '_feed' +  feed + '*' + '.fits')
-            print 'IMFILE',','.join(imfiles)
+            print 'IMFILE',', '.join(imfiles)
             
             # set the idlToSdfits output file name
             aipsinname = '_'.join(imfiles[0].split('_')[:-1])+'.sdf'
@@ -157,8 +158,15 @@ def doImaging(log, terminal, cl_params, pipe):
             if bool(cl_params.average):
                 options = options + ' -a ' + str(cl_params.average)
         
+            ff = fitsio.FITS(imfiles[0])
+            nchans = int([xxx['tdim'] for xxx in ff[1].info['colinfo'] if xxx['name']=='DATA'][0][0])
+            ff.close()
             if cl_params.channels:
                 options = options + ' -c ' + str(cl_params.channels) + ' '
+            elif nchans:
+                chan_min = int(nchans*.02) # start at 2% of nchan
+                chan_max = int(nchans*.98) # end at 98% of nchans
+                options = options + ' -c ' + str(chan_min) + ':' + str(chan_max) + ' '
         
             if not cl_params.display_idlToSdfits:
                 options = options + ' -l '

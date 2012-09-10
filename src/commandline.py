@@ -100,7 +100,7 @@ class CommandLine:
                         help="zenith opacity value (tau-z)", metavar="N", default=None)
 
         output = self.parser.add_argument_group('Output')
-        output.add_argument("-v", "--verbose", dest="verbose", default=0,
+        output.add_argument("-v", "--verbose", dest="verbose", default=4,
                         help="set the verbosity level-- 0-1:none, "
                              "2:errors only, 3:+warnings, "
                              "4:+user info, 5:+debug", metavar="N", type=int)

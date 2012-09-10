@@ -42,20 +42,17 @@ class Calibration:
         
         # set calibration constants
         self.BB = .0132  # Ruze equation parameter
-        self.UNDER_2GHZ_ZENITH_TAU = 0.008
+        self.UNDER_2GHZ_TAU_0 = 0.008
         self.SMOOTHING_WINDOW = 3
 
     # ------------- Unit methods: do not depend on any other pipeline methods
 
-    # eqn. (2) in PS spec as "cref"
-    # part of eqn. (5) in PS spec as "csig"
     def cavg(self, cal_on, cal_off):  
         return np.mean((cal_on, cal_off), axis = 0)
 
     def tsky_corr(self, tsky_sig, tsky_ref, spillover):
         return spillover*(tsky_sig-tsky_ref)
     
-    # eqn. (11) in PS spec
     def aperture_efficiency(self, reference_eta_a, freq_hz):
         """Determine aperture efficiency
         
@@ -135,7 +132,7 @@ class Calibration:
     
         if (el_deg < 39.):
             n_atmos = -0.023437 + \
-                (1.0140 / math.sin( DEGREE*(el_deg + 5.1774 / (el_deg + 3.3543))))
+            (1.0140 / math.sin( DEGREE*(el_deg + 5.1774 / (el_deg + 3.3543))))
         else:
             n_atmos = math.sin(DEGREE*el_deg)
     
@@ -162,8 +159,8 @@ class Calibration:
         weather data and which is good down to elev = 1 deg:
     
             if (elev LT 39) then begin
-                A = -0.023437  + 1.0140 / sin( (!pi/180.)*(elev + 5.1774 / (elev
-        + 3.3543) ) )
+                A = -0.023437  + 1.0140 / sin( (!pi/180.)
+                     * (elev + 5.1774 / (elev + 3.3543) ) )
             else begin
                 A = sin(!pi*elev/180.)
             endif 
@@ -218,8 +215,10 @@ class Calibration:
         freq4 = freq3*freq
         freq5 = freq4*freq
     
-        air_temp_k = aaa[0] + aaa[1]*freq + aaa[2]*freq2 +aaa[3]*freq3 + aaa[4]*freq4 + aaa[5]*freq5
-        air_temp_k = air_temp_k + (bbb[0] + bbb[1]*freq + bbb[2]*freq2 + bbb[3]*freq3 + bbb[4]*freq4 + bbb[5]*freq5)*float(tmp_c)
+        air_temp_k = aaa[0] + aaa[1]*freq + aaa[2]*freq2 +aaa[3]*freq3 \
+                     + aaa[4]*freq4 + aaa[5]*freq5
+        air_temp_k = air_temp_k + (bbb[0] + bbb[1]*freq + bbb[2]*freq2 \
+                     + bbb[3]*freq3 + bbb[4]*freq4 + bbb[5]*freq5)*float(tmp_c)
     
         return air_temp_k
     
@@ -227,19 +226,20 @@ class Calibration:
         """Interpolate low and high opacities across a vector of frequencies
     
         Keywords:
-        coeffs -- (list) opacitiy coefficients from archived text file, produced by
-            GBT weather prediction code
+        coeffs -- (list) opacitiy coefficients from archived text file,
+                    produced by GBT weather prediction code
         freq_ghz -- frequency value in GHz
     
         Returns:
         A zenith opacity at requested frequency.
         
         """
-        # interpolate between the coefficients based on time for a given frequency
+        # interpolate between the coefficients based on time for a
+        # given frequency
         def _interpolated_zenith_opacity(freq):
             # for frequencies < 2 GHz, return a default zenith opacity
             if np.array(freq).mean() < 2:
-                result = np.ones(np.array(freq).shape)*self.UNDER_2GHZ_ZENITH_TAU
+                result = np.ones(np.array(freq).shape)*self.UNDER_2GHZ_TAU_0
                 return result
             result = 0
             for idx, term in enumerate(coeffs):
@@ -251,8 +251,6 @@ class Calibration:
         zenith_opacity = _interpolated_zenith_opacity(freq_ghz)
         return zenith_opacity
         
-    # -------------- Functional methods: depend on underlying methods
-        
     def tsys(self, tcal, cal_on, cal_off):
         nchan = len(cal_off)
         low = int(.1*nchan)
@@ -261,14 +259,12 @@ class Calibration:
         cal_on = (cal_on[low:high]).mean()
         return tcal*(cal_off/(cal_on-cal_off))+tcal/2
 
-    def antenna_temp(self, tref, csig, cref):   # eqn. (5) in PS spec
+    def antenna_temp(self, tref, csig, cref):
         cref_smoothed = smoothing.boxcar(cref, self.SMOOTHING_WINDOW)
         result = tref * ((csig-cref_smoothed)/cref_smoothed)
         return result
     
     def _ta_fs_one_state(self, sigref_state, sigid, refid):
-
-
 
 
         sig = sigref_state[sigid]['TP']
@@ -313,7 +309,8 @@ class Calibration:
 
         # do fractional channel shift
         fractional_shift = channel_shift - int(channel_shift)
-        #doMessage(logger, msg.DBG, 'Fractional channel shift is', fractional_shift)
+        #doMessage(logger, msg.DBG, 'Fractional channel shift is',
+        #          fractional_shift)
         xxp = range(len(ta1_ishifted))
         yyp = ta1_ishifted
         xxx = xxp-fractional_shift
@@ -325,26 +322,24 @@ class Calibration:
               
         return ta, tsys
                 
-    # eqn. (13) in PS spec
     def ta_star(self, tsrc, beam_scaling, opacity, spillover):
         # opacity is corrected for elevation
         return tsrc*((beam_scaling*(math.e**opacity))/spillover)
         
-    def jansky(self, ta_star, aperture_efficiency): # eqn. (16) in PS spec
+    def jansky(self, ta_star, aperture_efficiency):
         return ta_star/(2.85*aperture_efficiency)
     
-    
-    # eqn. (6) and eqn. (7) is PS spec
     def interpolate_by_time(self, reference1, reference2,
                    first_ref_timestamp, second_ref_timestamp,
                    integration_timestamp):
         
         time_btwn_ref_scans = second_ref_timestamp-first_ref_timestamp
-        aa1 =  (second_ref_timestamp-integration_timestamp) / time_btwn_ref_scans
-        aa2 =  (integration_timestamp-first_ref_timestamp)  / time_btwn_ref_scans
+        aa1 = (second_ref_timestamp-integration_timestamp) / time_btwn_ref_scans
+        aa2 = (integration_timestamp-first_ref_timestamp) / time_btwn_ref_scans
         return aa1*reference1 + aa2*reference2
 
-    def getReferenceAverage(self, crefs, trefs, exposures, timestamps, tambients, elevations):
+    def getReferenceAverage(self, crefs, trefs, exposures, timestamps,
+                            tambients, elevations):
         
         # convert to numpy arrays
         crefs = np.array(crefs)
@@ -361,8 +356,8 @@ class Calibration:
         avg_cref = np.average(crefs, axis = 0, weights = weights)
         
         avg_timestamp = timestamps.mean()
-        avg_tambient = tambients.mean() # do not know if this should be weighted
-        avg_elevation = elevations.mean() # do not know if this should be weighted
+        avg_tambient = tambients.mean()
+        avg_elevation = elevations.mean()
         
         return avg_cref, avg_tref80, avg_timestamp, avg_tambient, avg_elevation
 
