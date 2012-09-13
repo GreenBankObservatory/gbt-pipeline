@@ -36,7 +36,7 @@ import numpy as np
 import os
 import sys
 
-CREATE_PLOTS = True
+CREATE_PLOTS = False
 
 if CREATE_PLOTS:
     import pylab

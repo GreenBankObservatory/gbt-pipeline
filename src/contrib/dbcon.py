@@ -64,8 +64,8 @@ if argc < 3:
         
 AIPS.userno=int(sys.argv[1])    # retrieve AIPS pipeline user number
 myfiles = sys.argv[2:]          # make a list of input files
-mydisk=2                        # choose a good default work disk
-baddisk=1                       # list a disk to avoid (0==no avoidance)
+mydisk=1                        # choose a good default work disk
+baddisk=0                       # list a disk to avoid (0==no avoidance)
 
 AIPSCat().zap()                 # empty the catalog
 

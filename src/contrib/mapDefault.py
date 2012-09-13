@@ -95,8 +95,8 @@ if argc > 7:
     inRefFreqHz = float( sys.argv[7])*1.E6  # convert to Hz
 else:
     inRefFreqHz = 0
-mydisk=2                        # choose a good default work disk
-baddisk=1                       # list a disk to avoid (0==no avoidance)
+mydisk=1                        # choose a good default work disk
+baddisk=0                       # list a disk to avoid (0==no avoidance)
 
 sdgrd=AIPSTask('sdgrd')
 fittp=AIPSTask('fittp')

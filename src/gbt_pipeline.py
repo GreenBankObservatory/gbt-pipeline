@@ -72,18 +72,23 @@ def calibrateWindowFeedPol(log, cl_params, window, feed, pol, pipe):
             try:
                 pipe.row_list.get(cl_params.refscans[1], feed, window, pol)
             except:
-                log.doMessage('ERR', 'missing 2nd reference scan #', cl_params.refscans[1],'for feed', feed,'window', window,'polarization', pol)
+                log.doMessage('ERR', 'missing 2nd reference scan #',
+                              cl_params.refscans[1], 'for feed', feed,
+                              'window', window, 'polarization', pol)
                 return
             
             refSpectrum2, refTsys2, refTimestamp2, refTambient2, refElevation2 = \
-                pipe.getReference(cl_params.refscans[1], feed, window, pol)
+                    pipe.getReference(cl_params.refscans[1], feed, window, pol)
 
     # -------------- calibrate signal scans
     if 1 != cl_params.gainfactors:
         try:
             beam_scaling = cl_params.gainfactors[feed+pol]
         except IndexError:
-            log.doMessage('ERR', 'ERORR: can not get a gainfactor for feed and polarization.', feed,'\n  You need to supply a factor for each feed and\n  polarization for the receiver.')
+            log.doMessage('ERR', 'ERORR: can not get a gainfactor for feed '
+                          'and polarization.', feed,'\n  You need to supply a '
+                          'factor for each feed and\n  polarization for the '
+                          'receiver.')
     else:
         beam_scaling = cl_params.gainfactors
     

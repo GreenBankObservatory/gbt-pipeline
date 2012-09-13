@@ -35,7 +35,10 @@ class Integration:
             return self.pu.masked_array(self.data[key][0])
         else:
             # strip leading and trailing whitespace
-            return self.data[key][0].strip()
+            return_val = self.data[key][0]
+            if type('') == type(return_val):
+                return_val.strip()
+            return return_val
     
     def __setitem__(self, key, value):
         self.data[key] = value
