@@ -255,7 +255,7 @@ class MappingPipeline:
 
         return obsfreqHz
 
-    def getReferenceTsky(self, feed, window, pol, crefTime1, refTambient1, refElevation1, \
+    def getReferenceTsky(self, feed, window, pol, crefTime1, refTambient1, refElevation1,
                          crefTime2, refTambient2, refElevation2):
         
         multiple_reference_scans_for_tsky = self.multi_tskys(crefTime2, refTambient2, refElevation2)
@@ -306,7 +306,7 @@ class MappingPipeline:
             
         return rows2write
         
-    def calibrate_fs_sdfits_integrations(self, feed, window, pol, \
+    def calibrate_fs_sdfits_integrations(self, feed, window, pol,
                                             beam_scaling):
 
         dtype = self.get_dtype(feed, window, pol)
@@ -347,7 +347,7 @@ class MappingPipeline:
                 
                 output_data = np.zeros(rows2write, dtype = dtype)
                 
-                sigrefState = [{'cal_on':None, 'cal_off':None, 'TP':None}, \
+                sigrefState = [{'cal_on':None, 'cal_off':None, 'TP':None},
                                {'cal_on':None, 'cal_off':None, 'TP':None}]
                
                 # now start at the beginning and calibrate all the integrations
@@ -376,9 +376,9 @@ class MappingPipeline:
 
                         # noise diode is being fired during signal integrations
                         sigrefState[0]['TP'] = \
-                            self.cal.cavg(sigrefState[0]['cal_on']['DATA'], sigrefState[0]['cal_off']['DATA'])
+                            self.cal.total_power(sigrefState[0]['cal_on']['DATA'], sigrefState[0]['cal_off']['DATA'])
                         sigrefState[1]['TP'] = \
-                            self.cal.cavg(sigrefState[1]['cal_on']['DATA'], sigrefState[1]['cal_off']['DATA'])
+                            self.cal.total_power(sigrefState[1]['cal_on']['DATA'], sigrefState[1]['cal_off']['DATA'])
                                                     
                     else:
                         continue  # read more rows until we have all 4 states
@@ -422,7 +422,7 @@ class MappingPipeline:
     
                         
                     # used these, so clear for the next iteration
-                    sigrefState = [{'cal_on':None, 'cal_off':None, 'TP':None}, \
+                    sigrefState = [{'cal_on':None, 'cal_off':None, 'TP':None},
                                    {'cal_on':None, 'cal_off':None, 'TP':None}]
                     
                     # --------------------------------  write data out to FITS file
@@ -460,9 +460,9 @@ class MappingPipeline:
         #sys.stdout.write('\n')
         self.outfile.close()
         
-    def calibrate_ps_sdfits_integrations(self, feed, window, pol, \
-                          avgCref1, avgTref1, crefTime1, refTambient1, refElevation1, \
-                          avgCref2, avgTref2, crefTime2, refTambient2, refElevation2, \
+    def calibrate_ps_sdfits_integrations(self, feed, window, pol,
+                          avgCref1, avgTref1, crefTime1, refTambient1, refElevation1,
+                          avgCref2, avgTref2, crefTime2, refTambient2, refElevation2,
                           beam_scaling):
         
         dtype = self.get_dtype(feed, window, pol)
@@ -472,7 +472,7 @@ class MappingPipeline:
         #    self.log.doMessage( 'calibrating feed', feed, 'window', window, 'polarization', pol
 
         if self.cl.units != 'ta':
-            tsky1, tsky2 = self.getReferenceTsky(feed, window, pol, crefTime1, refTambient1, refElevation1, \
+            tsky1, tsky2 = self.getReferenceTsky(feed, window, pol, crefTime1, refTambient1, refElevation1,
                             crefTime2, refTambient2, refElevation2)
         
         for scan in self.cl.mapscans:
@@ -532,7 +532,7 @@ class MappingPipeline:
                     if cal_switching and cal_off and cal_on:
                         # noise diode is being fired during signal integrations
         
-                        csig = self.cal.cavg(cal_on['DATA'], cal_off['DATA'])
+                        csig = self.cal.total_power(cal_on['DATA'], cal_off['DATA'])
         
                         if CREATE_PLOTS:
                             exposure = cal_on['EXPOSURE']+cal_off['EXPOSURE']
@@ -607,9 +607,9 @@ class MappingPipeline:
                             tambient_current = cal_off['TAMBIENT']
                             tsky_current = self.cal.tsky(tambient_current, obsfreqHz, opacity_el)
                            
-                            tsky_corr = self.cal.tsky_corr(tsky_current, tsky_ref, self.SPILLOVER)
+                            tsky_correction = self.cal.tsky_correction(tsky_current, tsky_ref, self.SPILLOVER)
                                 
-                            tsrc = ta-tsky_corr
+                            tsrc = ta-tsky_correction
         
                             if CREATE_PLOTS:
                                 tsrcs.append(tsrc)
@@ -722,18 +722,18 @@ class MappingPipeline:
         # done with scans
         self.outfile.close()
         
-    def CalibrateSdfitsIntegrations(self, feed, window, pol, \
-                          avgCref1 = None, avgTref1 = None, crefTime1 = None, refTambient1 = None, refElevation1 = None, \
-                          avgCref2 = None, avgTref2 = None, crefTime2 = None, refTambient2 = None, refElevation2 = None, \
+    def CalibrateSdfitsIntegrations(self, feed, window, pol,
+                          avgCref1 = None, avgTref1 = None, crefTime1 = None, refTambient1 = None, refElevation1 = None,
+                          avgCref2 = None, avgTref2 = None, crefTime2 = None, refTambient2 = None, refElevation2 = None,
                           beam_scaling = None):
         
         if avgCref1 != None:
-            self.calibrate_ps_sdfits_integrations(feed, window, pol, \
-                          avgCref1, avgTref1, crefTime1, refTambient1, refElevation1, \
-                          avgCref2, avgTref2, crefTime2, refTambient2, refElevation2, \
+            self.calibrate_ps_sdfits_integrations(feed, window, pol,
+                          avgCref1, avgTref1, crefTime1, refTambient1, refElevation1,
+                          avgCref2, avgTref2, crefTime2, refTambient2, refElevation2,
                           beam_scaling)
         else:
-            self.calibrate_fs_sdfits_integrations(feed, window, pol, \
+            self.calibrate_fs_sdfits_integrations(feed, window, pol,
                           beam_scaling)
             
     def __del__(self):

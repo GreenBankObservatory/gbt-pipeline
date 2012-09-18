@@ -224,7 +224,7 @@ class SdFits:
         cal = Calibration()
         cal_ondata = cal_on['DATA']
         cal_offdata = cal_off['DATA']
-        cref = cal.cavg(cal_ondata, cal_offdata)
+        cref = cal.total_power(cal_ondata, cal_offdata)
         tcal = cal_off['TCAL']
         tref = cal.tsys( tcal, cal_ondata, cal_offdata )
         
@@ -247,4 +247,4 @@ class SdFits:
             #doMessage(logger,msg.ERR,'input file not recognized as a fits file.',\
             #  ' Please check the file extension and change to \'fits\' if necessary.')
             sys.exit(9)
-        
+

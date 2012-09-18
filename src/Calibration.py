@@ -47,10 +47,10 @@ class Calibration:
 
     # ------------- Unit methods: do not depend on any other pipeline methods
 
-    def cavg(self, cal_on, cal_off):  
+    def total_power(self, cal_on, cal_off):  
         return np.mean((cal_on, cal_off), axis = 0)
 
-    def tsky_corr(self, tsky_sig, tsky_ref, spillover):
+    def tsky_correction(self, tsky_sig, tsky_ref, spillover):
         return spillover*(tsky_sig-tsky_ref)
     
     def aperture_efficiency(self, reference_eta_a, freq_hz):
@@ -215,10 +215,10 @@ class Calibration:
         freq4 = freq3*freq
         freq5 = freq4*freq
     
-        air_temp_k = aaa[0] + aaa[1]*freq + aaa[2]*freq2 +aaa[3]*freq3 \
-                     + aaa[4]*freq4 + aaa[5]*freq5
-        air_temp_k = air_temp_k + (bbb[0] + bbb[1]*freq + bbb[2]*freq2 \
-                     + bbb[3]*freq3 + bbb[4]*freq4 + bbb[5]*freq5)*float(tmp_c)
+        air_temp_k = (aaa[0] + aaa[1]*freq + aaa[2]*freq2 +aaa[3]*freq3
+                     + aaa[4]*freq4 + aaa[5]*freq5)
+        air_temp_k = (air_temp_k + (bbb[0] + bbb[1]*freq + bbb[2]*freq2 
+                     + bbb[3]*freq3 + bbb[4]*freq4 + bbb[5]*freq5)*float(tmp_c))
     
         return air_temp_k
     
@@ -259,9 +259,9 @@ class Calibration:
         cal_on = (cal_on[low:high]).mean()
         return tcal*(cal_off/(cal_on-cal_off))+tcal/2
 
-    def antenna_temp(self, tref, csig, cref):
-        cref_smoothed = smoothing.boxcar(cref, self.SMOOTHING_WINDOW)
-        result = tref * ((csig-cref_smoothed)/cref_smoothed)
+    def antenna_temp(self, tsys, sig, ref):
+        ref_smoothed = smoothing.boxcar(ref, self.SMOOTHING_WINDOW)
+        result = tsys * ((sig-ref_smoothed)/ref_smoothed)
         return result
     
     def _ta_fs_one_state(self, sigref_state, sigid, refid):
@@ -322,9 +322,9 @@ class Calibration:
               
         return ta, tsys
                 
-    def ta_star(self, tsrc, beam_scaling, opacity, spillover):
+    def ta_star(self, antenna_temp, beam_scaling, opacity, spillover):
         # opacity is corrected for elevation
-        return tsrc*((beam_scaling*(math.e**opacity))/spillover)
+        return antenna_temp*((beam_scaling*(math.e**opacity))/spillover)
         
     def jansky(self, ta_star, aperture_efficiency):
         return ta_star/(2.85*aperture_efficiency)
