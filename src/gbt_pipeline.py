@@ -22,14 +22,13 @@
 
 # $Id$
 
-PARALLEL = True # useful to turn off when debugging
+PARALLEL = False # useful to turn off when debugging
 
 import commandline
 from MappingPipeline import MappingPipeline
 from SdFitsIO import SdFits
 from Imaging import Imaging
 from PipeLogging import Logging
-
 
 from blessings import Terminal
 
@@ -94,7 +93,6 @@ def calibrateWindowFeedPol(log, cl_params, window, feed, pol, pipe):
             beam_scaling )
    
 def process_map(log, cl_params, row_list):
-    
     feeds = cl_params.feed
     pols = cl_params.pol
     windows = cl_params.window
@@ -122,51 +120,52 @@ def process_map(log, cl_params, row_list):
         windows = row_list.windows()
     
     log.doMessage('INFO','{t.underline}Start calibration.{t.normal}'.format(t = term))
-    
+
+    allpipes = []
     for window in windows:
-        log.doMessage('INFO', 'Window', window,'started')
+        log.doMessage('INFO', 'Calibrating window {ww}.'.format(ww=window))
         sys.stdout.flush()
-        pipe = []
+        pipes = []
         for feed in feeds:
             for pol in pols:
                 try:
                     mp = MappingPipeline(log, cl_params, row_list, feed, window, pol, term)
                 except KeyError:
                     continue
-                pipe.append( (mp, window, feed, pol) )
+                pipes.append( (mp, window, feed, pol) )
+                allpipes.append( (mp, window, feed, pol) )
         
         pids = []
-        for idx, pp in enumerate(pipe):
-            window = pp[1]
-            feed = pp[2]
-            pol = pp[3]
+        #import pdb; pdb.set_trace()
+        for idx, pp in enumerate(pipes):
+            mp, window, feed, pol = pp
            
             # pipe output will be printed in order of window, feed
             if PARALLEL:
-                p = multiprocessing.Process(target = calibrateWindowFeedPol, args = (log, cl_params, window, feed, pol, pp[0], ))
+                p = multiprocessing.Process(target = calibrateWindowFeedPol, args = (log, cl_params, window, feed, pol, mp, ))
                 pids.append(p)
     
             else:
-                log.doMessage('INFO', 'Feed {feed} Pol {pol} started.'.format(feed = pp[2], pol = pp[3]))
-                calibrateWindowFeedPol(log, cl_params, window, feed, pol, pp[0])
-                log.doMessage('INFO', 'Feed {feed} Pol {pol} finished.'.format(feed = pp[2], pol = pp[3]))
+                log.doMessage('DBG', 'Feed {feed} Pol {pol} started.'.format(feed = feed, pol = pol))
+                calibrateWindowFeedPol(log, cl_params, window, feed, pol, mp)
+                log.doMessage('DBG', 'Feed {feed} Pol {pol} finished.'.format(feed = feed, pol = pol))
     
         if PARALLEL:
             for pp in pids:
                 pp.start()
-            for pp in pipe:
-                log.doMessage('INFO', 'Feed {feed} Pol {pol} started.'.format(feed = pp[2], pol = pp[3]))
+            for pp in pipes:
+                log.doMessage('DBG', 'Feed {feed} Pol {pol} started.'.format(feed = feed, pol = pol))
                 
         
             for pp in pids:
                 pp.join()
-            for pp in pipe:
-                log.doMessage('INFO', 'Feed {feed} Pol {pol} finished.'.format(feed = pp[2], pol = pp[3]))
+            for pp in pipes:
+                log.doMessage('DBG', 'Feed {feed} Pol {pol} finished.'.format(feed = feed, pol = pol))
                 
     if not cl_params.imagingoff:
 
         imag = Imaging()
-        imag.run(log, term, cl_params, pipe)
+        imag.run(log, term, cl_params, allpipes)
     
 
 def set_map_scans(cl_params, map_params):
@@ -206,7 +205,7 @@ def runPipeline(term):
         log.doMessage('INFO','Found', len(maps),'map(s).' )
         for map_number, map_params in enumerate(maps):
             cl_params = set_map_scans(cl_params, map_params)
-            log.doMessage('INFO','Processing map:', str(map_number),'of', len(maps) )
+            log.doMessage('INFO','Processing map:', str(map_number+1),'of', len(maps) )
             process_map(log, cl_params, row_list)
     else:
         process_map(log, cl_params, row_list)

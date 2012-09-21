@@ -246,5 +246,6 @@ class SdFits:
         else:
             #doMessage(logger,msg.ERR,'input file not recognized as a fits file.',\
             #  ' Please check the file extension and change to \'fits\' if necessary.')
+            print 'ERROR: Input file does not end with .fits:', fitsfile
             sys.exit(9)
 

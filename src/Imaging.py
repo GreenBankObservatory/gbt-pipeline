@@ -34,7 +34,7 @@ class Imaging:
     def __init__(self,):
         pass
 
-    def run(self, log, terminal, cl_params, pipe):
+    def run(self, log, terminal, cl_params, pipes):
         
         log.doMessage('INFO', '{t.underline}Start imaging.{t.normal}'.format(t = terminal) )
         
@@ -65,7 +65,8 @@ class Imaging:
             mapScript = TESTCONTRIBDIR + MAPSCRIPT
 
         # release version of pipeline
-        elif os.path.isfile(RELCONTRIBDIR + DBCONSCRIPT) and \
+        elif RELCONTRIBDIR in sys.path and \
+          os.path.isfile(RELCONTRIBDIR + DBCONSCRIPT) and \
           os.path.isfile(RELCONTRIBDIR + MAPSCRIPT):
 
             dbconScript = RELCONTRIBDIR + DBCONSCRIPT
@@ -76,20 +77,29 @@ class Imaging:
             sys.exit()
             
         windows = set([])
-        for pp in pipe:
-            windows.add(str(pp[1]))
-        
-        for _window in windows:
-            scanrange = str(cl_params.mapscans[0])+'_'+str(cl_params.mapscans[-1])
+        feeds = set([])
+        for pp in pipes:
+            mp, window, feed, pol = pp
+            windows.add(str(window))
+            feeds.add(str(feed))
 
+        scanrange = str(cl_params.mapscans[0])+'_'+str(cl_params.mapscans[-1])
+
+            
+        for win in windows:
+        
             aipsinputs = []
-            for pp in pipe:
-                win = str(pp[1])
-                feed = str(pp[2])
-                
+            
+            log.doMessage('INFO','Imaging window {win}'.format(win=win))    
+            
+            for feed in feeds:
+
                 imfiles = glob.glob('*' + scanrange + '*window' + win + '_feed' +  feed + '*' + '.fits')
-                print 'IMFILE',', '.join(imfiles)
                 
+                # if there are no files matching this window and feed
+                if not imfiles:
+                    continue
+                    
                 # set the idlToSdfits output file name
                 aipsinname = '_'.join(imfiles[0].split('_')[:-1])+'.sdf'
                 aipsinputs.append(aipsinname)
@@ -136,7 +146,7 @@ class Imaging:
             log.doMessage('DBG', doimg_cmd)
 
             p = subprocess.Popen(doimg_cmd.split(), stdout = subprocess.PIPE,\
-                                 stderr = subprocess.PIPE)
+                                stderr = subprocess.PIPE)
             try:
                 aips_stdout, aips_stderr = p.communicate()
             except: 
@@ -144,7 +154,7 @@ class Imaging:
                 sys.exit()
 
             log.doMessage('DBG', aips_stdout)
-            log.doMessage('ERR', aips_stderr)
+            log.doMessage('DBG', aips_stderr)
             log.doMessage('INFO','... (1/2) done')
 
             # define command to invoke mapping script
@@ -158,5 +168,5 @@ class Imaging:
 
             log.doMessage('DBG', aips_stdout)
             log.doMessage('DBG', aips_stderr)
-            log.doMessage('INFO','... (2/2) done')            
+            log.doMessage('INFO','... (2/2) done')
      

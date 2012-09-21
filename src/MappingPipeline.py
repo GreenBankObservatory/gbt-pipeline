@@ -167,7 +167,9 @@ class MappingPipeline:
         avgCref, avgTref, avgTimestamp, avgTambient, avgElevation = \
             self.cal.getReferenceAverage(crefs, trefs, exposures, timestamps, tambients, elevations)
         
-        self.log.doMessage('INFO', 'System Temperature for reference scan', scan, 'with feed', feed, 'window', window, 'pol', pol, ':', avgTref)
+        self.log.doMessage('INFO', 'Tsys for scan {scan} feed {feed} '
+                'window {window} pol {pol}: {tsys:.1f}'.format(scan=scan,
+                feed=feed, window=window, pol=pol, tsys=avgTref))
         
         return avgCref, avgTref, avgTimestamp, avgTambient, avgElevation
     
@@ -312,9 +314,6 @@ class MappingPipeline:
         dtype = self.get_dtype(feed, window, pol)
         if None == dtype:
             return
-        else:
-            self.log.doMessage('DBG', 'calibrating feed', feed, 'window', window, 'polarization', pol)
-            sys.stdout.flush()
         
         for scan in self.cl.mapscans:
 
@@ -340,15 +339,14 @@ class MappingPipeline:
             rowchunks = self.set_row_chunks(rows, self.BUFFER_SIZE)
 
             outputidx = 0
-            
             for chunk in rowchunks:
 
                 rows2write = self.nOutputRows(chunk, cal_switching, sigref)
                 
                 output_data = np.zeros(rows2write, dtype = dtype)
                 
-                sigrefState = [{'cal_on':None, 'cal_off':None, 'TP':None},
-                               {'cal_on':None, 'cal_off':None, 'TP':None}]
+                sigrefState = [{'cal_on':None, 'cal_off':None, 'TP':None, 'rownum':None},
+                               {'cal_on':None, 'cal_off':None, 'TP':None, 'rownum':None}]
                
                 # now start at the beginning and calibrate all the integrations
                 for rowNum in chunk:
@@ -361,18 +359,31 @@ class MappingPipeline:
                             
                         else:
                             sigrefState[0]['cal_off'] = row
-                            
+                        sigrefState[0]['rownum'] = rowNum
                     else:
                         if row['CAL'] == 'T':
                             sigrefState[1]['cal_on'] = row
                             
                         else:
                             sigrefState[1]['cal_off'] = row
-                            
+                        sigrefState[1]['rownum'] = rowNum                            
                     
                     # we need 4 states to calibrate FS integrations
                     if sigrefState[0]['cal_on'] and sigrefState[0]['cal_off'] and \
                        sigrefState[1]['cal_on'] and sigrefState[1]['cal_off']:
+
+                        if np.all(np.isnan(sigrefState[0]['cal_on']['DATA'].data)) or \
+                           np.all(np.isnan(sigrefState[0]['cal_off']['DATA'].data)) or \
+                           np.all(np.isnan(sigrefState[1]['cal_on']['DATA'].data)) or \
+                           np.all(np.isnan(sigrefState[1]['cal_off']['DATA'].data)):
+                        
+                            self.log.doMessage('DBG', 'Bad integration. '
+                                'Skipping table rows', sigrefState[0]['rownum'],
+                                sigrefState[1]['rownum'])
+                            # used these, so clear for the next iteration
+                            sigrefState = [{'cal_on':None, 'cal_off':None, 'TP':None},
+                                           {'cal_on':None, 'cal_off':None, 'TP':None}]
+                            continue
 
                         # noise diode is being fired during signal integrations
                         sigrefState[0]['TP'] = \

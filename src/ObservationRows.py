@@ -22,7 +22,7 @@
 
 # $Id$
 
-from collections import OrderedDict
+from ordereddict import OrderedDict
 from collections import namedtuple
 
 class ObservationRows:

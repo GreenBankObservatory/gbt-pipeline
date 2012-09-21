@@ -3,14 +3,13 @@
 echo $0  # identify this script in log files
 
 INSTALL_DIR=/home/gbt7/pipeline
-OBITVER=1.1.425-1-64b
 
 # initialize AIPS
 AIPS_ROOT=/home/aips
 . $AIPS_ROOT/LOGIN.SH
 
-$CDOLD # use OLD version
+# $CDOLD # use OLD version
 # $CDNEW # use NEW version
 # $CDTST # use TST version
 
-PYTHONPATH=${INSTALL_DIR}/obit-${OBITVER}/lib64/obit/python/  LD_LIBRARY_PATH=${INSTALL_DIR}/obit-${OBITVER}/lib64  $INSTALL_DIR/bin/ParselTongue $*
+$INSTALL_DIR/bin/ParselTongue $*

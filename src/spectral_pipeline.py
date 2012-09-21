@@ -6,9 +6,9 @@ from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
 import scipy
 from scipy import constants
 from scipy import signal
+from ordereddict import OrderedDict
 
 import sys
-from collections import OrderedDict
 import os
 import argparse
 

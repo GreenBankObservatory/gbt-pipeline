@@ -1,9 +1,13 @@
 #!/bin/bash
 
+#
+# this installation script assumes a Green Bank installation of RHEL6
+# with a default python version 2.6 and a system level Obit.so library
+#
+
 DATE=`date +"%s"`
 
 # ------------------------------------- create scratch and install directories
-
 SCRATCH_DIR=/home/scratch/${USER}/pipeline-install-${DATE}
 mkdir -p ${SCRATCH_DIR}
 echo created ${SCRATCH_DIR}
@@ -19,32 +23,18 @@ cd ${SCRATCH_DIR}
 echo 'downloading virtualenv'
 curl -O https://raw.github.com/jmasters/gbt-pipeline/master/src/dependencies/virtualenv.py
 
+# ------------------------------------------------------------ create virtual env
+echo 'making virtual calibration env'
+cd ${SCRATCH_DIR}
+rm -rf ${INSTALL_DIR}/pipeline-env
+python ./virtualenv.py ${INSTALL_DIR}/pipeline-env
+source ${INSTALL_DIR}/pipeline-env/bin/activate
+
 # -----------------------------------------------------------------------------
 #
 #   CALIBRATION SETUP
 #
 # -----------------------------------------------------------------------------
-
-PYVER=2.7.3
-
-cd ${SCRATCH_DIR}
-echo 'downloading python'
-curl -O http://www.python.org/ftp/python/${PYVER}/Python-${PYVER}.tgz
-
-# ------------------------------------------------------------- build python
-echo 'building python'
-cd ${SCRATCH_DIR}
-tar xvzf Python-${PYVER}.tgz
-cd Python-${PYVER}
-./configure --prefix=${INSTALL_DIR}
-make install
-
-# ------------------------------------------------------------ create virtual env
-echo 'making virtual calibration env'
-cd ${SCRATCH_DIR}
-rm -rf ${INSTALL_DIR}/calibration-env
-${INSTALL_DIR}/bin/python${PYVER} ./virtualenv.py ${INSTALL_DIR}/calibration-env
-source ${INSTALL_DIR}/calibration-env/bin/activate
 
 # ------------------------------------------------------------ install numpy
 echo 'installing numpy'
@@ -58,6 +48,42 @@ pip install fitsio
 echo 'installing blessings'
 pip install blessings
 
+# ------------------------------------------------------------ install ordereddict
+echo 'installing ordereddict'
+pip install ordereddict
+
+# ------------------------------------------------------------ install argparse
+echo 'installing argparse'
+pip install argparse
+
+# -----------------------------------------------------------------------------
+#
+#   TESTING SETUP
+#
+# -----------------------------------------------------------------------------
+
+# ------------------------------------------------------------ install nose
+echo 'installing nose'
+pip install nose
+
+# ------------------------------------------------------------ install matplotlib
+echo 'installing matplotlib'
+pip install matplotlib
+
+# ------------------------------------------------------------ install ipython
+echo 'installing ipython'
+pip install ipython
+
+# -----------------------------------------------------------------------------
+#
+#   USER TOOL SETUP
+#
+# -----------------------------------------------------------------------------
+
+# ------------------------------------------------------------ install pyfits
+echo 'installing pyfits'
+pip install pyfits
+
 deactivate
 
 # -----------------------------------------------------------------------------
@@ -66,38 +92,10 @@ deactivate
 #
 # -----------------------------------------------------------------------------
 
-PYVER=2.4
-OBITVER=1.1.425-1-64b
-
-cd ${SCRATCH_DIR}
-echo 'downloading python'
-curl -O http://www.python.org/ftp/python/${PYVER}/Python-${PYVER}.tgz
-
-# ------------------------------------------------------------- build python
-echo 'building python'
-cd ${SCRATCH_DIR}
-tar xvzf Python-${PYVER}.tgz
-cd Python-${PYVER}
-./configure --prefix=${INSTALL_DIR}
-make install
-
-# ------------------------------------------------------------ create virtual env
-echo 'making virtual calibration env'
-cd ${SCRATCH_DIR}
-rm -rf ${INSTALL_DIR}/imaging-env
-${INSTALL_DIR}/bin/python${PYVER} ./virtualenv.py ${INSTALL_DIR}/imaging-env
-source ${INSTALL_DIR}/imaging-env/bin/activate
-
-cd ${SCRATCH_DIR}
-echo 'downloading obit'
-curl -O https://svn.cv.nrao.edu/obit/linux_distro/obit-${OBITVER}.tar.gz
-mv obit-${OBITVER}.tar.gz ${INSTALL_DIR}
-cd  ${INSTALL_DIR}
-tar xvzf obit-${OBITVER}.tar.gz
-
 cd ${SCRATCH_DIR}
 echo 'downloading parseltongue'
 curl -O https://raw.github.com/jmasters/gbt-pipeline/master/src/dependencies/parseltongue.tar.gz
+
 # ---------------------------------------------------------- build ParselTongue
 
 echo 'building ParselTongue'
@@ -108,13 +106,10 @@ mv ./configure ./configure.sav
 echo 'updating ParselTongue configure script'
 sed 's/Obit.py/Obit.so/g' ./configure.sav > ./configure
 chmod u+x ./configure
-PYTHONPATH=${INSTALL_DIR}/obit-${OBITVER}/lib64/obit/python/ LD_LIBRARY_PATH=${INSTALL_DIR}/obit-${OBITVER}/lib64 ./configure --prefix=${INSTALL_DIR}
+
+./configure --prefix=${INSTALL_DIR}
 make
 make install
 
-deactivate
-
-# to run ParselTongue
-#  PYTHONPATH=${INSTALL_DIR}/obit-${OBITVER}/lib64/obit/python/  LD_LIBRARY_PATH=${INSTALL_DIR}/obit-${OBITVER}/lib64  $INSTALL_DIR/bin/ParselTongue
 
 exit
