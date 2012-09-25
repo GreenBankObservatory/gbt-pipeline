@@ -32,8 +32,18 @@ from PipeLogging import Logging
 
 from blessings import Terminal
 
+import os
+import errno
 import multiprocessing
 import sys
+
+def mkdir_p(path):
+    try:
+        os.makedirs(path)
+    except OSError as exc: # Python >2.5
+        if exc.errno == errno.EEXIST:
+            pass
+        else: raise
 
 def calibrateWindowFeedPol(log, cl_params, window, feed, pol, pipe):
 
@@ -76,21 +86,10 @@ def calibrateWindowFeedPol(log, cl_params, window, feed, pol, pipe):
                     pipe.getReference(cl_params.refscans[1], feed, window, pol)
 
     # -------------- calibrate signal scans
-    if 1 != cl_params.gainfactors:
-        try:
-            beam_scaling = cl_params.gainfactors[feed+pol]
-        except IndexError:
-            log.doMessage('ERR', 'ERORR: can not get a gainfactor for feed '
-                          'and polarization.', feed,'\n  You need to supply a '
-                          'factor for each feed and\n  polarization for the '
-                          'receiver.')
-    else:
-        beam_scaling = cl_params.gainfactors
-    
     pipe.CalibrateSdfitsIntegrations( feed, window, pol,\
             refSpectrum1, refTsys1, refTimestamp1, refTambient1, refElevation1, \
             refSpectrum2, refTsys2, refTimestamp2, refTambient2, refElevation2, \
-            beam_scaling )
+            cl_params.beamscaling )
    
 def process_map(log, cl_params, row_list):
     feeds = cl_params.feed
@@ -136,7 +135,7 @@ def process_map(log, cl_params, row_list):
                 allpipes.append( (mp, window, feed, pol) )
         
         pids = []
-        #import pdb; pdb.set_trace()
+        
         for idx, pp in enumerate(pipes):
             mp, window, feed, pol = pp
            
@@ -183,6 +182,8 @@ def runPipeline(term):
     cl = commandline.CommandLine()
     cl_params = cl.read(sys)
     
+    # create a directory for storing log files    
+    mkdir_p('log')
     
     log = Logging(cl_params, 'pipeline')
     log.doMessage('INFO','{t.underline}Command summary{t.normal}'.format(t = term))

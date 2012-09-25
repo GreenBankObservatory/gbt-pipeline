@@ -74,7 +74,7 @@ AIPS.userno=int(sys.argv[1])    # retrieve AIPS pipeline user number
 if argc > 2:
     inNAve = int( sys.argv[2])
 else:
-    inNAve = 3                  # default is average 3 channels
+    inNAve = 1                  # default is average 1 channel
 if argc > 3:
     inRa = float( sys.argv[3])
 else:

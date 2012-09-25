@@ -25,6 +25,7 @@
 import logging
 import sys
 import time
+
 from blessings import Terminal
 
 class Logging:
@@ -49,7 +50,7 @@ class Logging:
         
         lt = time.localtime(time.time())
         return "%02d.%02d.%04d_%02d:%02d:%02d" % (lt[2], lt[1], lt[0], lt[3], lt[4], lt[5])
-
+        
     def doMessage(self, level,*args):
         """Write a message to the log file
     
@@ -95,13 +96,14 @@ class Logging:
         level = LEVELS.get(opt.verbose, logging.DEBUG)
     
         loggername = logfilename.split('.')[0]
+
         self.logger = logging.getLogger(loggername)
         
         # logging level defaults to WARN, so we need to override it
         self.logger.setLevel(logging.DEBUG)
         
         # create file handler which logs even debug messages
-        fh = logging.FileHandler(filename = logfilename, mode='w')
+        fh = logging.FileHandler(filename = 'log/'+logfilename, mode='w')
         fh.setLevel(logging.DEBUG)
         fh_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
         fh.setFormatter(fh_formatter)

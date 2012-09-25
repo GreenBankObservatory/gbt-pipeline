@@ -44,73 +44,101 @@ class CommandLine:
     def __init__(self):
 
         self.parser = myparser(fromfile_prefix_chars='@',
-            description='Calibrate spectra and create maps from GBT observations.',
-            formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-            epilog="Use @filename.par as a command line parameter to\
-            use options from a file.  Any options set on the command\
-            line will override whatever is stored in the file.",
+            description='Calibrate spectra and create maps from GBT '
+            'observations.',
+            epilog="Use @filename.par as a command line parameter to "
+            "use options from a file.  Any options set on the command "
+            "line will override whatever is stored in the file.",
             prog='gbtpipeline',
             usage='%(prog)s [options]')
         
         input_group = self.parser.add_argument_group('Input')
-        input_group.add_argument("-i", "--infile", dest="infilename", default='', required=True,
-                        help="SDFITS file name containing map scans", metavar="FILE", type=str)
+        input_group.add_argument("-i", "--infile", dest="infilename",
+                        default='', required=True,
+                        help="SDFITS file name containing map scans", type=str)
         
         data_selection = self.parser.add_argument_group('Data Selection')
-        data_selection.add_argument("-m", "--map-scans", dest="mapscans", default=None,
-                        help="range of scan numbers", metavar="N[,N]")
-        data_selection.add_argument("--refscan","--refscans", dest="refscans", default=None,
-                        help="reference scan(s)", metavar="SCAN[,SCAN]")
-        data_selection.add_argument("-f", "--feed",dest="feed", default=None,
-                        help="comma-separated feed(s) to process", metavar="F[,F]")
-        data_selection.add_argument("-p", "--pol",dest="pol", default=None,
-                        help="comma-separated polarization(s) to process", metavar="P[,P]")
-        data_selection.add_argument("--window", dest="window", default=None,
-                        help="comma-separated window(s) to process", metavar="W[,W]")
-        data_selection.add_argument("-c", "--channels",dest="channels", default=False, type=str,
-                        help="channel selection i.e. 100:200 (idlToSdfits); use with CAUTION")
+        data_selection.add_argument("-m", "--map-scans", dest="mapscans",
+                        default=None,
+                        help='map scans, e.g. "10:20,30:40" identifies two '
+                        'ranges of 11 scans each')
+        data_selection.add_argument("--refscan","--refscans", dest="refscans",
+                        default=None,
+                        help='reference scan(s), e.g. "4,13" to identify two '
+                        'reference scans')
+        data_selection.add_argument("-f", "--feed", dest="feed", default=None,
+                        help='feeds, e.g. "0:6" identifies feeds 0 through 6')
+        data_selection.add_argument("-p", "--pol", dest="pol", default=None,
+                        help='polarizations, e.g. "0,1"')
+        data_selection.add_argument("-w", "--window", dest="window",
+                        default=None,
+                        help='spectral windows, e.g. "0,1,2,3"')
+        data_selection.add_argument("-c", "--channels", dest="channels",
+                        default=False, type=str,
+                        help='channel selection, e.g. "100:200".  '
+                        '(Passed directly to idlToSdfits)')
 
         control = self.parser.add_argument_group('Control')
-        control.add_argument("--imaging-off", dest="imagingoff", action='store_true',
+        control.add_argument("--imaging-off", dest="imagingoff",
+                        action='store_true',
                         default=False, help="If set, will not create images.")
-        control.add_argument("-a", "--average",dest="average", default=0, type=int,
-                        help="averge the spectra over N channels (idlToSdfits)", metavar="N")
-        control.add_argument("-n", "--idlToSdfits-rms-flag",dest="idlToSdfits_rms_flag", default=False,
-                        help="flag integrations with excess noise, see idlToSdfits help",
+        control.add_argument("-a", "--average", dest="average", default=0,
+                        type=int,
+                        help='average the spectra over N channels (passed '
+                        'directly to idlToSdfits)')
+        control.add_argument("-n", "--rms-flag", dest="idlToSdfits_rms_flag",
+                        default=False,
+                        help='flag integrations with excess noise (passed '
+                        'directly to idlToSdfits)',
                         metavar="N")
-        control.add_argument("-w", "--idlToSdfits-baseline-subtract",dest="idlToSdfits_baseline_subtract",
-                        default=False, help="subtract median-filtered baseline, see idlToSdfits help",
+        control.add_argument("--median-baseline-subtract",
+                        dest="idlToSdfits_baseline_subtract",
+                        default=False, help="subtract median-filtered "
+                        "baseline (passed directly to idlToSdfits)",
                         metavar="N")
-        control.add_argument("--display-idlToSdfits", action='store_true',
+        control.add_argument("--display-idlToSdfits-plots", action='store_true',
                         dest="display_idlToSdfits", default=False,
-                        help="will attempt to display idlToSdfits plots")
+                        help="display idlToSdfits plots of calibrated spectra")
 
         calibration = self.parser.add_argument_group('Calibration')
         calibration.add_argument("-u", "--units", dest="units", default='tmb',
-                        help="calibration units")
-        calibration.add_argument("--spillover-factor",dest="spillover", default=.99, type=float,
-                        help="rear spillover factor (eta-l)", metavar="N")
-        calibration.add_argument("--apperture-efficiency",dest="aperture_eff", default=.71, type=float,
-                        help="aperture efficiency for freq.=0 (eta-A)", metavar="N")
-        calibration.add_argument("--main-beam-efficiency",dest="mainbeam_eff", default=.91, type=float,
-                        help="main beam efficiency for freq.=0 (eta-B)", metavar="N")
-        calibration.add_argument("--gain-factors",dest="gainfactors", default=1,
-                        help="comma-separated gain factors for each feed", metavar="G[,G]")
-        calibration.add_argument("-t", "--zenith-opacity",dest="zenithtau", type=float,
-                        help="zenith opacity value (tau-z)", metavar="N", default=None)
+                        help="calibration units [ta, ta*, tmb (default), jy]")
+        calibration.add_argument("--spillover-factor", dest="spillover",
+                        default=.99, type=float,
+                        help="rear spillover factor (eta_l). Default: .99")
+        calibration.add_argument("--aperture-efficiency", dest="aperture_eff",
+                        default=.71, type=float,
+                        help='aperture efficiency  for spectral window 0.  '
+                        'Other window efficiencies are adjusted to this value. '
+                        '(eta_A)  Default: .71')
+        calibration.add_argument("--main-beam-efficiency", dest="mainbeam_eff",
+                        default=.91, type=float,
+                        help='main beam efficiency for spectral window 0.  '
+                        'Other window efficiencies are adjusted to this value. '
+                        '(eta_B)  Default: .91')
+        calibration.add_argument("--beam-scaling", dest="beamscaling",
+                        default=1,
+                        help='comma-separated beam scaling factors for each '
+                        'feed and polarization in the order 0L,0R,1L,1R,etc.')
+        calibration.add_argument("-t", "--zenith-opacity", dest="zenithtau",
+                        type=float, default=None,
+                        help='zenith opacity value (tau_z).  Default: '
+                        'determined from GB weather prediction tools.')
 
         output = self.parser.add_argument_group('Output')
         output.add_argument("-v", "--verbose", dest="verbose", default=4,
                         help="set the verbosity level-- 0-1:none, "
                              "2:errors only, 3:+warnings, "
-                             "4:+user info, 5:+debug", metavar="N", type=int)
+                             "4(default):+user info, 5:+debug", type=int)
         output.add_argument("--clobber", action='store_true',
                         dest="clobber", default=False,
                         help="Overwrites existing output files if set.")
+        output.add_argument("--keep-temporary-files", action='store_true',
+                        dest='keeptempfiles', default=False,
+                        help='Does not remove intermediate calibration files '
+                        'if set.')
 
-        other = self.parser.add_argument_group('Other')
-        other.add_argument("--max-processors",dest="process_max", default=False, type=int,
-                        help="optional max number of processors, to reduce resource usage", metavar="N")        
+        
 
     def _parse_range(self, rangelist):
         """Given a range string, produce a list of integers
@@ -161,7 +189,8 @@ class CommandLine:
                 # range
                 if int_item[0] <= int_item[1]:
                     if int_item[0] < 0:
-                        print item[0], ',', item[1], 'must start with a non-negative number'
+                        print item[0], ',', item[1], 'must start with a '
+                        'non-negative number'
                         return []
     
                     if int_item[0]==int_item[1]:
@@ -172,7 +201,8 @@ class CommandLine:
                     for ii in thisrange:
                         oklist.add(ii)
                 else:
-                    print item[0], ',', item[1], 'needs to be in increasing order'
+                    print item[0], ',', item[1], 'needs to be in increasing '
+                    'order'
                     raise
             else:
                 print item, 'has more than 2 values'
@@ -182,7 +212,8 @@ class CommandLine:
                 oklist.remove(exitem)
             except(KeyError):
                 oklist = [ str(item) for item in oklist ]
-                print 'ERROR: excluded item', exitem, 'does not exist in inclusive range'
+                print 'ERROR: excluded item', exitem, 'does not exist in '
+                'inclusive range'
                 raise
 
         return sorted(list(oklist))
@@ -208,8 +239,8 @@ class CommandLine:
 
         # transform some parameters to proper types
         try:
-            if 1 != opt.gainfactors:
-                opt.gainfactors = [ float(xx) for xx in opt.gainfactors.split(',') ]
+            if 1 != opt.beamscaling:
+                opt.beamscaling = [ float(xx) for xx in opt.beamscaling.split(',') ]
     
             if opt.feed:
                 opt.feed = self._parse_range(opt.feed)

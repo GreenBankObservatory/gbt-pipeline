@@ -90,6 +90,29 @@ class MappingPipeline:
         
         self.BUFFER_SIZE = 1000
         
+    def get_beam_scale(self, receiver, beam_scaling):
+
+        if beam_scaling == 1:
+            return beam_scaling
+            
+        if receiver == 'RcvrArray18_26':
+        
+            if len(beam_scaling) != 14:
+                self.log.doMessage('ERR', 'You need to supply 14 beam '
+                    'scaling factors for the KFPA receiver.  The '
+                    'format is a comma-separated list of values '
+                    'orded by feed and polarization: '
+                    '0L,0R,1L,1R,2L,2R,etc.')
+            else:
+                beam_scaling = np.array(beam_scaling)
+                print beam_scaling.shape
+                beam_scaling.reshape((7,2))
+                beam_scale[feed][pol]
+        
+        else:
+            self.log.doMessage('ERR', 'Beam scaling factors not known for'
+                'receiver:', receiver)
+    
     def determineSetup(self, sdfits_row_structure, ext):
         
         # ------------------ look ahead at first few rows to determine setup
@@ -308,8 +331,7 @@ class MappingPipeline:
             
         return rows2write
         
-    def calibrate_fs_sdfits_integrations(self, feed, window, pol,
-                                            beam_scaling):
+    def calibrate_fs_sdfits_integrations(self, feed, window, pol, beam_scaling):
 
         dtype = self.get_dtype(feed, window, pol)
         if None == dtype:
@@ -397,7 +419,8 @@ class MappingPipeline:
                     # integration timestamp and elevation
                     #  should be same for all states
                     intTime = self.pu.dateToMjd( sigrefState[0]['cal_off']['DATE-OBS'] )
-                    elevation = sigrefState[0]['cal_off']['ELEVATIO'] 
+                    elevation = sigrefState[0]['cal_off']['ELEVATIO']
+                    receiver = sigrefState[0]['cal_off']['FRONTEND'] 
                     
                     ta, tsys = self.cal.ta_fs(sigrefState)
                     
@@ -417,9 +440,11 @@ class MappingPipeline:
                             
                         # get tsky for the current integration
                         #tambient_current = sigrefState[0]['cal_off']['TAMBIENT']
-                                
+                    
+                    beam_scale = self.get_beam_scale(receiver, beam_scaling)
+                    
                     if self.cl.units=='ta*' or self.cl.units=='tmb' or self.cl.units=='jy':
-                        tastar = self.cal.ta_star(ta, beam_scaling, opacity = opacity_el, spillover = self.SPILLOVER)
+                        tastar = self.cal.ta_star(ta, beam_scale, opacity = opacity_el, spillover = self.SPILLOVER)
                         
                         
                     if self.cl.units=='tmb':
@@ -563,7 +588,8 @@ class MappingPipeline:
                         
                         intTime = self.pu.dateToMjd( cal_off['DATE-OBS'] ) # integration timestamp
                         elevation = cal_off['ELEVATIO'] # integration elevation
-                                
+                        receiver = cal_off['FRONTEND']
+                        
                         if avgCref2!=None and crefTime2!=None:
                             crefInterp = \
                                 self.cal.interpolate_by_time(avgCref1, avgCref2,
@@ -630,8 +656,10 @@ class MappingPipeline:
                             #   the opacity needs to come from the command line or Ron's
                             #   model database.  Gain coefficients can optionally come
                             #   from the command line.
+
+                            beam_scale = self.get_beam_scale(receiver, beam_scaling)
                             
-                            tastar = self.cal.ta_star(tsrc, beam_scaling, opacity = opacity_el, spillover = self.SPILLOVER)
+                            tastar = self.cal.ta_star(tsrc, beam_scale, opacity = opacity_el, spillover = self.SPILLOVER)
                             
                             if CREATE_PLOTS:
                                 tastars.append(tastar)

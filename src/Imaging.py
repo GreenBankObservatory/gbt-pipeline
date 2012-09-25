@@ -73,6 +73,7 @@ class Imaging:
             mapScript = RELCONTRIBDIR + MAPSCRIPT
 
         else:
+            import pdb; pdb.set_trace()
             log.doMessage('ERR',"Imaging script(s) not found.  Stopping after calibration.")
             sys.exit()
             
@@ -156,11 +157,16 @@ class Imaging:
             log.doMessage('DBG', aips_stdout)
             log.doMessage('DBG', aips_stderr)
             log.doMessage('INFO','... (1/2) done')
+            
+            if not cl_params.keeptempfiles:
+                [os.unlink(xx) for xx in aipsinfiles.split()]
+                if os.path.isdir('summary'):
+                    [os.unlink('summary/'+xx) for xx in os.listdir('summary')]
+                    os.rmdir('summary')
 
             # define command to invoke mapping script
             # which in turn invokes AIPS via ParselTongue
-            channel_average = 3
-            doimg_cmd = ' '.join(('doImage', mapScript, aipsNumber, str(channel_average)))
+            doimg_cmd = ' '.join(('doImage', mapScript, aipsNumber))
             log.doMessage('DBG', doimg_cmd)
 
             p = subprocess.Popen(doimg_cmd.split(), stdout = subprocess.PIPE, stderr = subprocess.PIPE)
