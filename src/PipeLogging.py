@@ -76,6 +76,8 @@ class Logging:
             self.logger.debug(message)
         else:
             print 'ERROR: please check logging level.', level
+        sys.stdout.flush()
+        sys.stderr.flush()
     
     def configure_logfile(self, opt, logfilename, toconsole = True):
         """Configure the format and levels for the logfile

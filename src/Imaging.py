@@ -36,7 +36,7 @@ class Imaging:
 
     def run(self, log, terminal, cl_params, pipes):
         
-        log.doMessage('INFO', '{t.underline}Start imaging.{t.normal}'.format(t = terminal) )
+        log.doMessage('INFO', '\n{t.underline}Start imaging.{t.normal}'.format(t = terminal) )
         
         # ------------------------------------------------- identify imaging scripts
         
@@ -73,7 +73,6 @@ class Imaging:
             mapScript = RELCONTRIBDIR + MAPSCRIPT
 
         else:
-            import pdb; pdb.set_trace()
             log.doMessage('ERR',"Imaging script(s) not found.  Stopping after calibration.")
             sys.exit()
             
@@ -93,57 +92,48 @@ class Imaging:
             
             log.doMessage('INFO','Imaging window {win}'.format(win=win))    
             
-            for feed in feeds:
-
-                imfiles = glob.glob('*' + scanrange + '*window' + win + '_feed' +  feed + '*' + '.fits')
+            imfiles = glob.glob('*' + scanrange + '*window' + win + '*' + '.fits')
+            
+            ff = fitsio.FITS(imfiles[0])
+            nchans = int([xxx['tdim'] for xxx in ff[1].info['colinfo'] if xxx['name']=='DATA'][0][0])
+            ff.close()
+            if cl_params.channels:
+                channels = str(cl_params.channels)
+            elif nchans:
+                chan_min = int(nchans*.02) # start at 2% of nchan
+                chan_max = int(nchans*.98) # end at 98% of nchans
+                channels = str(chan_min) + ':' + str(chan_max)
                 
-                # if there are no files matching this window and feed
-                if not imfiles:
-                    continue
-                    
-                # set the idlToSdfits output file name
-                aipsinname = '_'.join(imfiles[0].split('_')[:-1])+'.sdf'
-                aipsinputs.append(aipsinname)
-            
-                # run idlToSdfits, which converts calibrated sdfits into a format
-                options = ''
-            
-                if bool(cl_params.average):
-                    options = options + ' -a ' + str(cl_params.average)
-            
-                ff = fitsio.FITS(imfiles[0])
-                nchans = int([xxx['tdim'] for xxx in ff[1].info['colinfo'] if xxx['name']=='DATA'][0][0])
-                ff.close()
-                if cl_params.channels:
-                    options = options + ' -c ' + str(cl_params.channels) + ' '
-                elif nchans:
-                    chan_min = int(nchans*.02) # start at 2% of nchan
-                    chan_max = int(nchans*.98) # end at 98% of nchans
-                    options = options + ' -c ' + str(chan_min) + ':' + str(chan_max) + ' '
-            
-                if not cl_params.display_idlToSdfits:
-                    options = options + ' -l '
-            
-                if cl_params.idlToSdfits_rms_flag:
-                    options = options + ' -n ' + cl_params.idlToSdfits_rms_flag + ' '
-                    
-                if cl_params.verbose > 4:
-                    options = options + ' -v 2 '
-                else:
-                    options = options + ' -v 0 '
-            
-                if cl_params.idlToSdfits_baseline_subtract:
-                    options = options + ' -w ' + cl_params.idlToSdfits_baseline_subtract + ' '
-                    
-                idlcmd = '/home/gbtpipeline/bin/idlToSdfits -o ' + aipsinname + options + ' '.join(imfiles)
-                
-                log.doMessage('DBG', idlcmd)
-                
-                os.system(idlcmd)
-            
             aipsNumber = str(os.getuid())
-            aipsinfiles = ' '.join(aipsinputs)
-            doimg_cmd = ' '.join(('/home/gbtpipeline/integration/tools/doImage', dbconScript, aipsNumber, aipsinfiles))
+            aipsinfiles = ' '.join(imfiles)
+            
+            if cl_params.display_idlToSdfits:
+                display_idlToSdfits = '1'
+            else:
+                display_idlToSdfits = '0'
+                
+            if cl_params.idlToSdfits_rms_flag:
+                idlToSdfits_rms_flag = str(cl_params.idlToSdfits_rms_flag)
+            else:
+                idlToSdfits_rms_flag = '0'
+            
+            if cl_params.idlToSdfits_baseline_subtract:
+                idlToSdfits_baseline_subtract = str(cl_params.idlToSdfits_baseline_subtract)
+            else:
+                idlToSdfits_baseline_subtract = '0'
+                
+            if cl_params.keeptempfiles:
+                keeptempfiles = '1'
+            else:
+                keeptempfiles = '0'
+            
+            doimg_cmd = ' '.join(('/home/gbtpipeline/integration/tools/doImage',
+                dbconScript, aipsNumber, ','.join(map(str,feeds)),
+                str(cl_params.average), channels, display_idlToSdfits,
+                idlToSdfits_rms_flag, str(cl_params.verbose),
+                idlToSdfits_baseline_subtract, keeptempfiles,
+                aipsinfiles))
+            
             log.doMessage('DBG', doimg_cmd)
 
             p = subprocess.Popen(doimg_cmd.split(), stdout = subprocess.PIPE,\
@@ -158,12 +148,6 @@ class Imaging:
             log.doMessage('DBG', aips_stderr)
             log.doMessage('INFO','... (1/2) done')
             
-            if not cl_params.keeptempfiles:
-                [os.unlink(xx) for xx in aipsinfiles.split()]
-                if os.path.isdir('summary'):
-                    [os.unlink('summary/'+xx) for xx in os.listdir('summary')]
-                    os.rmdir('summary')
-
             # define command to invoke mapping script
             # which in turn invokes AIPS via ParselTongue
             doimg_cmd = ' '.join(('doImage', mapScript, aipsNumber))

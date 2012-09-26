@@ -22,7 +22,7 @@
 
 # $Id$
 
-PARALLEL = False # useful to turn off when debugging
+PARALLEL = True # useful to turn off when debugging
 
 import commandline
 from MappingPipeline import MappingPipeline
@@ -102,6 +102,9 @@ def process_map(log, cl_params, row_list):
         log.doMessage('INFO','Refscan(s):', ','.join([str(xx) for xx in cl_params.refscans]) )
     if cl_params.mapscans:
         log.doMessage('INFO','Mapscan(s):', ','.join([str(xx) for xx in cl_params.mapscans]) )
+    else:
+        log.doMessage('ERR', '{t.bold}ERROR{t.normal}: Need map scan(s).\n'.format(t = self.term))
+        sys.exit()
         
     missingscan = False
     for scan in cl_params.mapscans:
@@ -119,16 +122,16 @@ def process_map(log, cl_params, row_list):
         windows = row_list.windows()
     
     log.doMessage('INFO','{t.underline}Start calibration.{t.normal}'.format(t = term))
-
+    
     allpipes = []
     for window in windows:
-        log.doMessage('INFO', 'Calibrating window {ww}.'.format(ww=window))
+        log.doMessage('INFO', '\nCalibrating window {ww}.'.format(ww=window))
         sys.stdout.flush()
         pipes = []
         for feed in feeds:
             for pol in pols:
                 try:
-                    mp = MappingPipeline(log, cl_params, row_list, feed, window, pol, term)
+                    mp = MappingPipeline(cl_params, row_list, feed, window, pol, term)
                 except KeyError:
                     continue
                 pipes.append( (mp, window, feed, pol) )
@@ -145,6 +148,7 @@ def process_map(log, cl_params, row_list):
                 pids.append(p)
     
             else:
+
                 log.doMessage('DBG', 'Feed {feed} Pol {pol} started.'.format(feed = feed, pol = pol))
                 calibrateWindowFeedPol(log, cl_params, window, feed, pol, mp)
                 log.doMessage('DBG', 'Feed {feed} Pol {pol} finished.'.format(feed = feed, pol = pol))
@@ -153,12 +157,14 @@ def process_map(log, cl_params, row_list):
             for pp in pids:
                 pp.start()
             for pp in pipes:
+                mp, window, feed, pol = pp
                 log.doMessage('DBG', 'Feed {feed} Pol {pol} started.'.format(feed = feed, pol = pol))
                 
         
             for pp in pids:
                 pp.join()
             for pp in pipes:
+                mp, window, feed, pol = pp
                 log.doMessage('DBG', 'Feed {feed} Pol {pol} finished.'.format(feed = feed, pol = pol))
                 
     if not cl_params.imagingoff:
@@ -217,3 +223,5 @@ if __name__ == '__main__':
     
     # clear the screen
     runPipeline(term)
+    
+    sys.stdout.write('\n')

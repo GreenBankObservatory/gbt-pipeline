@@ -43,14 +43,9 @@ if CREATE_PLOTS:
 
 class MappingPipeline:
     
-    def __init__(self, log, cl_params, row_list, feed, window, pol, term):
+    def __init__(self, cl_params, row_list, feed, window, pol, term):
 
         self.term = term
-        
-        if None == cl_params.mapscans:
-            log.doMessage('ERR', '{t.bold}ERROR{t.normal}: Need map scan(s).\n'.format(t = self.term))
-            sys.exit()
-            
         self.log = None
             
         self.pu = Pipeutils()
@@ -482,6 +477,8 @@ class MappingPipeline:
                     
                     outputidx = outputidx + 1
 
+                    self.show_progress(outputidx, rows2write)
+                    
                     # done looping over rows in a chunk
                 
                 # done looping over chunks
@@ -493,7 +490,6 @@ class MappingPipeline:
                 
             # done looping over chunks
 
-        #sys.stdout.write('\n')
         self.outfile.close()
         
     def calibrate_ps_sdfits_integrations(self, feed, window, pol,
@@ -708,11 +704,7 @@ class MappingPipeline:
                         
                     outputidx = outputidx + 1
                     
-                    percent_done = int((outputidx/float(rows2write))*100)
-                    if percent_done%25 == 0:
-                        sys.stdout.write('.')
-
-                    sys.stdout.flush()
+                    self.show_progress(outputidx, rows2write)
                 
                 # done looping over a chunk
 
@@ -760,7 +752,14 @@ class MappingPipeline:
         
         # done with scans
         self.outfile.close()
-        
+
+    def show_progress(self, outputidx, rows2write):
+        percent_done = int((outputidx/float(rows2write))*100)
+        if percent_done%25 == 0:
+            sys.stdout.write('.')
+
+        sys.stdout.flush()
+    
     def CalibrateSdfitsIntegrations(self, feed, window, pol,
                           avgCref1 = None, avgTref1 = None, crefTime1 = None, refTambient1 = None, refElevation1 = None,
                           avgCref2 = None, avgTref2 = None, crefTime2 = None, refTambient2 = None, refElevation2 = None,
