@@ -45,7 +45,7 @@ def mkdir_p(path):
             pass
         else: raise
 
-def calibrateWindowFeedPol(log, cl_params, window, feed, pol, pipe):
+def calibrate_win_feed_pol(log, cl_params, window, feed, pol, pipe):
 
     refSpectrum1 = None
     refTsys1 = None
@@ -86,7 +86,7 @@ def calibrateWindowFeedPol(log, cl_params, window, feed, pol, pipe):
                     pipe.getReference(cl_params.refscans[1], feed, window, pol)
 
     # -------------- calibrate signal scans
-    pipe.CalibrateSdfitsIntegrations( feed, window, pol,\
+    pipe.calibrate_sdfits_integrations( feed, window, pol,\
             refSpectrum1, refTsys1, refTimestamp1, refTambient1, refElevation1, \
             refSpectrum2, refTsys2, refTimestamp2, refTambient2, refElevation2, \
             cl_params.beamscaling )
@@ -144,13 +144,13 @@ def process_map(log, cl_params, row_list):
            
             # pipe output will be printed in order of window, feed
             if PARALLEL:
-                p = multiprocessing.Process(target = calibrateWindowFeedPol, args = (log, cl_params, window, feed, pol, mp, ))
+                p = multiprocessing.Process(target = calibrate_win_feed_pol, args = (log, cl_params, window, feed, pol, mp, ))
                 pids.append(p)
     
             else:
 
                 log.doMessage('DBG', 'Feed {feed} Pol {pol} started.'.format(feed = feed, pol = pol))
-                calibrateWindowFeedPol(log, cl_params, window, feed, pol, mp)
+                calibrate_win_feed_pol(log, cl_params, window, feed, pol, mp)
                 log.doMessage('DBG', 'Feed {feed} Pol {pol} finished.'.format(feed = feed, pol = pol))
     
         if PARALLEL:
@@ -171,7 +171,37 @@ def process_map(log, cl_params, row_list):
 
         imag = Imaging()
         imag.run(log, term, cl_params, allpipes)
-    
+
+def command_summary(cl_params, term, log):
+    log.doMessage('INFO','{t.underline}Command summary{t.normal}'.format(t = term))
+    for input_param in cl_params._get_kwargs():
+        parameter = input_param[0]
+        if 'zenithtau' == input_param[0]:
+            if None == input_param[1]:
+                value = 'from GB forecasts'
+            else:
+                value = str(input_param[1])
+        elif 'feed' == input_param[0] or 'pol' == input_param[0] or \
+             'window' == input_param[0]:
+            if None == input_param[1]:
+                value = 'all'
+            else:
+                value = ','.join(map(str,input_param[1]))
+        elif 'imagingoff' == input_param[0]:
+            parameter = 'imaging'
+            if False == input_param[1]:
+                value = 'off'
+            else:
+                value = 'on'
+        elif 'channels' == input_param[0]:
+            if False == input_param[1]:
+                value = 'all'
+            else:
+                value = str(input_param[1])
+        else:
+            value = str(input_param[1])
+            
+        log.doMessage('INFO','\t', parameter,'=', value)
 
 def set_map_scans(cl_params, map_params):
     if map_params.refscan1:
@@ -192,9 +222,8 @@ def runPipeline(term):
     mkdir_p('log')
     
     log = Logging(cl_params, 'pipeline')
-    log.doMessage('INFO','{t.underline}Command summary{t.normal}'.format(t = term))
-    for x in cl_params._get_kwargs():
-        log.doMessage('INFO','\t', x[0],'=', str(x[1]))
+        
+    command_summary(cl_params, term, log)
     
     sdf = SdFits()
     indexfile = sdf.nameIndexFile( cl_params.infilename )

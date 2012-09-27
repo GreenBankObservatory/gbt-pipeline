@@ -500,8 +500,8 @@ class MappingPipeline:
         dtype = self.get_dtype(feed, window, pol)
         if None == dtype:
             return
-        #else:
-        #    self.log.doMessage( 'calibrating feed', feed, 'window', window, 'polarization', pol
+        else:
+            self.log.doMessage('DBG', 'calibrating feed', feed, 'window', window, 'polarization', pol)
 
         if self.cl.units != 'ta':
             tsky1, tsky2 = self.getReferenceTsky(feed, window, pol, crefTime1, refTambient1, refElevation1,
@@ -631,6 +631,9 @@ class MappingPipeline:
                                 if not intOpacity:
                                     self.log.doMessage('ERR', 'Not able to retrieve integration zenith opacity for calibration to:', self.cl.units, '\n  Please supply a zenith opacity or calibrate to Ta.')
                                     sys.exit(9)
+                                else:
+                                    if 0 == outputidx:
+                                        self.log.doMessage('DBG', 'Zenith opacity, win {win} feed {feed} pol {pol} scan {scan}:'.format(win=window, scan=scan, feed=feed, pol=pol), intOpacity)
                             else:
                                 intOpacity = self.OPACITY
                                 
@@ -760,7 +763,7 @@ class MappingPipeline:
 
         sys.stdout.flush()
     
-    def CalibrateSdfitsIntegrations(self, feed, window, pol,
+    def calibrate_sdfits_integrations(self, feed, window, pol,
                           avgCref1 = None, avgTref1 = None, crefTime1 = None, refTambient1 = None, refElevation1 = None,
                           avgCref2 = None, avgTref2 = None, crefTime2 = None, refTambient2 = None, refElevation2 = None,
                           beam_scaling = None):
