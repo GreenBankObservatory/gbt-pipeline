@@ -36,6 +36,7 @@ import os
 import errno
 import multiprocessing
 import sys
+import glob
 
 def mkdir_p(path):
     try:
@@ -91,7 +92,7 @@ def calibrate_win_feed_pol(log, cl_params, window, feed, pol, pipe):
             refSpectrum2, refTsys2, refTimestamp2, refTambient2, refElevation2, \
             cl_params.beamscaling )
    
-def process_map(log, cl_params, row_list):
+def calibrate_map(log, cl_params, row_list, term):
     feeds = cl_params.feed
     pols = cl_params.pol
     windows = cl_params.window
@@ -120,8 +121,6 @@ def process_map(log, cl_params, row_list):
         pols = row_list.pols()
     if not windows:
         windows = row_list.windows()
-    
-    log.doMessage('INFO','{t.underline}Start calibration.{t.normal}'.format(t = term))
     
     allpipes = []
     for window in windows:
@@ -166,11 +165,8 @@ def process_map(log, cl_params, row_list):
             for pp in pipes:
                 mp, window, feed, pol = pp
                 log.doMessage('DBG', 'Feed {feed} Pol {pol} finished.'.format(feed = feed, pol = pol))
-                
-    if not cl_params.imagingoff:
-
-        imag = Imaging()
-        imag.run(log, term, cl_params, allpipes)
+    
+    return allpipes
 
 def command_summary(cl_params, term, log):
     log.doMessage('INFO','{t.underline}Command summary{t.normal}'.format(t = term))
@@ -211,20 +207,8 @@ def set_map_scans(cl_params, map_params):
     cl_params.mapscans = map_params.mapscans
     return cl_params
 
-def runPipeline(term):
+def calibrate_file(term, log, cl_params):
 
-    # create instance of CommandLine object to parse input, then
-    # parse all the input parameters and store them as attributes in param structure
-    cl = commandline.CommandLine()
-    cl_params = cl.read(sys)
-    
-    # create a directory for storing log files    
-    mkdir_p('log')
-    
-    log = Logging(cl_params, 'pipeline')
-        
-    command_summary(cl_params, term, log)
-    
     sdf = SdFits()
     indexfile = sdf.nameIndexFile( cl_params.infilename )
     try:
@@ -236,21 +220,59 @@ def runPipeline(term):
 
     if not cl_params.mapscans:
         if cl_params.refscans:
-            log.doMessage('WARN', 'Refscan(s) given without map scans, ignoring refscan settings.')
+            log.doMessage('WARN', 'Referene scan(s) given without map scans, '
+            'ignoring reference scan settings.')
         cl_params.refscans = []
         log.doMessage('INFO','Found', len(maps),'map(s).' )
         for map_number, map_params in enumerate(maps):
             cl_params = set_map_scans(cl_params, map_params)
             log.doMessage('INFO','Processing map:', str(map_number+1),'of', len(maps) )
-            process_map(log, cl_params, row_list)
+            pipes = calibrate_map(log, cl_params, row_list, term)
     else:
-        process_map(log, cl_params, row_list)
-        
-if __name__ == '__main__':
+        pipes = calibrate_map(log, cl_params, row_list, term)
+    
+    return pipes
+
+def runPipeline():
 
     term = Terminal()
     
-    # clear the screen
-    runPipeline(term)
+    # create instance of CommandLine object to parse input, then
+    # parse all the input parameters and store them as attributes in param structure
+    cl = commandline.CommandLine()
+    cl_params = cl.read(sys)
+    
+    # create a directory for storing log files    
+    mkdir_p('log')
+    
+    log = Logging(cl_params, 'pipeline')
+    
+    command_summary(cl_params, term, log)
+    
+    log.doMessage('INFO','{t.underline}Start calibration.{t.normal}'.format(t = term))
+    
+    allpipes = []
+    if os.path.isdir(cl_params.infilename):
+        print 'Infile name is a directory'
+        input_directory = cl_params.infilename
+    
+        for infilename in glob.glob(input_directory + '/' + \
+            os.path.basename(input_directory) + '*.fits'):
+            log.doMessage('INFO','\nCalibrating', infilename.rstrip('.fits'))
+            cl_params.infilename = infilename
+            pipes = calibrate_file(term, log, cl_params)
+    else:
+            pipes = calibrate_file(term, log, cl_params)
+
+    allpipes.extend(pipes)
+    if not cl_params.imagingoff:
+
+        imag = Imaging()
+        imag.run(log, term, cl_params, allpipes)
     
     sys.stdout.write('\n')
+
+if __name__ == '__main__':
+
+    # clear the screen
+    runPipeline()
