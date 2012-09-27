@@ -185,7 +185,7 @@ def command_summary(cl_params, term, log):
                 value = ','.join(map(str,input_param[1]))
         elif 'imagingoff' == input_param[0]:
             parameter = 'imaging'
-            if False == input_param[1]:
+            if True == input_param[1]:
                 value = 'off'
             else:
                 value = 'on'
