@@ -1,0 +1,79 @@
+GBT Mapping Pipeline Version 1.0
+
+The previous version of the pipeline was 0.4.  The most significant changes since the last release are to the calibration equations, user interface and memory efficiency.  These are described below.
+
+1)  Calibration equations  
+
+We determined that the calibration equations defined for the previous releases were sometimes incorrect.  The equations found in this release are nearly identical to those used in GBTIDL.
+
+The specific changes are enumerated here.
+
+    The previous pipeline releases defined
+    
+                            (Cal_on(v) + Cal_off(v))
+        Tsys(v) = Tcal(v) * ------------------------
+                            2*(Cal_on(v)-Cal_off(v))
+
+            where  Tsys = Tsys(v) averaged over the center 80% of
+                the frequency range of the observation
+                and v is frequency
+
+                       beam_scaling_factor * e^tau
+        Ta_* = Ta(v) * ----------------------------
+                              eta_l * Gain(z)
+                              
+            where Gain(z) = A_0 + A_1*z + A_2*z^2 + A_3*z^3,
+               tau is the elevation-adjusted opacity,
+               v is frequency and eta_l is the spillover factor
+ 
+2) User interface
+
+The command-line options have been revised for ease of use and flexibility.  On the gbtpipeline-announe mailing list we asked gbtpipeline users about their experience with several exisiting parameters.  As a result, the following options have been deprecated:
+
+  --sdfits-dir or -d
+  --map-scans-for-scale
+  --fs-as-ps
+  
+In addition:
+
+  --max-processors has been deprecated because it is no longer necessary
+    to have a workaround for excessive memory consumption (see Memory
+    efficiency below).
+    
+  --allmaps is no longer required for map discovery.  The pipeline will attempt
+    to find maps in a dataset when the -m or --map-scans parameter is not set.
+
+Other parameters have been combined, or renamed:
+
+  --refscan1 and --refscan2 were replaced with --refscan.  --refscan
+    can take a single scan number or a pair of scan numbers separated by a
+    comma.  For example, '--refscan 13' or '--refscan 13,26'
+
+  --gain-factors-left and --gain-factors-right were replaced with
+    --beam-scaling.  --beam-scaling accepts a comma-separated list of beam
+    scaling factors for each feed and polarization in the order
+    0L,0R,1L,1R,etc.  For example, a 2 feed, 2 polarization receiver would
+    expect a list of 4 comma-separated values.
+    
+  --idlToSdfits-rms-flag was renamed --rms-flag
+  
+  --idlToSdfits-baseline-subtract was renamed --median-baseline-subtract
+  
+  --display-idlToSdfits was renamed --display-idlToSdfits-plots
+    
+There are also some new parameters:
+
+  --keep-temporary-files does exactly what it says.  With this pipeline
+    release, temporary files are deleted at the end of a pipeline run.  When
+    this option is set, those files will remain.
+
+  -w or --window allows the user to select a subset of spectral windows used
+    in the observation for calibration and/or imaging.  This is similar to the
+    --feed and --pol options.
+    
+
+3) Memory efficiency
+
+The new pipeline will calibrate data faster and with far less memory than in previous releases.  Tests shows up to a 10x speedup in calibration and memory usage at no more than a couple gigabytes.  Large maps with long scans should be processed just as efficiently as small maps.
+
+Specifically, the previous releases had the limitation of needing to read an entire scan into memory to perform the calibration step.  This usually was not an issue when running on a machine like 'arcturus' with a large amount of memory.  However, if a scan was particularly long and had a large number of integrations, this could become problematic.  The workaround was to limit the number of beams processed by the pipeline at the same time.  This was done either by setting the --max-processors parameter or by running the pipeline on a subset of the data using one of the data selection options like --feed or --pol.  In the new release, the --max-processors parameter is no longer necessary, and has been deprecated.
