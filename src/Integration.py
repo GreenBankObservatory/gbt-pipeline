@@ -24,6 +24,8 @@
 
 from Pipeutils import Pipeutils
 
+import numpy as np
+
 class Integration:
 
     def __init__(self, row):
@@ -36,9 +38,11 @@ class Integration:
         else:
             # strip leading and trailing whitespace
             return_val = self.data[key][0]
-            if type('') == type(return_val):
-                return_val.strip()
-            return return_val
+            if type(return_val) == type('') or \
+               type(return_val) == np.string_:
+                return return_val.strip()
+            else:
+                return return_val
     
     def __setitem__(self, key, value):
         self.data[key] = value
