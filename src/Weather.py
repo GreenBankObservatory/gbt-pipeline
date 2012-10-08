@@ -88,7 +88,7 @@ class Weather:
         #  recorded opacity coefficients, then just reuse the last
         #  zenith opacity value requested
 
-        if self.last_requested_freq_hz != None and self.last_requested_freq_hz == freq_hz and \
+        if self.last_requested_freq_hz and self.last_requested_freq_hz == freq_hz and \
                 integration_mjd_timestamp >= self.last_integration_mjd_timestamp and \
                 integration_mjd_timestamp < self.last_integration_mjd_timestamp + .04167:
             

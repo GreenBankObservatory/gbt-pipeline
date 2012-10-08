@@ -6,7 +6,7 @@ from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
 import scipy
 from scipy import constants
 from scipy import signal
-from ordereddict import OrderedDict
+from collections import OrderedDict
 
 import sys
 import os
@@ -22,6 +22,32 @@ POL ={ -1:'RR', -2:'LL',
        -5:'XX', -6:'YY', -7:'XY', -8:'YX',
         1:'I',   2:'Q',   3:'U',   4:'V' }
     
+def get_args():
+    parser = argparse.ArgumentParser(description='Run the spectral pipeline')
+    parser.add_argument('FILENAME', help='input file name')
+    parser.add_argument('--rfi-iterations', dest="niter", metavar='N',
+                        default=10,
+                        help='number of iterations for narrow-band RFI '
+                             'smoothing')
+    parser.add_argument('--rfi-spike-threshold', dest='nsigma', default=3,
+                        help='number of sigma threshold for narrow RFI spikes')
+    parser.add_argument('--median-filter-size', dest='medfilt_size', default=15,
+                       help='median filter window size for narrow-band rfi '
+                            'flagging')
+    parser.add_argument('--hanning-window-size', dest='hanning_win', default=5,
+                       help='hanning window size for smoothing ')
+    parser.add_argument('--aperture-efficiency', dest='eta_a', default=.71,
+                        help='aperture efficiency')
+    parser.add_argument('--etal-correction', dest='eta_l', default=.99,
+                        help='correction factor for rear spillover, ohmic '
+                             'loss and blockage efficiency')
+    parser.add_argument('--atmospheric-opacity', dest='tau', default=.008,
+                        help='atmospheric opacity')
+    #parser.add_argument('--baseline-region', dest='baseline_reg',
+    #                    help='baseline region')
+    
+    args = parser.parse_args()
+
 def polnum2char(num):
     return POL[num]
 
@@ -179,31 +205,8 @@ def mask(data, args):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description='Run the spectral pipeline')
-    parser.add_argument('FILENAME', help='input file name')
-    parser.add_argument('--rfi-iterations', dest="niter", metavar='N',
-                        default=10,
-                        help='number of iterations for narrow-band RFI '
-                             'smoothing')
-    parser.add_argument('--rfi-spike-threshold', dest='nsigma', default=3,
-                        help='number of sigma threshold for narrow RFI spikes')
-    parser.add_argument('--median-filter-size', dest='medfilt_size', default=15,
-                       help='median filter window size for narrow-band rfi '
-                            'flagging')
-    parser.add_argument('--hanning-window-size', dest='hanning_win', default=5,
-                       help='hanning window size for smoothing ')
-    parser.add_argument('--aperture-efficiency', dest='eta_a', default=.71,
-                        help='aperture efficiency')
-    parser.add_argument('--etal-correction', dest='eta_l', default=.99,
-                        help='correction factor for rear spillover, ohmic '
-                             'loss and blockage efficiency')
-    parser.add_argument('--atmospheric-opacity', dest='tau', default=.008,
-                        help='atmospheric opacity')
-    #parser.add_argument('--baseline-region', dest='baseline_reg',
-    #                    help='baseline region')
+    args = get_args()
     
-    args = parser.parse_args()
-
     raw = pyfits.open(args.FILENAME)
 
     targets = {}

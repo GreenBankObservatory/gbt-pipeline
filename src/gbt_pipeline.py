@@ -171,31 +171,32 @@ def calibrate_map(log, cl_params, row_list, term):
 def command_summary(cl_params, term, log):
     log.doMessage('INFO','{t.underline}Command summary{t.normal}'.format(t = term))
     for input_param in cl_params._get_kwargs():
-        parameter = input_param[0]
-        if 'zenithtau' == input_param[0]:
-            if None == input_param[1]:
+        parameter, parameter_value = input_param
+        
+        if 'zenithtau' == parameter:
+            if None == parameter_value:
                 value = 'from GB forecasts'
             else:
-                value = str(input_param[1])
-        elif 'feed' == input_param[0] or 'pol' == input_param[0] or \
-             'window' == input_param[0]:
-            if None == input_param[1]:
+                value = str(parameter_value)
+        elif 'feed' == parameter or 'pol' == parameter or \
+             'window' == parameter:
+            if None == parameter_value:
                 value = 'all'
             else:
-                value = ','.join(map(str,input_param[1]))
-        elif 'imagingoff' == input_param[0]:
+                value = ','.join(map(str,parameter_value))
+        elif 'imagingoff' == parameter:
             parameter = 'imaging'
-            if True == input_param[1]:
+            if parameter_value:
                 value = 'off'
             else:
                 value = 'on'
-        elif 'channels' == input_param[0]:
-            if False == input_param[1]:
+        elif 'channels' == parameter:
+            if False == parameter_value:
                 value = 'all'
             else:
-                value = str(input_param[1])
+                value = str(parameter_value)
         else:
-            value = str(input_param[1])
+            value = str(parameter_value)
             
         log.doMessage('INFO','\t', parameter,'=', value)
 

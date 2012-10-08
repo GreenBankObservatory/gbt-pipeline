@@ -1,3 +1,4 @@
+pipeline
 argparse==1.2.1
 blessings==1.5
 fitsio==0.9.2

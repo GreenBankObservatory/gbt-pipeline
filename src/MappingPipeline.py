@@ -147,7 +147,7 @@ class MappingPipeline:
         rows = referenceRows['ROW']
     
         crefs = []
-        trefs = []
+        tsyss = []
         cal_on = None
         cal_off = None
         exposures = [] # used for weighting the average of reference integrations
@@ -167,7 +167,7 @@ class MappingPipeline:
                 cal_off = row
             
             if cal_off and cal_on:
-                cref, tref, exposure, timestamp, tambient, elevation = self.sdf.getReferenceIntegration(cal_on, cal_off)
+                cref, tsys, exposure, timestamp, tambient, elevation = self.sdf.getReferenceIntegration(cal_on, cal_off)
                 
                 # used these, so clear for the next iteration
                 cal_off = None
@@ -176,20 +176,20 @@ class MappingPipeline:
                 # collect raw spectra and tsys values for each integration
                 #   these will be averaged to use for calibration
                 crefs.append(cref)
-                trefs.append(tref)
+                tsyss.append(tsys)
                 exposures.append(exposure)
                 timestamps.append(timestamp)
                 tambients.append(tambient)
                 elevations.append(elevation)
         
-        avgCref, avgTref, avgTimestamp, avgTambient, avgElevation = \
-            self.cal.getReferenceAverage(crefs, trefs, exposures, timestamps, tambients, elevations)
+        avgCref, avgTsys, avgTimestamp, avgTambient, avgElevation = \
+            self.cal.getReferenceAverage(crefs, tsyss, exposures, timestamps, tambients, elevations)
         
         self.log.doMessage('INFO', 'Tsys for scan {scan} feed {feed} '
                 'window {window} pol {pol}: {tsys:.1f}'.format(scan=scan,
-                feed=feed, window=window, pol=pol, tsys=avgTref))
+                feed=feed, window=window, pol=pol, tsys=avgTsys))
         
-        return avgCref, avgTref, avgTimestamp, avgTambient, avgElevation
+        return avgCref, avgTsys, avgTimestamp, avgTambient, avgElevation
     
     def get_dtype(self, feed, window, pol):
         
@@ -493,8 +493,8 @@ class MappingPipeline:
         self.outfile.close()
         
     def calibrate_ps_sdfits_integrations(self, feed, window, pol,
-                          avgCref1, avgTref1, crefTime1, refTambient1, refElevation1,
-                          avgCref2, avgTref2, crefTime2, refTambient2, refElevation2,
+                          avgCref1, avgTsys1, crefTime1, refTambient1, refElevation1,
+                          avgCref2, avgTsys2, crefTime2, refTambient2, refElevation2,
                           beam_scaling):
         
         dtype = self.get_dtype(feed, window, pol)
@@ -591,23 +591,23 @@ class MappingPipeline:
                                 self.cal.interpolate_by_time(avgCref1, avgCref2,
                                                              crefTime1, crefTime2, intTime)
                             
-                            avgTrefInterp = \
-                                self.cal.interpolate_by_time(avgTref1, avgTref2,
+                            avgTsysInterp = \
+                                self.cal.interpolate_by_time(avgTsys1, avgTsys2,
                                                              crefTime1, crefTime2, intTime)
             
-                            ta = self.cal.antenna_temp(avgTrefInterp, csig, crefInterp )
-                            tsys = avgTrefInterp
+                            ta = self.cal.antenna_temp(avgTsysInterp, csig, crefInterp )
+                            tsys = avgTsysInterp
                         else:
                             #import pdb; pdb.set_trace()
-                            ta = self.cal.antenna_temp(avgTref1, csig, avgCref1 )
+                            ta = self.cal.antenna_temp(avgTsys1, csig, avgCref1 )
                             
-                            tsys = avgTref1
+                            tsys = avgTsys1
                                             
                         if CREATE_PLOTS:
                             tas.append(ta)
                 
                         if CREATE_PLOTS:
-                            ref_tsyss.append(avgTref1)
+                            ref_tsyss.append(avgTsys1)
         
                         if self.cl.units != 'ta':
                             
@@ -764,14 +764,14 @@ class MappingPipeline:
         sys.stdout.flush()
     
     def calibrate_sdfits_integrations(self, feed, window, pol,
-                          avgCref1 = None, avgTref1 = None, crefTime1 = None, refTambient1 = None, refElevation1 = None,
-                          avgCref2 = None, avgTref2 = None, crefTime2 = None, refTambient2 = None, refElevation2 = None,
+                          avgCref1 = None, avgTsys1 = None, crefTime1 = None, refTambient1 = None, refElevation1 = None,
+                          avgCref2 = None, avgTsys2 = None, crefTime2 = None, refTambient2 = None, refElevation2 = None,
                           beam_scaling = None):
         
         if avgCref1 != None:
             self.calibrate_ps_sdfits_integrations(feed, window, pol,
-                          avgCref1, avgTref1, crefTime1, refTambient1, refElevation1,
-                          avgCref2, avgTref2, crefTime2, refTambient2, refElevation2,
+                          avgCref1, avgTsys1, crefTime1, refTambient1, refElevation1,
+                          avgCref2, avgTsys2, crefTime2, refTambient2, refElevation2,
                           beam_scaling)
         else:
             self.calibrate_fs_sdfits_integrations(feed, window, pol,

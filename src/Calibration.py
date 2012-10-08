@@ -338,28 +338,28 @@ class Calibration:
         aa2 = (integration_timestamp-first_ref_timestamp) / time_btwn_ref_scans
         return aa1*reference1 + aa2*reference2
 
-    def getReferenceAverage(self, crefs, trefs, exposures, timestamps,
+    def getReferenceAverage(self, crefs, tsyss, exposures, timestamps,
                             tambients, elevations):
         
         # convert to numpy arrays
         crefs = np.array(crefs)
-        trefs = np.array(trefs)
+        tsyss = np.array(tsyss)
         exposures = np.array(exposures)
         timestamps = np.array(timestamps)
         tambients = np.array(tambients)
         elevations = np.array(elevations)        
 
-        weights = exposures / trefs**2
-        avg_tref = np.average(trefs, axis = 0, weights = weights)
+        weights = exposures / tsyss**2
+        avg_tsys = np.average(tsyss, axis = 0, weights = weights)
         
-        avg_tref80 = avg_tref.mean(0) # single value for mid 80% of band
+        avg_tsys80 = avg_tsys.mean(0) # single value for mid 80% of band
         avg_cref = np.average(crefs, axis = 0, weights = weights)
         
         avg_timestamp = timestamps.mean()
         avg_tambient = tambients.mean()
         avg_elevation = elevations.mean()
         
-        return avg_cref, avg_tref80, avg_timestamp, avg_tambient, avg_elevation
+        return avg_cref, avg_tsys80, avg_timestamp, avg_tambient, avg_elevation
 
     def tsky(self, ambient_temp_k, freq_hz, tau):
         """Determine the sky temperature contribution at a frequency

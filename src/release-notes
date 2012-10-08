@@ -1,34 +1,54 @@
 GBT Mapping Pipeline Version 1.0
 
-The previous version of the pipeline was 0.4.  The most significant changes since the last release are to the calibration equations, user interface and memory efficiency.  These are described below.
+The previous version of the pipeline was 0.4.  The most significant changes
+since the last release are to the calibration equations, the user interface
+and memory efficiency.  These are described below.
 
 1)  Calibration equations  
 
-We determined that the calibration equations defined for the previous releases were sometimes incorrect.  The equations found in this release are nearly identical to those used in GBTIDL.
+We improved the calibration steps used in the pipeline.
 
-The specific changes are enumerated here.
+The previous release defined
 
-    The previous pipeline releases defined
+                        (Cal_on(v) + Cal_off(v))
+    Tsys(v) = Tcal(v) * ------------------------
+                        2*(Cal_on(v)-Cal_off(v))
+
+        where  Tsys = Tsys(v) averaged over the center 80% of
+            the frequency range of the observation
+            and v is frequency
+            
+                      beam_scaling_factor * e^tau
+    Ta_*(v) = Ta(v) * ----------------------------
+                             eta_l * Gain(z)
+                          
+        where Gain(z) = A_0 + A_1*z + A_2*z^2 + A_3*z^3,
+           tau is the elevation-adjusted opacity,
+           v is frequency and eta_l is the spillover factor
+
+    Default units = Ta*
     
-                            (Cal_on(v) + Cal_off(v))
-        Tsys(v) = Tcal(v) * ------------------------
-                            2*(Cal_on(v)-Cal_off(v))
+With this release
 
-            where  Tsys = Tsys(v) averaged over the center 80% of
-                the frequency range of the observation
-                and v is frequency
+                      Cal_off
+    Tsys = Tcal * ---------------- + (Tcal / 2)
+                  Cal_on - Cal_off
 
-                       beam_scaling_factor * e^tau
-        Ta_* = Ta(v) * ----------------------------
-                              eta_l * Gain(z)
-                              
-            where Gain(z) = A_0 + A_1*z + A_2*z^2 + A_3*z^3,
-               tau is the elevation-adjusted opacity,
-               v is frequency and eta_l is the spillover factor
- 
+        where Cal_off and Cal_on are averaged over the center 80% of
+            the frequency range of the observation
+    
+                      beam_scaling_factor * e^tau
+    Ta_*(v) = Ta(v) * ----------------------------
+                                eta_l
+
+    Default units = Tmb
+
 2) User interface
 
-The command-line options have been revised for ease of use and flexibility.  On the gbtpipeline-announe mailing list we asked gbtpipeline users about their experience with several exisiting parameters.  As a result, the following options have been deprecated:
+The command-line options have been revised for ease of use and flexibility.
+On the gbtpipeline-announe mailing list we asked gbtpipeline users about their
+experience with several exisiting parameters.  As a result, the following
+options have been deprecated:
 
   --sdfits-dir or -d
   --map-scans-for-scale
@@ -74,6 +94,18 @@ There are also some new parameters:
 
 3) Memory efficiency
 
-The new pipeline will calibrate data faster and with far less memory than in previous releases.  Tests shows up to a 10x speedup in calibration and memory usage at no more than a couple gigabytes.  Large maps with long scans should be processed just as efficiently as small maps.
+The new pipeline will calibrate data faster and with far less memory than in
+previous releases.  Tests shows up to a 10x speedup in calibration and memory
+usage at no more than a couple gigabytes.  Large maps with long scans should
+be processed just as efficiently as small maps.
 
-Specifically, the previous releases had the limitation of needing to read an entire scan into memory to perform the calibration step.  This usually was not an issue when running on a machine like 'arcturus' with a large amount of memory.  However, if a scan was particularly long and had a large number of integrations, this could become problematic.  The workaround was to limit the number of beams processed by the pipeline at the same time.  This was done either by setting the --max-processors parameter or by running the pipeline on a subset of the data using one of the data selection options like --feed or --pol.  In the new release, the --max-processors parameter is no longer necessary, and has been deprecated.
+Specifically, the previous releases had the limitation of needing to read an
+entire scan into memory to perform the calibration step.  This usually was
+not an issue when running on a machine like 'arcturus' with a large amount
+of memory.  However, if a scan was particularly long and had a large number of
+integrations, this could become problematic.  The workaround was to limit the
+number of beams processed by the pipeline at the same time.  This was done
+either by setting the --max-processors parameter or by running the pipeline on
+a subset of the data using one of the data selection options like --feed or
+--pol.  In the new release, the --max-processors parameter is no longer
+necessary, and has been deprecated.

@@ -226,7 +226,7 @@ class SdFits:
         cal_offdata = cal_off['DATA']
         cref = cal.total_power(cal_ondata, cal_offdata)
         tcal = cal_off['TCAL']
-        tref = cal.tsys( tcal, cal_ondata, cal_offdata )
+        tsys = cal.tsys( tcal, cal_ondata, cal_offdata )
         
         dateobs = cal_off['DATE-OBS']
         timestamp = self.pu.dateToMjd(dateobs)
@@ -235,7 +235,7 @@ class SdFits:
         tambient = cal_off['TAMBIENT']
         elevation = cal_off['ELEVATIO']
         
-        return cref,tref,exposure,timestamp,tambient,elevation
+        return cref, tsys, exposure, timestamp, tambient, elevation
 
     def nameIndexFile(self, fitsfile):
         # -------------------------------------------------  name index file
