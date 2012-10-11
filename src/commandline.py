@@ -105,7 +105,7 @@ class CommandLine:
 
         calibration = self.parser.add_argument_group('Calibration')
         calibration.add_argument("-u", "--units", dest="units", default='tmb',
-                        help="calibration units [ta, ta*, tmb (default), jy]",
+                        help="calibration units.  Default: tmb",
                         choices=['ta', 'ta*', 'tmb', 'jy'],
                         type=str.lower)
         calibration.add_argument("--spillover-factor", dest="spillover",
