@@ -81,20 +81,23 @@ class CommandLine:
         control = self.parser.add_argument_group('Control')
         control.add_argument("--imaging-off", dest="imagingoff",
                         action='store_true',
-                        default=False, help="If set, will not create images.")
+                        default=False, help="If set, will calibrate data and "
+                        "write calibrated SDFITS files but will not create "
+                        "image FITS files.")
         control.add_argument("-a", "--average", dest="average", default=0,
                         type=int,
                         help='average the spectra over N channels (passed '
                         'directly to idlToSdfits)')
         control.add_argument("-n", "--rms-flag", dest="idlToSdfits_rms_flag",
                         default=False,
-                        help='flag integrations with excess noise (passed '
-                        'directly to idlToSdfits)',
+                        help="flag integrations with RMS noise > N kelvin "
+                        "(passed directly to idlToSdfits)",
                         metavar="N")
         control.add_argument("--median-baseline-subtract",
                         dest="idlToSdfits_baseline_subtract",
                         default=False, help="subtract median-filtered "
-                        "baseline (passed directly to idlToSdfits)",
+                        "baseline, with a median window half width of N "
+                        "channels (passed directly to idlToSdfits)",
                         metavar="N")
         control.add_argument("--display-idlToSdfits-plots", action='store_true',
                         dest="display_idlToSdfits", default=False,
@@ -102,7 +105,9 @@ class CommandLine:
 
         calibration = self.parser.add_argument_group('Calibration')
         calibration.add_argument("-u", "--units", dest="units", default='tmb',
-                        help="calibration units [ta, ta*, tmb (default), jy]")
+                        help="calibration units [ta, ta*, tmb (default), jy]",
+                        choices=['ta', 'ta*', 'tmb', 'jy'],
+                        type=str.lower)
         calibration.add_argument("--spillover-factor", dest="spillover",
                         default=.99, type=float,
                         help="rear spillover factor (eta_l). Default: .99")
