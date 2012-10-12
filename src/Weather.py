@@ -81,6 +81,9 @@ class Weather:
         
         # if less than 2 GHz, opacity coefficients are not available
         if freq_ghz < 2:
+            print "ERROR: opacity coefficients not available for data < 2 GHz."
+            print "    Please supply a zenithtau value at the command line ",
+            print "and continue."
             return None
 
         # if the frequency is the same as the last requested and

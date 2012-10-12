@@ -85,28 +85,29 @@ class MappingPipeline:
         
         self.BUFFER_SIZE = 1000
         
-    def get_beam_scale(self, receiver, beam_scaling):
+    def get_beam_scale(self, receiver, beam_scaling, feed, pol):
 
         if beam_scaling == 1:
             return beam_scaling
             
         if receiver == 'RcvrArray18_26':
-        
+
             if len(beam_scaling) != 14:
                 self.log.doMessage('ERR', 'You need to supply 14 beam '
                     'scaling factors for the KFPA receiver.  The '
                     'format is a comma-separated list of values '
                     'orded by feed and polarization: '
                     '0L,0R,1L,1R,2L,2R,etc.')
+                sys.exit(9)
             else:
                 beam_scaling = np.array(beam_scaling)
-                print beam_scaling.shape
-                beam_scaling.reshape((7,2))
-                beam_scale[feed][pol]
+                beam_scaling = beam_scaling.reshape((7,2))
+                return beam_scaling[feed][pol]
         
         else:
             self.log.doMessage('ERR', 'Beam scaling factors not known for'
                 'receiver:', receiver)
+            sys.exit(9)
     
     def determineSetup(self, sdfits_row_structure, ext):
         
@@ -436,7 +437,7 @@ class MappingPipeline:
                         # get tsky for the current integration
                         #tambient_current = sigrefState[0]['cal_off']['TAMBIENT']
                     
-                    beam_scale = self.get_beam_scale(receiver, beam_scaling)
+                    beam_scale = self.get_beam_scale(receiver, beam_scaling, feed, pol)
                     
                     if self.cl.units=='ta*' or self.cl.units=='tmb' or self.cl.units=='jy':
                         tastar = self.cal.ta_star(ta, beam_scale, opacity = opacity_el, spillover = self.SPILLOVER)
@@ -656,7 +657,7 @@ class MappingPipeline:
                             #   model database.  Gain coefficients can optionally come
                             #   from the command line.
 
-                            beam_scale = self.get_beam_scale(receiver, beam_scaling)
+                            beam_scale = self.get_beam_scale(receiver, beam_scaling, feed, pol)
                             
                             tastar = self.cal.ta_star(tsrc, beam_scale, opacity = opacity_el, spillover = self.SPILLOVER)
                             
