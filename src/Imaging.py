@@ -146,7 +146,7 @@ class Imaging:
 
             log.doMessage('DBG', aips_stdout)
             log.doMessage('DBG', aips_stderr)
-            log.doMessage('INFO','... (1/2) done')
+            log.doMessage('INFO','... (step 1 of 2) done')
             
             # define command to invoke mapping script
             # which in turn invokes AIPS via ParselTongue
@@ -158,5 +158,5 @@ class Imaging:
 
             log.doMessage('DBG', aips_stdout)
             log.doMessage('DBG', aips_stderr)
-            log.doMessage('INFO','... (2/2) done')
+            log.doMessage('INFO','... (step 2 of 2) done')
      

@@ -34,7 +34,7 @@ class ObservationRows:
                        fitsExtension, rowOfFitsFile, typeOfScan):
         
         key = self.Key(scan, feed, window, polarization)
-        #key = (scan, feed, window, polarization)
+        
         if key in self.rows:
             self.rows[key]['ROW'].append(rowOfFitsFile)
         else:

@@ -29,8 +29,11 @@ from MappingPipeline import MappingPipeline
 from SdFitsIO import SdFits
 from Imaging import Imaging
 from PipeLogging import Logging
+from Weather import Weather
+from Pipeutils import Pipeutils
 
 from blessings import Terminal
+import fitsio
 
 import os
 import errno
@@ -91,7 +94,36 @@ def calibrate_win_feed_pol(log, cl_params, window, feed, pol, pipe):
             refSpectrum1, refTsys1, refTimestamp1, refTambient1, refElevation1, \
             refSpectrum2, refTsys2, refTimestamp2, refTambient2, refElevation2, \
             cl_params.beamscaling )
-   
+
+def preview_zenith_tau(log, row_list, cl_params, feeds, windows, pols):
+
+    # if using the weather database
+    if not cl_params.zenithtau:
+
+        foo = row_list.get(cl_params.mapscans[0], feeds[0], windows[0], pols[0])
+        ff = fitsio.FITS(cl_params.infilename)
+        extension = foo['EXTENSION']
+        row = foo['ROW'][0]
+        bar = ff[extension]['OBSFREQ','DATE-OBS'][row]
+        dateobs = bar['DATE-OBS'][0]
+        obsfreq = bar['OBSFREQ'][0]
+        ff.close()
+        
+        weather = Weather()
+        pu = Pipeutils()
+           
+        mjd = pu.dateToMjd(dateobs)
+        zenithtau = weather.retrieve_zenith_opacity(mjd, obsfreq)
+        log.doMessage('INFO',
+            'Zenith opacity for map: {0:.3f}'.format(zenithtau) )
+    
+    # else if set at the command line
+    else:
+    
+        log.doMessage('INFO',
+            'Zenith opacity for map: {0:.3f}'.format(cl_params.zenithtau) )
+        
+
 def calibrate_map(log, cl_params, row_list, term):
     feeds = cl_params.feed
     pols = cl_params.pol
@@ -121,6 +153,8 @@ def calibrate_map(log, cl_params, row_list, term):
         pols = row_list.pols()
     if not windows:
         windows = row_list.windows()
+    
+    preview_zenith_tau(log, row_list, cl_params, feeds, windows, pols)
     
     allpipes = []
     for window in windows:
@@ -175,7 +209,7 @@ def command_summary(cl_params, term, log):
         
         if 'zenithtau' == parameter:
             if None == parameter_value:
-                value = 'from GB forecasts'
+                value = 'determined from GB database'
             else:
                 value = str(parameter_value)
         elif 'feed' == parameter or 'pol' == parameter or \

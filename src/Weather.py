@@ -38,6 +38,7 @@ class Weather:
         self.last_zenith_opacity = None
         self.number_of_opacity_files = None
         self.opacity_coeffs = None
+        self.L_BAND_ZENITH_TAU = .008
         
     def _retrieve_opacity_coefficients(self, opacity_coefficients_filename):
         """Return opacities (taus) derived from a list of coeffients
@@ -81,10 +82,7 @@ class Weather:
         
         # if less than 2 GHz, opacity coefficients are not available
         if freq_ghz < 2:
-            print "ERROR: opacity coefficients not available for data < 2 GHz."
-            print "    Please supply a zenithtau value at the command line ",
-            print "and continue."
-            return None
+            return self.L_BAND_ZENITH_TAU
 
         # if the frequency is the same as the last requested and
         #  this time is within the same record (1 hr window) of the last
