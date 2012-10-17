@@ -365,7 +365,7 @@ class MappingPipeline:
                 
                 sigrefState = [{'cal_on':None, 'cal_off':None, 'TP':None, 'rownum':None},
                                {'cal_on':None, 'cal_off':None, 'TP':None, 'rownum':None}]
-               
+                
                 # now start at the beginning and calibrate all the integrations
                 for rowNum in chunk:
                     
@@ -396,8 +396,18 @@ class MappingPipeline:
                            np.all(np.isnan(sigrefState[1]['cal_off']['DATA'].data)):
                         
                             self.log.doMessage('DBG', 'Bad integration. '
-                                'Skipping table rows', sigrefState[0]['rownum'],
+                                'Writing nan values to output.  Input rows', sigrefState[0]['rownum'],
                                 sigrefState[1]['rownum'])
+                            
+                            # create an output row with 'nan' data and real metadata
+                            output_data[outputidx] = row.data
+                            for xx in range(len(output_data[outputidx]['DATA'])):
+                                output_data[outputidx]['DATA'][xx] = float('nan')
+                            
+                            outputidx = outputidx + 1
+        
+                            self.show_progress(outputidx, rows2write)
+                            
                             # used these, so clear for the next iteration
                             sigrefState = [{'cal_on':None, 'cal_off':None, 'TP':None},
                                            {'cal_on':None, 'cal_off':None, 'TP':None}]
@@ -472,7 +482,6 @@ class MappingPipeline:
                         sys.exit(9)
                         
                     row['TSYS'] = tsys
-
 
                     output_data[outputidx] = row.data
                     
