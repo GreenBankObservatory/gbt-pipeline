@@ -158,8 +158,7 @@ def calibrate_map(log, cl_params, row_list, term):
     
     allpipes = []
     for window in windows:
-        log.doMessage('INFO', '\nCalibrating window {ww}.'.format(ww=window))
-        sys.stdout.flush()
+    
         pipes = []
         for feed in feeds:
             for pol in pols:
@@ -172,6 +171,10 @@ def calibrate_map(log, cl_params, row_list, term):
         
         pids = []
         
+        if pipes:
+            log.doMessage('INFO', '\nCalibrating window {ww}.'.format(ww=window))
+            sys.stdout.flush()
+
         for idx, pp in enumerate(pipes):
             mp, window, feed, pol = pp
            
