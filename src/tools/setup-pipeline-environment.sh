@@ -26,9 +26,12 @@ curl -O https://raw.github.com/jmasters/gbt-pipeline/master/src/dependencies/vir
 # ------------------------------------------------------------ create virtual env
 echo 'making virtual calibration env'
 cd ${SCRATCH_DIR}
-rm -rf ${INSTALL_DIR}/pipeline-env
-python ./virtualenv.py ${INSTALL_DIR}/pipeline-env
-source ${INSTALL_DIR}/pipeline-env/bin/activate
+VIRTENV=pipeline-env
+rm -rf ${INSTALL_DIR}/${VIRTENV}
+python ./virtualenv.py ${INSTALL_DIR}/${VIRTENV}
+
+# ------------------------------------------------------- activate virtual env
+source ${INSTALL_DIR}/${VIRTENV}/bin/activate
 
 # -----------------------------------------------------------------------------
 #
@@ -92,9 +95,41 @@ deactivate
 #
 # -----------------------------------------------------------------------------
 
+# ---------------------------- cd into scratch area and download dependencies
+
+cd ${SCRATCH_DIR}
+OBIT_VERSION=413
+echo 'downloading obit'
+svn checkout -r ${OBIT_VERSION} https://svn.cv.nrao.edu/svn/ObitInstall
+
 cd ${SCRATCH_DIR}
 echo 'downloading parseltongue'
 curl -O https://raw.github.com/jmasters/gbt-pipeline/master/src/dependencies/parseltongue.tar.gz
+
+# ------------------------------------------------------------ create virtual env
+echo 'making virtual imaging env'
+cd ${SCRATCH_DIR}
+VIRTENV=imaging-env
+rm -rf ${INSTALL_DIR}/${VIRTENV}
+python ./virtualenv.py ${INSTALL_DIR}/${VIRTENV}
+
+# ------------------------------------------------------- activate virtual env
+source ${INSTALL_DIR}/${VIRTENV}/bin/activate
+
+# ------------------------------------------------------------ install numpy
+echo 'installing numpy'
+pip install numpy
+
+# ------------------------------------------------------------ install pyfits
+echo 'installing pyfits'
+pip install pyfits
+
+# ---------------------------------------------------------- build Obit
+echo 'building Obit'
+cd ${SCRATCH_DIR}/ObitInstall
+./InstallObit.sh -without ZLIB PYTHON MOTIF GLIB PLPLOT CFITSIO FFTW GSL ZLIB MOTIF WWW CURL XMLRPC Boost WVR THIRD ObitView ObitSD
+# copy build to install area
+cp -rf ${SCRATCH_DIR}/ObitInstall/ObitSystem ${INSTALL_DIR}/obit
 
 # ---------------------------------------------------------- build ParselTongue
 
@@ -107,9 +142,10 @@ echo 'updating ParselTongue configure script'
 sed 's/Obit.py/Obit.so/g' ./configure.sav > ./configure
 chmod u+x ./configure
 
-./configure --prefix=${INSTALL_DIR}
+PYTHONPATH=${INSTALL_DIR}/obit/Obit/python/ LD_LIBRARY_PATH=/opt/local/lib:${INSTALL_DIR}/obit/Obit ./configure --prefix=${INSTALL_DIR}
 make
 make install
 
+deactivate
 
 exit

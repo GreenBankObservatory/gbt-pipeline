@@ -4,6 +4,9 @@ echo $0  # identify this script in log files
 
 INSTALL_DIR=/home/gbt7/pipeline
 
+# activate virtualenv
+source ${INSTALL_DIR}/imaging-env/bin/activate
+
 # initialize AIPS
 AIPS_ROOT=/home/aips
 . $AIPS_ROOT/LOGIN.SH
@@ -12,4 +15,6 @@ AIPS_ROOT=/home/aips
 # $CDNEW # use NEW version
 # $CDTST # use TST version
 
-$INSTALL_DIR/bin/ParselTongue $*
+PYTHONPATH=${INSTALL_DIR}/obit/Obit/python/ LD_LIBRARY_PATH=/opt/local/lib:${INSTALL_DIR}/obit/Obit ${INSTALL_DIR}/bin/ParselTongue  $*
+
+deactivate

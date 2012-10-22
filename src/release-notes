@@ -93,6 +93,13 @@ There are also some new parameters:
     in the observation for calibration and/or imaging.  The default behavior
     is to calibrate and image all spectral windows in the data set.
     
+Finally, the .sdf files which are used as input into the doImage scripts are
+no longer produced when --imaging-off is set at the command line.  Furthermore,
+even when imaging is enabled, these files are removed by default.  If you have
+your own modified imaging scripts and you want to use .sdf files as input, run
+the pipeline with --keep-temporary-files and allow the default imaging steps
+to occur.  At this point, you can run your doImage scripts as before, using the
+.sdf files as input.
 
 3) Memory efficiency
 
