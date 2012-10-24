@@ -1,6 +1,6 @@
 GBT Mapping Pipeline Version 1.0
 
-These notes accompany the release of the GBT Mapping Pipeline on October XX,
+These notes accompany the release of the GBT Mapping Pipeline on October 24,
 2012.  The previous version of the pipeline was 0.4.  The most significant 
 changes since the last release are to the calibration equations, the user 
 interface and memory efficiency.  These are described below.

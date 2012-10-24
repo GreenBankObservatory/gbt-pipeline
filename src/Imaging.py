@@ -45,7 +45,7 @@ class Imaging:
         
         RELCONTRIBDIR = '/home/gbtpipeline/release/contrib'
         TESTCONTRIBDIR = '/home/gbtpipeline/integration/contrib'
-        DBCONSCRIPT = '/' + 'dbcon.py'
+        DBCONSCRIPT = '/' + 'make_sdf_and_dbcon.py'
         MAPSCRIPT = '/' + 'mapDefault.py'
         
         # if the user opted to do imaging, then check for the presence of
@@ -127,7 +127,7 @@ class Imaging:
             else:
                 keeptempfiles = '0'
             
-            doimg_cmd = ' '.join(('/home/gbtpipeline/integration/tools/doImage',
+            doimg_cmd = ' '.join(('doImage',
                 dbconScript, aipsNumber, ','.join(map(str,feeds)),
                 str(cl_params.average), channels, display_idlToSdfits,
                 idlToSdfits_rms_flag, str(cl_params.verbose),

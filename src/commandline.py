@@ -140,8 +140,8 @@ class CommandLine:
                         help="Overwrites existing output files if set.")
         output.add_argument("--keep-temporary-files", action='store_true',
                         dest='keeptempfiles', default=False,
-                        help='Does not remove intermediate calibration files '
-                        'if set.')
+                        help='If set, do not remove intermediate imaging '
+                        'files.')
 
         
 
