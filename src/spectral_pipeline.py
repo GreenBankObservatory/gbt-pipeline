@@ -7,9 +7,11 @@ import scipy
 from scipy import constants
 from scipy import signal
 import sys
-from collections import OrderedDict
+from ordereddict import OrderedDict
 import os
 
+DOPLOT = True
+REBIN = False
 ONEPLOT = False
 DEBUG = False
 
@@ -194,13 +196,15 @@ if __name__ == "__main__":
     primary.header = raw[0].header
 
     outcols = raw[1].columns
-    for xx in outcols:
-        if xx.name == 'DATA': xx.format = '1024E'
+    if REBIN:
+        for xx in outcols:
+            if xx.name == 'DATA': xx.format = '1024E'
 
     sdfits = pyfits.new_table(pyfits.ColDefs(outcols),\
         nrows=len(targets),fill=1)
 
-
+    numtargets = 0
+    
     # for each target
     for target_id in targets.keys():
 
@@ -228,7 +232,13 @@ if __name__ == "__main__":
                 (target_data['PROCSEQN'][scanmask][0]) == 1:
                 if obsmodes.has_key(str(int(scan)+1)):
                     scan_pairs.append( (int(scan),int(scan)+1) )
-            
+        
+        # if there are no scan pairs, skip to the next target
+        if 0 == len(scan_pairs):
+            continue
+        else:
+            numtargets += 1
+        
         print 'scans for target',target_id,scan_pairs
 
         final_spectrum = None
@@ -343,18 +353,28 @@ if __name__ == "__main__":
                     if DEBUG:
                         print 'fft.max()',myfft.max()
 
-                #!!!!!!!!!!!!!!!!!!!!!!!  don't assume binsize!!
-                binsize = len(cal_masked.mean(0)) / 1024.
-                rebinned = rebin_1d(cal_masked.mean(0),binsize=binsize)
-                # reshape the velocity axis as well
-                vel = rebin_1d(velo,binsize=binsize)
-                rebinned.mask = flag_rfi(rebinned)
+                if REBIN:
+                    #!!!!!!!!!!!!!!!!!!!!!!!  don't assume binsize!!
+                    binsize = len(cal_masked.mean(0)) / 1024.
+                    rebinned = rebin_1d(cal_masked.mean(0),binsize=binsize)
+                    # reshape the velocity axis as well
+                    vel = rebin_1d(velo,binsize=binsize)
+                    rebinned.mask = flag_rfi(rebinned)
                 
-                #!!!!!!!!!!!!!!!!!!!!!!!  don't assume order
-                yfit = fit_baseline(rebinned,order=3)
-                yfit.mask = rebinned.mask
+                    #!!!!!!!!!!!!!!!!!!!!!!!  don't assume order
+                    yfit = fit_baseline(rebinned,order=3)
+                    yfit.mask = rebinned.mask
 
-                baseline_removed = rebinned-yfit
+                    baseline_removed = rebinned-yfit
+                else:
+                    cal_masked.mean(0).mask = flag_rfi(cal_masked.mean(0))
+                    vel = velo
+                    
+                    #!!!!!!!!!!!!!!!!!!!!!!!  don't assume order
+                    yfit = fit_baseline(cal_masked.mean(0), order=3)
+                    yfit.mask = cal_masked.mean(0).mask
+    
+                    baseline_removed = cal_masked.mean(0)-yfit
 
                 if final_spectrum != None:
                     final_spectrum =\
@@ -373,30 +393,31 @@ if __name__ == "__main__":
         freereg=final_spectrum[:.35*len(final_spectrum)]
         freereg = np.ma.masked_array(freereg,np.isnan(freereg))
         rms = np.ma.sqrt((freereg**2).mean())
-        
-        # -------------------------------- one figure for all spectra
-        if ONEPLOT:
-            ax = pylab.subplot(len(targets),1,num)
-            at = AnchoredText(target_id,loc=2, frameon=False)
-            ax.add_artist(at)
-            ax.plot(vel,final_spectrum,label=target_id)
-        
-        # --------------------------------- one figure per spectrum
-        else:
-            figure(figsize=(15, 5))
-            ax = pylab.subplot(1,1,1)
-            at = AnchoredText(target_id,loc=2, frameon=False,\
-                prop=dict(size=22))
-            ax.add_artist(at)
-            title(FILENAME+ '\n' + target_id)
-            xlabel('velocity (km/s)')
-            ylabel('Jy')
-            tick_params(labelsize=22)
-            fs=final_spectrum[.2*len(final_spectrum):.8*len(final_spectrum)] 
-            vs=vel[.2*len(vel):.8*len(vel)] 
-            plot(vs,fs,label=target_id)
 
-            savefig(target_id+'.png')
+        if DOPLOT:        
+            # -------------------------------- one figure for all spectra
+            if ONEPLOT:
+                ax = pylab.subplot(len(targets),1,num)
+                at = AnchoredText(target_id,loc=2, frameon=False)
+                ax.add_artist(at)
+                ax.plot(vel,final_spectrum,label=target_id)
+            
+            # --------------------------------- one figure per spectrum
+            else:
+                figure(figsize=(15, 5))
+                ax = pylab.subplot(1,1,1)
+                at = AnchoredText(target_id,loc=2, frameon=False,\
+                    prop=dict(size=22))
+                ax.add_artist(at)
+                title(FILENAME+ '\n' + target_id)
+                xlabel('velocity (km/s)')
+                ylabel('Jy')
+                tick_params(labelsize=22)
+                fs=final_spectrum[.2*len(final_spectrum):.8*len(final_spectrum)] 
+                vs=vel[.2*len(vel):.8*len(vel)] 
+                plot(vs,fs,label=target_id)
+    
+                savefig(target_id+'.png')
         
         for name in raw[1].columns.names:
             if name != 'DATA':
@@ -405,14 +426,17 @@ if __name__ == "__main__":
         
         num += 1
     
-    # -------------------------------------- one figure for all spectra
-    if ONEPLOT:
-        pylab.suptitle(FILENAME)
-        pylab.figtext(.5,.02,'velocity (km/s)')
-        pylab.figtext(.02,.5,'Jy',rotation='vertical')
-        pylab.savefig(os.path.basename(FILENAME)+'.svg')
- 
-    hdulist = pyfits.HDUList([primary,sdfits])
+    if DOPLOT:        
+        # -------------------------------------- one figure for all spectra
+        if ONEPLOT:
+            pylab.suptitle(FILENAME)
+            pylab.figtext(.5,.02,'velocity (km/s)')
+            pylab.figtext(.02,.5,'Jy',rotation='vertical')
+            pylab.savefig(os.path.basename(FILENAME)+'.svg')
+
+    calibrated_targets = sdfits
+    calibrated_targets.data = sdfits.data[:numtargets]
+    hdulist = pyfits.HDUList([primary, calibrated_targets])
     hdulist.writeto(os.path.basename(FILENAME)+'.reduced.fits',clobber=True)
     hdulist.close()
     del hdulist
