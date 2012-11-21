@@ -235,7 +235,11 @@ class MappingPipeline:
         
         input_header = fitsio.read_header(self.infilename, ext)
         self.outfile.create_table_hdu(dtype = dtype, header = input_header)
-        
+
+        # copy primary header from input to output file
+        primary_header = fitsio.read_header(self.infilename, 0)
+        self.outfile[0].write_keys(primary_header, clean=True)
+
         return dtype
 
     def multi_tskys(self, crefTime2, refTambient2, refElevation2):
