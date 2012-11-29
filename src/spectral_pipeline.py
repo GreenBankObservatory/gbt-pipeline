@@ -1,4 +1,5 @@
 import pyfits
+import fitsio
 import numpy as np
 import pylab
 from matplotlib.font_manager import FontProperties
@@ -10,12 +11,10 @@ import sys
 from ordereddict import OrderedDict
 import os
 
-DOPLOT = True
+DOPLOT = False
 REBIN = False
 ONEPLOT = False
 DEBUG = False
-
-from pylab import *
 
 POL ={  -1:'RR',-2:'LL',
         -3:'RL',-4:'LR',
@@ -149,33 +148,50 @@ def boxcar(data,window_len):
     smoothed_data = np.convolve(kernel,data,mode='same')
     return smoothed_data
 
-def mask_data(data,args):
+def mask_data(data, maskargs):
     """
     Return the masked data
     
     """
-    return data[ mask(data,args) ]
+    mymaskeddata = data[ domask(data, maskargs) ]
+    return mymaskeddata 
 
-def mask(data,args):
+def domask(data, margs):
     """
     Return the mask based on the arguments
     
     """
-    # initialize a mask list the size of args
-    each_mask = {}
-    fullmask = None
-
-    for key in args.iterkeys():
-       
-        thismask = ( data[key] == args[key] )
-        
-        if fullmask != None:
-            fullmask = np.logical_and( fullmask, thismask )
+    ## initialize a mask list the size of args
+    #each_mask = {}
+    #fullmask = None
+    #
+    #for key in args.iterkeys():
+    #   
+    #    thismask = ( data[key] == args[key] )
+    #    
+    #    if fullmask != None:
+    #        fullmask = np.logical_and( fullmask, thismask )
+    #    else:
+    #        fullmask = thismask
+    #
+    #return fullmask
+    key = margs.keys()[0]
+    
+    if np.ndarray == type(data):
+        thismask = ( data[key] == margs[key] )
+        return thismask
+    
+    else:
+        # if type is int
+        if type(1) == type(margs[key]) or np.int16 == type(margs[key]):
+            retval = data.where(key + ' == ' + str(margs[key]))
+        # if type is string
+        elif type('') == type(margs[key]):
+            retval = data.where(key + ' == \'' + margs[key] + '\'')
         else:
-            fullmask = thismask
-
-    return fullmask
-
+            retval = False
+            
+    return retval
 
 if __name__ == "__main__":
 
@@ -183,25 +199,41 @@ if __name__ == "__main__":
     
     HANNING_WIN = 5
 
-    raw = pyfits.open(FILENAME)
+    # open the input file and get a file handle
+    raw = fitsio.FITS(FILENAME)
+    
     targets = {}
-    for target_name in set(raw[1].data['OBJECT']):
-        targets[target_name] = mask_data(raw[1].data, {'OBJECT':target_name })
+    
+    # get a list of target names from the input file
+    target_list = [xx.strip() for xx in set(raw[1]['OBJECT'][:])]
+
+    # for each target, get a pointer to that subset of data
+    for target_name in target_list:
+        mask = raw[1].where('OBJECT == \'' + target_name + '\'')
+        targets[target_name] = raw[1][mask]
 
     num = 1
     
+    # recast the target data into an ordered dictionary
     targets = OrderedDict(sorted(targets.items(), key=lambda t: t[0]))
 
-    primary = pyfits.PrimaryHDU()
-    primary.header = raw[0].header
+    # read the input primary header and make a copy for output
+    raw_primary = raw[0].read_header()
+    out_primary = raw_primary
+ 
+    # ??? not sure what to do with this for fitsio right now
+    #if REBIN:
+    #    for xx in outcols:
+    #        if xx.name == 'DATA': xx.format = '1024E'
 
-    outcols = raw[1].columns
-    if REBIN:
-        for xx in outcols:
-            if xx.name == 'DATA': xx.format = '1024E'
-
-    sdfits = pyfits.new_table(pyfits.ColDefs(outcols),\
-        nrows=len(targets),fill=1)
+    # create the output file
+    outfilename = os.path.basename(FILENAME)+'.reduced.fits'
+    sdfits = fitsio.FITS(outfilename, 'rw', clobber = True)
+    
+    # get the dtype from an input row to have the right column structure
+    #  in the output file
+    dtype = raw[1][0].dtype
+    sdfits.create_table_hdu(dtype = dtype)#, header = sdfits_header)
 
     numtargets = 0
     
@@ -209,24 +241,21 @@ if __name__ == "__main__":
     for target_id in targets.keys():
 
         print 'target',target_id,len(targets[target_id]),'integrations'
-                
+        
         target_data = targets[target_id]
 
         obsmodes = {}
-        
         # for each scan on the target, collect obsmodes
         for scan in set(target_data['SCAN']):
             obsmodes[str(scan)] = \
-                target_data['OBSMODE'][target_data['SCAN']==scan][0]
+                target_data['OBSMODE'][target_data['SCAN']==scan][0].strip()
 
         obsmodes = OrderedDict(sorted(obsmodes.items(), key=lambda t: t[0]))
      
         # for each scan on the target, make pairs
         scan_pairs = []
         for scan in obsmodes.keys():
-            #!!!!!!!!!!!!!!!!!!! look for onoff in obsmode
-            
-            scanmask = mask(target_data, { 'SCAN':int(scan) } )
+            scanmask = target_data['SCAN']==int(scan)
             # check procsize and procseqn
             if (target_data['PROCSIZE'][scanmask][0]) == 2 and \
                 (target_data['PROCSEQN'][scanmask][0]) == 1:
@@ -240,7 +269,7 @@ if __name__ == "__main__":
             numtargets += 1
         
         print 'scans for target',target_id,scan_pairs
-
+        
         final_spectrum = None
         for pair in scan_pairs:
             
@@ -255,8 +284,8 @@ if __name__ == "__main__":
                 continue
         
             # L(ON) - L(OFF) / L(OFF)
-            TargDataPols = mask_data(raw[1].data,{'SCAN':TargScanNum})
-            RefDataPols = mask_data(raw[1].data,{'SCAN':RefScanNum})
+            TargDataPols = mask_data(raw[1], {'SCAN':TargScanNum})
+            RefDataPols = mask_data(raw[1], {'SCAN':RefScanNum})
             
             polarizations = set(TargDataPols['CRVAL4'])
 
@@ -418,14 +447,23 @@ if __name__ == "__main__":
                 plot(vs,fs,label=target_id)
     
                 savefig(target_id+'.png')
+
+        outputrow = np.zeros(1, dtype=TargData[0].dtype)
+
+        for name in sdfits[-1].colnames:
+            if name != 'DATE-OBS':
+                if type('') == type(TargData[0][name]) or \
+                  np.string_ == type(TargData[0][name]):
+                    outputrow[name] = TargData[0][name].strip()
+                else:
+                    outputrow[name] = TargData[0][name]
         
-        for name in raw[1].columns.names:
-            if name != 'DATA':
-                sdfits.data[num-1][name] = TargData[0][name]
-        sdfits.data[num-1]['DATA'] = final_spectrum            
-        
+        outputrow['DATA'] = final_spectrum
+        sdfits[-1].append(outputrow)
+        sdfits.update_hdu_list()
+                
         num += 1
-    
+        
     if DOPLOT:        
         # -------------------------------------- one figure for all spectra
         if ONEPLOT:
@@ -434,11 +472,5 @@ if __name__ == "__main__":
             pylab.figtext(.02,.5,'Jy',rotation='vertical')
             pylab.savefig(os.path.basename(FILENAME)+'.svg')
 
-    calibrated_targets = sdfits
-    calibrated_targets.data = sdfits.data[:numtargets]
-    hdulist = pyfits.HDUList([primary, calibrated_targets])
-    hdulist.writeto(os.path.basename(FILENAME)+'.reduced.fits',clobber=True)
-    hdulist.close()
-    del hdulist
-
+    sdfits.close()
     raw.close()
