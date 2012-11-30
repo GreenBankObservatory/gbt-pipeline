@@ -290,6 +290,8 @@ if __name__ == "__main__":
         
         final_spectrum = None
         for pair in scan_pairs:
+
+            print 'processing scans',pair
             
             if 'OnOff' in obsmodes[str(pair[0])]:
                 TargScanNum = pair[0]
@@ -304,11 +306,15 @@ if __name__ == "__main__":
             # L(ON) - L(OFF) / L(OFF)
             TargDataPols = mask_data(raw[1], {'SCAN':TargScanNum})
             RefDataPols = mask_data(raw[1], {'SCAN':RefScanNum})
-            
+            if len(RefDataPols) != len(TargDataPols):
+                print 'WARNING: Target and Reference scans do not have the '
+                print '         same number of integrations.  Skipping.'
+                continue
+                
             polarizations = set(TargDataPols['CRVAL4'])
 
             for pol in polarizations:
-                print 'polarization',polnum2char(pol)
+                print 'polarization',polnum2char(pol)               
 
                 # pyfits data object for Target and Reference scans
                 TargData = mask_data(TargDataPols, {'CRVAL4':pol})
@@ -380,8 +386,6 @@ if __name__ == "__main__":
                 total_mask = np.logical_or(rfimask,velocity_mask)
 
                 cal_masked = np.ma.masked_array(cal, mask= total_mask)
-                
-                print 'processing scans',pair
                 
                 # check baselines of each integration
                 for idx,spec in enumerate(cal_masked):
