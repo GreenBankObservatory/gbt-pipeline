@@ -1,4 +1,3 @@
-import pyfits
 import fitsio
 import numpy as np
 import pylab
@@ -11,9 +10,9 @@ import sys
 from ordereddict import OrderedDict
 import os
 
-DOPLOT = False
+import spectral_commandline
+
 REBIN = False
-ONEPLOT = False
 DEBUG = False
 
 POL ={  -1:'RR',-2:'LL',
@@ -24,26 +23,26 @@ POL ={  -1:'RR',-2:'LL',
 def polnum2char(num):
     return POL[num]
 
-def flag_rfi(spectrum):
+def flag_rfi(spectrum, niter=10, nsigma=3, filtwin=15):
     """
     flag channels with narrow band RFI
     
+    For niter iterations, smooth the spectrum with a window size filtwin.
+    On each iteration, flag any channels that are nsigma standard deviations
+    above the mean.
+    
+    This should eliminate most narrow band RFI.
     """
-    NITER = 10 # number of iterations
-    
-    NSIGMA = 3  # number of standard deviations
-    FILTWIN = 15 # median filter window
-    
     sig = np.ma.array(spectrum)
-    sig_smoothed = signal.medfilt(sig,FILTWIN)
+    sig_smoothed = signal.medfilt(sig,filtwin)
 
-    while NITER>0:
+    while niter>0:
 
         sd = (sig-sig_smoothed).std()
         spikes = abs(sig-sig_smoothed)
-        mask = (spikes > (NSIGMA*sd)).data 
+        mask = (spikes > (nsigma*sd)).data 
         sig.mask = np.logical_or( sig.mask, mask)
-        NITER-=1
+        niter -= 1
     
     return sig.mask
 
@@ -100,27 +99,36 @@ def freqtovel(freq, restfreq, veldef="RADIO"):
 
     return result
 
-def fit_baseline(ydata,order):
+def fit_baseline(ydata, order):
+    """
+    Fit a n-th order baseline to the data and return the fit.
     
+    """
+    # make a copy of the data mask so we can reset it later
     oldmask = ydata.mask.copy()
     
     datalen = len(ydata)
-    xdata = np.linspace(0,datalen,datalen)
+    xdata = np.linspace(0, datalen, datalen)
     
+    # mask out the low and high 10% of the spectrum because the edges
+    #  are sometimes bad.  Also, mask out the center 20% of the band because
+    #  it is likely to contain a source line
     ydata.mask[:.1*datalen]=True
     ydata.mask[.9*datalen:]=True
     ydata.mask[.4*datalen:.6*datalen]=True
-        
+    
     xdata = np.ma.array(xdata)
     xdata.mask = ydata.mask
     
-    polycoeffs = np.ma.polyfit(xdata, ydata, 3)
+    # do the fit
+    polycoeffs = np.ma.polyfit(xdata, ydata, order)
     yfit = scipy.polyval(polycoeffs, xdata)
     yfit = np.ma.array(yfit)
     
     # reset the mask on ydata
     ydata.mask = oldmask
     
+    # return the fit
     return yfit
 
 def rebin_1d(data,binsize):
@@ -195,12 +203,22 @@ def domask(data, margs):
 
 if __name__ == "__main__":
 
-    FILENAME = sys.argv[1]
+    
+    # create instance of CommandLine object to parse input, then
+    # parse all the input parameters and store them as attributes in param structure
+    cl = spectral_commandline.CommandLine()
+    cl_params = cl.read(sys)
+    
+    FILENAME = cl_params.infilename
     
     HANNING_WIN = 5
 
     # open the input file and get a file handle
-    raw = fitsio.FITS(FILENAME)
+    try:
+        raw = fitsio.FITS(FILENAME)
+    except (ValueError, IOError), ee:
+        print ee
+        sys.exit()
     
     targets = {}
     
@@ -228,7 +246,7 @@ if __name__ == "__main__":
 
     # create the output file
     outfilename = os.path.basename(FILENAME)+'.reduced.fits'
-    sdfits = fitsio.FITS(outfilename, 'rw', clobber = True)
+    sdfits = fitsio.FITS(outfilename, 'rw', clobber = cl_params.clobber)
     
     # get the dtype from an input row to have the right column structure
     #  in the output file
@@ -341,9 +359,9 @@ if __name__ == "__main__":
                 Ta = Tsys * ( (Targ - Ref) / Ref )
                 
                 elevation = TargData['ELEVATIO'].mean()
-                eta_a = .71
-                eta_l = .99
-                tau = .008
+                eta_a = cl_params.aperture_eff
+                eta_l = cl_params.spillover
+                tau = cl_params.zenithtau
                 Jy = Ta/2.85 * (np.e**(tau/np.sin(elevation)))/(eta_a*eta_l)
                 
                 cal = Jy
@@ -372,9 +390,9 @@ if __name__ == "__main__":
                     # top 10% of fft
                     myfft = fullfft[-(.1*len(fullfft)):]
                 
+                    #print 'checking integration:', idx
+                    
                     # check if all fft vals are within X sigma
-                    print 'checking integration:',idx
-
                     if myfft.max()>20*Tsys:
                         print 'FLAGGING INTEGRATION',idx
                         cal_masked[idx].mask = True
@@ -390,8 +408,7 @@ if __name__ == "__main__":
                     vel = rebin_1d(velo,binsize=binsize)
                     rebinned.mask = flag_rfi(rebinned)
                 
-                    #!!!!!!!!!!!!!!!!!!!!!!!  don't assume order
-                    yfit = fit_baseline(rebinned,order=3)
+                    yfit = fit_baseline(rebinned, cl_params.order)
                     yfit.mask = rebinned.mask
 
                     baseline_removed = rebinned-yfit
@@ -400,14 +417,19 @@ if __name__ == "__main__":
                     vel = velo
                     
                     #!!!!!!!!!!!!!!!!!!!!!!!  don't assume order
-                    yfit = fit_baseline(cal_masked.mean(0), order=3)
-                    yfit.mask = cal_masked.mean(0).mask
-    
-                    baseline_removed = cal_masked.mean(0)-yfit
+                    
+                    # if they are all nans, don't attempt to remove baseline
+                    if np.all(cal_masked.mean(0).mask):
+                        baseline_removed = cal_masked.mean(0)
+                    else:
+                        yfit = fit_baseline(cal_masked.mean(0), cl_params.order)
+                        yfit.mask = cal_masked.mean(0).mask
+        
+                        baseline_removed = cal_masked.mean(0)-yfit
 
                 if final_spectrum != None:
                     final_spectrum =\
-                        np.ma.vstack((final_spectrum,baseline_removed))
+                        np.ma.vstack((final_spectrum, baseline_removed))
                 else:
                     final_spectrum = baseline_removed
                 
@@ -422,31 +444,6 @@ if __name__ == "__main__":
         freereg=final_spectrum[:.35*len(final_spectrum)]
         freereg = np.ma.masked_array(freereg,np.isnan(freereg))
         rms = np.ma.sqrt((freereg**2).mean())
-
-        if DOPLOT:        
-            # -------------------------------- one figure for all spectra
-            if ONEPLOT:
-                ax = pylab.subplot(len(targets),1,num)
-                at = AnchoredText(target_id,loc=2, frameon=False)
-                ax.add_artist(at)
-                ax.plot(vel,final_spectrum,label=target_id)
-            
-            # --------------------------------- one figure per spectrum
-            else:
-                figure(figsize=(15, 5))
-                ax = pylab.subplot(1,1,1)
-                at = AnchoredText(target_id,loc=2, frameon=False,\
-                    prop=dict(size=22))
-                ax.add_artist(at)
-                title(FILENAME+ '\n' + target_id)
-                xlabel('velocity (km/s)')
-                ylabel('Jy')
-                tick_params(labelsize=22)
-                fs=final_spectrum[.2*len(final_spectrum):.8*len(final_spectrum)] 
-                vs=vel[.2*len(vel):.8*len(vel)] 
-                plot(vs,fs,label=target_id)
-    
-                savefig(target_id+'.png')
 
         outputrow = np.zeros(1, dtype=TargData[0].dtype)
 
@@ -464,13 +461,5 @@ if __name__ == "__main__":
                 
         num += 1
         
-    if DOPLOT:        
-        # -------------------------------------- one figure for all spectra
-        if ONEPLOT:
-            pylab.suptitle(FILENAME)
-            pylab.figtext(.5,.02,'velocity (km/s)')
-            pylab.figtext(.02,.5,'Jy',rotation='vertical')
-            pylab.savefig(os.path.basename(FILENAME)+'.svg')
-
     sdfits.close()
     raw.close()
