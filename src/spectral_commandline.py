@@ -24,54 +24,13 @@ class CommandLine:
             epilog="Use @filename.par as a command line parameter to "
             "use options from a file.  Any options set on the command "
             "line will override whatever is stored in the file.",
-            prog='spectralpipe',
-            usage='%(prog)s [options]')
+            prog='spectralpipe')
         
-        input_group = self.parser.add_argument_group('Input')
-        input_group.add_argument("-i", "--infile", dest="infilename",
-                        default='', required=True,
+        self.parser.add_argument(dest="infilename",
+                        default='', 
                         help="SDFITS file name containing scans", type=str)
         
-        #data_selection = self.parser.add_argument_group('Data Selection')
-        #data_selection.add_argument("-p", "--pol", dest="pol", default=None,
-        #                help='polarizations, e.g. "0,1"')
-        #data_selection.add_argument("-w", "--window", dest="window",
-        #                default=None,
-        #                help='spectral windows, e.g. "0,1,2,3"')
-
-        control = self.parser.add_argument_group('Control')
-        #control.add_argument("-a", "--average", dest="average", default=0,
-        #                type=int,
-        #                help='average the spectra over N channels (passed '
-        #                'directly to idlToSdfits)')
-        control.add_argument("-o", "--order", dest="order", default=3,
-                        type=int,
-                        help="Order of baseline fit. Default: 3")
-
-        calibration = self.parser.add_argument_group('Calibration')
-        #calibration.add_argument("-u", "--units", dest="units", default='tmb',
-        #                help="calibration units.  Default: tmb",
-        #                choices=['ta', 'ta*', 'tmb', 'jy'],
-        #                type=str.lower)
-        calibration.add_argument("--spillover-factor", dest="spillover",
-                        default=.99, type=float,
-                        help="Rear spillover factor (eta_l). Default: .99")
-        calibration.add_argument("--aperture-efficiency", dest="aperture_eff",
-                        default=.71, type=float,
-                        help='Aperture efficiency for spectral window 0.  '
-                        'Other window efficiencies are adjusted to this value. '
-                        '(eta_A)  Default: .71')
-        calibration.add_argument("-t", "--zenith-opacity", dest="zenithtau",
-                        type=float, default=.008,
-                        help='Zenith opacity value (tau_z).  Default: '
-                        'determined from GB weather prediction tools.')
-
-        output = self.parser.add_argument_group('Output')
-        #output.add_argument("-v", "--verbose", dest="verbose", default=4,
-        #                help="set the verbosity level-- 0-1:none, "
-        #                     "2:errors only, 3:+warnings, "
-        #                     "4(default):+user info, 5:+debug", type=int)
-        output.add_argument("--clobber", action='store_true',
+        self.parser.add_argument("--clobber", action='store_true',
                         dest="clobber", default=False,
                         help="Overwrites existing output files if set.")
 
@@ -171,20 +130,5 @@ class CommandLine:
             sys.argv.insert(1,parfile)
 
         opt = self.parser.parse_args()
-
-        # transform some parameters to proper types
-        #try:
-        #    if opt.pol:
-        #        opt.pol = self._parse_range(opt.pol)
-        #
-        #    if opt.window:
-        #        opt.window = self._parse_range(opt.window)
-        #
-        #except ValueError:
-        #    print 'ERROR: there is a malformed parameter option'
-        #    print '   please check your command line settings and try again.'
-        #    sys.exit()
-        #
-        #opt.units = opt.units.lower()
         
         return opt
