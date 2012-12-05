@@ -17,6 +17,13 @@ ETA_A = .71  # aperture efficiency
 TAU = .008   # this should come from the DB, but .008 is for < 2 GHz
 FFT_TSYS_THRESHOLD = 20
 
+# limits for masking out galactic hydrogen emmision
+VEL_MASK_LO = -300 # km/s
+VEL_MASK_HI =  300 # km/s
+
+# We choose to mask a certain percentage of the spectrum b/c of edge effects
+PCT_TO_EXCLUDE = .05
+
 # The smoothed spectrum is subtracted from the unsmoothed spectrum to
 #  remove narrow band RFI spikes.  This is the size of the smoothing kernel.
 SMOOTHING_WINDOW = 5
@@ -230,6 +237,14 @@ if __name__ == "__main__":
         print ee
         sys.exit()
     
+    # create the output file
+    outfilename = os.path.basename(FILENAME)+'.reduced.fits'
+    sdfits = fitsio.FITS(outfilename, 'rw', clobber = True)
+        
+    # read the input primary header and make a copy for output
+    raw_primary = raw[0].read_header()
+    out_primary = raw_primary
+
     for EXTENSION in range(len(raw)):
     
         if 'SINGLE DISH' != raw[EXTENSION].get_extname():
@@ -248,20 +263,12 @@ if __name__ == "__main__":
         
         # recast the target data into an ordered dictionary
         targets = OrderedDict(sorted(targets.items(), key=lambda t: t[0]))
-    
-        # read the input primary header and make a copy for output
-        raw_primary = raw[0].read_header()
-        out_primary = raw_primary
-     
+         
         # ??? not sure what to do with this for fitsio right now
         #if REBIN:
         #    for xx in outcols:
         #        if xx.name == 'DATA': xx.format = '1024E'
     
-        # create the output file
-        outfilename = os.path.basename(FILENAME)+'.reduced.fits'
-        sdfits = fitsio.FITS(outfilename, 'rw', clobber = cl_params.clobber)
-        
         # get the dtype from an input row to have the right column structure
         #  in the output file
         dtype = raw[EXTENSION][0].dtype
@@ -291,7 +298,10 @@ if __name__ == "__main__":
                 scanmask = target_data['SCAN']==int(scan)
                 # check procsize and procseqn
                 if (target_data['PROCSIZE'][scanmask][0]) == 2 and \
-                    (target_data['PROCSEQN'][scanmask][0]) == 1:
+                    (target_data['PROCSEQN'][scanmask][0]) == 1 and \
+                    ('OnOff' in (target_data['OBSMODE'][scanmask][0]) or \
+                     'OffOn' in (target_data['OBSMODE'][scanmask][0])):
+                
                     if obsmodes.has_key(str(int(scan)+1)):
                         scan_pairs.append( (int(scan),int(scan)+1) )
             
@@ -315,7 +325,7 @@ if __name__ == "__main__":
                     TargScanNum = pair[1]
                     RefScanNum = pair[0]
                 else:
-                    print 'Error: Unknown OBSMODE'
+                    print 'Error: Unknown OBSMODE',obsmodes[str(pair[0])]
                     continue
             
                 # L(ON) - L(OFF) / L(OFF)
@@ -391,7 +401,8 @@ if __name__ == "__main__":
                     velo = np.array([freqtovel(ff,restfreq) for ff in freq])
     
                     # mask the emission from galactic hydrogen
-                    localHImask = np.logical_and( velo>-300, velo<300 )
+                    localHImask = np.logical_and( velo > VEL_MASK_LO,
+                                                  velo < VEL_MASK_HI )
     
                     velocity_mask = np.array([localHImask] * len(cal))
                     rfimask = np.array([rfi_mask] * len(cal))
@@ -455,8 +466,8 @@ if __name__ == "__main__":
             final_spectrum = final_spectrum.filled(fill_value=float('nan'))
             
             # set the low and high %5 of the spectrum to nan
-            final_spectrum[:.05*len(final_spectrum)] = float('nan')
-            final_spectrum[-.05*len(final_spectrum):] = float('nan')
+            final_spectrum[:PCT_TO_EXCLUDE*len(final_spectrum)] = float('nan')
+            final_spectrum[-PCT_TO_EXCLUDE*len(final_spectrum):] = float('nan')
             
             # determine the rms from the low 35% of the band
             #freereg=final_spectrum[:.35*len(final_spectrum)]

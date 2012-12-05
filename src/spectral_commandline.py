@@ -30,10 +30,6 @@ class CommandLine:
                         default='', 
                         help="SDFITS file name containing scans", type=str)
         
-        self.parser.add_argument("--clobber", action='store_true',
-                        dest="clobber", default=False,
-                        help="Overwrites existing output files if set.")
-
     def _parse_range(self, rangelist):
         """Given a range string, produce a list of integers
     
