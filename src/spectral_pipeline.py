@@ -241,10 +241,6 @@ if __name__ == "__main__":
     outfilename = os.path.basename(FILENAME)+'.reduced.fits'
     sdfits = fitsio.FITS(outfilename, 'rw', clobber = True)
         
-    # read the input primary header and make a copy for output
-    raw_primary = raw[0].read_header()
-    out_primary = raw_primary
-
     for EXTENSION in range(len(raw)):
     
         if 'SINGLE DISH' != raw[EXTENSION].get_extname():
@@ -460,6 +456,9 @@ if __name__ == "__main__":
                     else:
                         final_spectrum = baseline_removed
                     
+                    # tsys for this scan pair
+                    #print Tsys
+                    
             if final_spectrum != None and final_spectrum.ndim > 1:
                 final_spectrum = final_spectrum.mean(0)
     
@@ -485,10 +484,16 @@ if __name__ == "__main__":
                         outputrow[name] = TargData[0][name]
             
             outputrow['DATA'] = final_spectrum
+            outputrow['TSYS'] = Tsys
+            outputrow['TUNIT7'] = 'Jy'  # set units to Janskys
             sdfits[-1].append(outputrow)
             sdfits.update_hdu_list()
                     
             num += 1
         
+    # copy primary header from input to output file
+    primary_header = fitsio.read_header(FILENAME, 0)
+    sdfits[0].write_keys(primary_header, clean=True)
+
     sdfits.close()
     raw.close()
