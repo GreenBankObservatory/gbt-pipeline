@@ -292,6 +292,17 @@ if __name__ == "__main__":
             
             final_spectrum = None
 
+            # total duration of time spent on target, to be written in
+            #  output header
+            target_duration = 0
+            # total exposure of time spent on target, to be written in
+            #  output header
+            target_exposure = 0
+            
+            weights = []
+            tcals = []
+            tsyss = []
+            
             for pair in scan_pairs:
     
                 print 'processing scans',pair
@@ -316,13 +327,6 @@ if __name__ == "__main__":
                     
                 polarizations = set(TargDataPols['CRVAL4'])
     
-                # total duration of time spent on target, to be written in
-                #  output header
-                target_duration = 0
-                # total exposure of time spent on target, to be written in
-                #  output header
-                target_exposure = 0
-                
                 for pol in polarizations:
                     print 'polarization',polnum2char(pol)               
     
@@ -443,8 +447,11 @@ if __name__ == "__main__":
                     else:
                         final_spectrum = baseline_removed
                     
-                    # tsys for this scan pair
-                    #print Tsys
+                    # tsys and exposure for this scan pair
+                    weight = scanpair_exposure / Tsys**2
+                    weights.append(weight)
+                    tcals.append(Tcal)
+                    tsyss.append(Tsys)
                     
             if final_spectrum != None and final_spectrum.ndim > 1:
                 final_spectrum = final_spectrum.mean(0)
@@ -469,10 +476,11 @@ if __name__ == "__main__":
                 else:
                     outputrow[name] = TargData[0][name]
             
+            avg_tsys = np.average(tsyss, axis = 0, weights = weights)            
             outputrow['DURATION'] = target_duration
             outputrow['EXPOSURE'] = target_exposure
             outputrow['DATA'] = final_spectrum
-            outputrow['TSYS'] = Tsys
+            outputrow['TSYS'] = avg_tsys
             outputrow['TUNIT7'] = 'Jy'  # set units to Janskys
 
             sdfits[-1].append(outputrow)
