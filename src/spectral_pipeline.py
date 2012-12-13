@@ -269,7 +269,7 @@ if __name__ == "__main__":
         #  in the output file
         dtype = raw[EXTENSION][0].dtype
         raw_header = fitsio.read_header(FILENAME, EXTENSION)
-        sdfits.create_table_hdu(dtype = dtype, header = raw_header)
+        sdfits.create_table_hdu(dtype = dtype)
     
         numtargets = 0
         
@@ -476,17 +476,18 @@ if __name__ == "__main__":
             outputrow = np.zeros(1, dtype=TargData[0].dtype)
     
             for name in sdfits[-1].colnames:
-                if name != 'DATE-OBS':
-                    if type('') == type(TargData[0][name]) or \
-                      np.string_ == type(TargData[0][name]):
-                        outputrow[name] = TargData[0][name].strip()
-                    else:
-                        outputrow[name] = TargData[0][name]
+                if type('') == type(TargData[0][name]) or \
+                  np.string_ == type(TargData[0][name]):
+                    outputrow[name] = TargData[0][name].strip()
+                else:
+                    outputrow[name] = TargData[0][name]
             
             outputrow['DATA'] = final_spectrum
             outputrow['TSYS'] = Tsys
             outputrow['TUNIT7'] = 'Jy'  # set units to Janskys
+
             sdfits[-1].append(outputrow)
+            sdfits[-1].write_keys(raw_header, clean=True)
             sdfits.update_hdu_list()
                     
             num += 1
