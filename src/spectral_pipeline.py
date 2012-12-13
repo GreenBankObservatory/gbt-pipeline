@@ -31,7 +31,6 @@ SMOOTHING_WINDOW = 5
 # When subtracting a baseline, we use the following order.
 BASELINE_ORDER = 3
 
-REBIN = False
 DEBUG = False
 
 POL ={  -1:'RR',-2:'LL',
@@ -188,20 +187,6 @@ def domask(data, margs):
     Return the mask based on the arguments
     
     """
-    ## initialize a mask list the size of args
-    #each_mask = {}
-    #fullmask = None
-    #
-    #for key in args.iterkeys():
-    #   
-    #    thismask = ( data[key] == args[key] )
-    #    
-    #    if fullmask != None:
-    #        fullmask = np.logical_and( fullmask, thismask )
-    #    else:
-    #        fullmask = thismask
-    #
-    #return fullmask
     key = margs.keys()[0]
     
     if np.ndarray == type(data):
@@ -260,10 +245,6 @@ if __name__ == "__main__":
         # recast the target data into an ordered dictionary
         targets = OrderedDict(sorted(targets.items(), key=lambda t: t[0]))
          
-        # ??? not sure what to do with this for fitsio right now
-        #if REBIN:
-        #    for xx in outcols:
-        #        if xx.name == 'DATA': xx.format = '1024E'
     
         # get the dtype from an input row to have the right column structure
         #  in the output file
@@ -310,6 +291,7 @@ if __name__ == "__main__":
             print 'scans for target',target_id,scan_pairs
             
             final_spectrum = None
+
             for pair in scan_pairs:
     
                 print 'processing scans',pair
@@ -334,24 +316,42 @@ if __name__ == "__main__":
                     
                 polarizations = set(TargDataPols['CRVAL4'])
     
+                # total duration of time spent on target, to be written in
+                #  output header
+                target_duration = 0
+                # total exposure of time spent on target, to be written in
+                #  output header
+                target_exposure = 0
+                
                 for pol in polarizations:
                     print 'polarization',polnum2char(pol)               
     
-                    # pyfits data object for Target and Reference scans
+                    # data object for Target and Reference scans
                     TargData = mask_data(TargDataPols, {'CRVAL4':pol})
                     RefData = mask_data(RefDataPols, {'CRVAL4':pol})
                     
-                    # pyfits data object for 
+                    # data object for 
                     # calON and calOFF sets os integrations for Target
                     TargOn = mask_data(TargData,{ 'CAL':'T' })
                     TargOff = mask_data(TargData,{ 'CAL':'F' })
+                    
+                    # get the cumulative duration for the scanpair
+                    scanpair_duration = TargOn['DURATION'].sum()
+                    # calculation the total duration on this target
+                    target_duration += scanpair_duration
+                    
+                    # get the cumulative exposure for the scanpair
+                    scanpair_exposure = TargOn['EXPOSURE'].sum()
+                    # calculation the total exposure on this target
+                    target_exposure += scanpair_exposure
+                    
                     # spectrum for each integration averaged calON and calOFF
                     # for Target
                     TargOnData = smooth_hanning(TargOn['DATA'], SMOOTHING_WINDOW)
                     TargOffData = smooth_hanning(TargOff['DATA'], SMOOTHING_WINDOW)
                     Targ = (TargOnData+TargOffData)/2.
     
-                    # pyfits data object for 
+                    # data object for 
                     # calON and calOFF sets os integrations for Reference
                     RefOn = mask_data(RefData,{ 'CAL':'T' })
                     RefOff = mask_data(RefData,{ 'CAL':'F' })
@@ -425,30 +425,17 @@ if __name__ == "__main__":
                         if DEBUG:
                             print 'fft.max()',myfft.max()
     
-                    if REBIN:
-                        #!!!!!!!!!!!!!!!!!!!!!!!  don't assume binsize!!
-                        binsize = len(cal_masked.mean(0)) / 1024.
-                        rebinned = rebin_1d(cal_masked.mean(0),binsize=binsize)
-                        # reshape the velocity axis as well
-                        vel = rebin_1d(velo,binsize=binsize)
-                        rebinned.mask = flag_rfi(rebinned)
+                    cal_masked.mean(0).mask = flag_rfi(cal_masked.mean(0))
+                    vel = velo
                     
-                        yfit = fit_baseline(rebinned, BASELINE_ORDER)
-                        yfit.mask = rebinned.mask
-    
-                        baseline_removed = rebinned-yfit
+                    # if they are all nans, don't attempt to remove baseline
+                    if np.all(cal_masked.mean(0).mask):
+                        baseline_removed = cal_masked.mean(0)
                     else:
-                        cal_masked.mean(0).mask = flag_rfi(cal_masked.mean(0))
-                        vel = velo
-                        
-                        # if they are all nans, don't attempt to remove baseline
-                        if np.all(cal_masked.mean(0).mask):
-                            baseline_removed = cal_masked.mean(0)
-                        else:
-                            yfit = fit_baseline(cal_masked.mean(0), BASELINE_ORDER)
-                            yfit.mask = cal_masked.mean(0).mask
-            
-                            baseline_removed = cal_masked.mean(0)-yfit
+                        yfit = fit_baseline(cal_masked.mean(0), BASELINE_ORDER)
+                        yfit.mask = cal_masked.mean(0).mask
+        
+                        baseline_removed = cal_masked.mean(0)-yfit
     
                     if final_spectrum != None:
                         final_spectrum =\
@@ -482,6 +469,8 @@ if __name__ == "__main__":
                 else:
                     outputrow[name] = TargData[0][name]
             
+            outputrow['DURATION'] = target_duration
+            outputrow['EXPOSURE'] = target_exposure
             outputrow['DATA'] = final_spectrum
             outputrow['TSYS'] = Tsys
             outputrow['TUNIT7'] = 'Jy'  # set units to Janskys
