@@ -11,8 +11,7 @@ for ext in range(len(ff)):
     if 'nrows' in ff[ext].info:
         for row in range(ff[ext].info['nrows']):
             if not np.all(np.isnan(ff[ext]['DATA'][row])):
-                pl.figure(fignum)
-
+                
                 target_name = ff[ext]['OBJECT'][:][row].strip()
                 bandwidth = ff[ext]['BANDWID'][:][row]/1e6
                 procname = ff[ext]['OBSMODE'][:][row].strip().split(':')[0]
@@ -25,16 +24,36 @@ for ext in range(len(ff)):
                 elevation = ff[ext]['ELEVATIO'][:][row]
                 lst = ff[ext]['LST'][:][row]/1e9
                 tsys = ff[ext]['TSYS'][:][row]
+                date = ff[ext]['DATE-OBS'][:][row]
                 
-                titlestring = ('{tn} {bw:.2f} MHz {pn} ' + \
-                '{fs:.3f} GHz\n{cn1}:{cv1:.1f} {cn2}:{cv2:.1f} AZ: {az:.1f} '+\
-                'EL: {el:.1f} Tsys {tsys:.2f}').format(tn=target_name,
+                titlestring = (
+                'Bandwidth: {bw:.2f} MHz\n'
+                'Procedure: {pn}\n'
+                'Sky Frequency {fs:.3f} GHz\n'
+                'Date {date}\n'
+                '{cn1}:{cv1:.1f}  {cn2}:{cv2:.1f}\n'
+                'AZ: {az:.1f}   EL: {el:.1f}\n'
+                'Tsys {tsys:.2f}').format(
                     bw=bandwidth, pn=procname, fs=fsky, cn1=coord1name,
                     cv1=coord1val, cn2=coord2name, cv2=coord2val,
-                    az=azimuth, el=elevation, tsys=tsys)
-                pl.title(titlestring)
+                    az=azimuth, el=elevation, tsys=tsys, date=date)
 
+                
+                fig = pl.figure(fignum)
+
+                ax = pl.subplot(212)
                 pl.plot(ff[ext]['DATA'][row])
+                pl.title(target_name)
+
+                # create a subplot with no border or tickmarks
+                ax = pl.subplot(211, frame_on=False, navigate=False, axisbelow=False)
+                ax.xaxis.set_ticklabels([None])
+                ax.yaxis.set_ticklabels([None])
+                ax.xaxis.set_ticks([None])
+                ax.yaxis.set_ticks([None])                
+                pl.text(0,.5,titlestring,size=10)
+                
+                pl.savefig(sys.argv[1]+'_'+str(fignum)+'.png')
                 fignum += 1
-                pl.savefig(sys.argv[1]+'_'+str(fignum)+'.svg')
+
 ff.close()
