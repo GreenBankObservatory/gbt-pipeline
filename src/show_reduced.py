@@ -37,13 +37,23 @@ for ext in range(len(ff)):
                     bw=bandwidth, pn=procname, fs=fsky, cn1=coord1name,
                     cv1=coord1val, cn2=coord2name, cv2=coord2val,
                     az=azimuth, el=elevation, tsys=tsys, date=date)
-
                 
                 fig = pl.figure(fignum)
 
                 ax = pl.subplot(212)
-                pl.plot(ff[ext]['DATA'][row])
+               
+                data = ff[ext]['DATA'][row]
+                columns = ff[ext].colnames
+                freq = sp.freq_axis(ff[ext][columns][row][0])
+                restfreq = ff[ext]['RESTFREQ'][:][row]
+                veldef = ff[ext]['VELDEF'][:][row]
+                velo = np.array([sp.freqtovel(fidx,restfreq) for fidx in freq])
+                
+                pl.plot(velo,data)
+                
                 pl.title(target_name)
+                pl.ylabel('Jy')
+                pl.xlabel('km/s')
 
                 # create a subplot with no border or tickmarks
                 ax = pl.subplot(211, frame_on=False, navigate=False, axisbelow=False)
@@ -51,7 +61,7 @@ for ext in range(len(ff)):
                 ax.yaxis.set_ticklabels([None])
                 ax.xaxis.set_ticks([None])
                 ax.yaxis.set_ticks([None])                
-                pl.text(0,.5,titlestring,size=10)
+                pl.text(0,.1,titlestring,size=10)
                 
                 pl.savefig(sys.argv[1]+'_'+str(fignum)+'.png')
                 fignum += 1

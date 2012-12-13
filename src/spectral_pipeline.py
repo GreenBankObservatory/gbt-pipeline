@@ -80,7 +80,6 @@ def freq_axis(data,verbose=0):
     crval1 = data['CRVAL1']
 
     faxis = np.zeros(len(data['DATA']))
-    
     for chan,ee in enumerate(data['DATA']):
         faxis[chan] = (chan-crpix1) * cdelt1 + crval1
 
@@ -99,17 +98,18 @@ def freq_axis(data,verbose=0):
 # which must be one of OPTICAL, RADIO, or TRUE.  Defaults to RADIO.
 #
 # @returns velocity in m/s
-def freqtovel(freq, restfreq, veldef="RADIO"):
+def freqtovel(freq, restfreq, veldef='RADIO'):
 
     LIGHT_SPEED = constants.c/1e3 # km/s
     freq = float(freq)
     restfreq = float(restfreq)
     
-    if veldef == 'RADIO':
+    #print '[{vd}]'.format(vd=veldef)
+    if veldef.startswith('RADI'):
         result = LIGHT_SPEED * ((restfreq - freq) / restfreq)
-    elif veldef == 'OPTICAL':
+    elif veldef.startswith('OPTI'):
         result = LIGHT_SPEED * (restfreq / (freq - restfreq))
-    elif veldef == 'TRUE':
+    elif veldef.startswith('RELA'):
         gg = (freq / restfreq)**2
         result = LIGHT_SPEED * ((restfreq - gg) / (restfreq + gg))
     else:
