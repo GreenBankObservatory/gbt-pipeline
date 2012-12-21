@@ -2,6 +2,8 @@ pro spectralpipe, filename
     common mysources, sources
     common myscans, scans
 
+    filein, filename
+
     ;filein,'/home/scratch/jbraatz/ExGalHI/10A59/AGBT10A_059_11.raw.acs.fits'
     ; Select the input file
     ;;args = command_line_args()
