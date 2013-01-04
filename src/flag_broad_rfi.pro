@@ -1,18 +1,19 @@
-pro flag_broad_rfi, scannum, intnum, sourcename
+pro flag_broad_rfi, scans, sourcename
 
-    FFT_THRESHOLD=20
-    spec = *!g.s[0].data_ptr
+    ; check every integration on the source for
+    ;   wavy RFI using a FFT to find low frequency components
+    ; for each scan pair
+    for ii=0, n_elements(scans)-1 do begin
+        scaninfo = scan_info(scans[ii])
 
-    ; get the fft of the upper 95% of the spectrum
-    fullfft = abs(fft(spec[uint(.05*n_elements(spec)):n_elements(spec)-1]))
-                        
-    ; top 10% of fft
-    myfft = fullfft[(uint(.9*n_elements(fullfft))):n_elements(fullfft)-1]
-                    
-    if max(myfft) gt FFT_THRESHOLD then begin
-        print,'FLAGGING INTEGRATION'
-        flag, scannum, int=intnum, id='fft_rfi'+'sourcename'
-    end
-    
+        ; for each integration
+        for jj=0, scaninfo.n_integrations-1 do begin
+   	    getps, scans[ii], int=jj, plnum=0, units='Jy'
+	    fft_flag, scans[ii], jj, sourcename
+
+	    getps, scans[ii], int=jj, plnum=1, units='Jy'
+	    fft_flag, scans[ii], jj, sourcename
+	endfor
+    endfor    
 end
 
