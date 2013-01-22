@@ -360,8 +360,9 @@ class MappingPipeline:
             #   so that we don't write out rows one at a time
             rowchunks = self.set_row_chunks(rows, self.BUFFER_SIZE)
 
-            outputidx = 0
             for chunk in rowchunks:
+
+                outputidx=0
 
                 rows2write = self.nOutputRows(chunk, cal_switching, sigref)
                 
@@ -486,7 +487,6 @@ class MappingPipeline:
                         sys.exit(9)
                         
                     row['TSYS'] = tsys
-
                     output_data[outputidx] = row.data
                     
                     outputidx = outputidx + 1
