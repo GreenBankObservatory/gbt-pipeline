@@ -1,7 +1,7 @@
 pro flag_narrow_rfi
     
     niter=10
-    nsigma=3
+    nsigma=4
     filtwin=15
     while niter gt 0 do begin
         print,niter
