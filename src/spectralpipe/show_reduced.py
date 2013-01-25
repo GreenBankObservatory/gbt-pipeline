@@ -3,6 +3,7 @@ import fitsio
 import sys
 import pylab as pl
 from scipy import constants
+import os
 
 def freq_axis(data,verbose=0):
     """ frequency axis to return for plotting
@@ -117,7 +118,7 @@ if __name__ == '__main__':
 		    ax.yaxis.set_ticks([None])                
 		    pl.text(0,.1,titlestring,size=10)
 		    
-		    pl.savefig(sys.argv[1]+'_'+str(fignum)+'.png')
+		    pl.savefig(os.path.splitext(sys.argv[1])[0]+'.png')
 		    fignum += 1
 
     ff.close()

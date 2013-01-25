@@ -1,7 +1,7 @@
 pro spectralpipe, filename
 
     filein, filename
-    ;filein,'/home/scratch/jbraatz/ExGalHI/10A59/AGBT10A_059_11.raw.acs.fits'
+    makeplots = 1
     
     freeze
     sources = get_sources()
@@ -9,7 +9,6 @@ pro spectralpipe, filename
 
     ; for each source
     for isource=0, n_elements(sources)-1 do begin
-    ;for isource=1, 1 do begin
 
         sourcename = sources[isource]
         scans = get_scans(sourcename)
@@ -29,9 +28,12 @@ pro spectralpipe, filename
         blank_galactic
        	flag_narrow_rfi
         fit_baseline
-        ;copy,0,isource
 	write_output, sourcename 
-    
+
+        if makeplots eq 1 then begin
+            spawn, 'showreduced ' + sourcename + '_' + !g.s[0].date + '.fits'
+        endif
+   
     endfor ; end loop over sources
 
     unfreeze
