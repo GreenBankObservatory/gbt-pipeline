@@ -28,7 +28,7 @@ pro spectralpipe, filename
         blank_galactic
        	flag_narrow_rfi
         fit_baseline
-	write_output, sourcename 
+	write_output, sourcename, scans
 
         if makeplots eq 1 then begin
             spawn, 'showreduced ' + sourcename + '_' + !g.s[0].date + '.fits'
