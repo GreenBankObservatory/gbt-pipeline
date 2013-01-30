@@ -1,4 +1,6 @@
 pro write_output, sourcename, scans
+    compile_opt idl2
+
     ; Write out the reduced data
     outfilename = sourcename + '_' + !g.s[0].date + '.fits'
     print, 'writing ', outfilename

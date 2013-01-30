@@ -1,4 +1,5 @@
 pro spectralpipe, filename
+    compile_opt idl2
 
     filein, filename
     makeplots = 1

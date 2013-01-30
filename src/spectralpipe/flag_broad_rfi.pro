@@ -1,4 +1,5 @@
 pro flag_broad_rfi, scans, sourcename
+    compile_opt idl2
 
     ; check every integration on the source for
     ;   wavy RFI using a FFT to find low frequency components

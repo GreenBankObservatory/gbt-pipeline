@@ -1,4 +1,6 @@
-pro fit_baseline	
+pro fit_baseline
+    compile_opt idl2
+
     xx=getdata(0)
     nchans=n_elements(xx)
     ; use first and last 40% of channels

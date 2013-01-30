@@ -1,4 +1,5 @@
 pro fft_flag, scannum, intnum, sourcename
+    compile_opt idl2
 
     FFT_THRESHOLD=20
     spec = *!g.s[0].data_ptr

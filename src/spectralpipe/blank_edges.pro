@@ -1,4 +1,6 @@
 pro blank_edges
+    compile_opt idl2
+
     xx=getdata(0)
     nchans=n_elements(xx)
     ; blank first and last 5% of channels

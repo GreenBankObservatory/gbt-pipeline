@@ -1,4 +1,5 @@
 pro flag_narrow_rfi
+    compile_opt idl2
     
     niter=10
     nsigma=4

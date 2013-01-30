@@ -1,4 +1,5 @@
 function get_sources
+    compile_opt idl2
 
     sources_all=!g.lineio->get_index_values('SOURCE')
     procedure=!g.lineio->get_index_values('PROCEDURE')

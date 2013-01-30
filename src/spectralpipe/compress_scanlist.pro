@@ -1,4 +1,5 @@
 function compress_scanlist, scans
+    compile_opt idl2
 
     ; make sure scans numbers are in ascending order
     scans = scans[sort(scans)]
