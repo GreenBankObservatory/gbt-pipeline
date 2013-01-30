@@ -31,7 +31,7 @@ pro spectralpipe, filename
 	write_output, sourcename, scans
 
         if makeplots eq 1 then begin
-            spawn, 'showreduced ' + sourcename + '_' + !g.s[0].date + '.fits'
+            spawn, '/home/gbtpipeline/integration/spectralpipe/showreduced ' + sourcename + '_' + !g.s[0].date + '.fits'
         endif
    
     endfor ; end loop over sources
