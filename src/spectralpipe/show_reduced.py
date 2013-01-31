@@ -127,16 +127,17 @@ if __name__ == '__main__':
                     scans = hdr['SCANLIST']
 
 		    titlestring = (
-                    'SCANS  {scans}\n'
+                    'Scans {scans}\n'
                     'Project ID {pid}\n'
 		    'Sky Frequency {fs:.3f} GHz\n'
                     'Rest Frequency {rf:.3f} GHz\n'
                     'Velocity {vel:d} km/s\n'
                     'Velocity reference frame {vframe}\n'
 		    'Date {date}\n'
-		    '{cn1}:{cv1}  {cn2}:{cv2}\n'
-		    'AZ: {az:.1f}   EL: {el:.1f}\n'
-                    'Integration time {hh:d} {mm:d} {ss:.1f}\n'
+		    '{cn1}:{cv1} {cn2} {cv2}\n'
+		    'AZ {az:.1f}\n'
+                    'EL {el:.1f}\n'
+                    'Integration time {hh:d}h {mm:d}m {ss:.1f}s\n'
 		    'Tsys {tsys:.2f}').format(
 			pid=projid, fs=fsky, rf=restfreq, cn1=coord1name,
 			cv1=cv1, cn2=coord2name, cv2=cv2, vel=velocity,
