@@ -173,8 +173,9 @@ if __name__ == '__main__':
 		    ax.xaxis.set_ticklabels([None])
 		    ax.yaxis.set_ticklabels([None])
 		    ax.xaxis.set_ticks([None])
-		    ax.yaxis.set_ticks([None])                
-                    pl.text(0,.1,'\n'.join((target_name, projid, scans)),size=10)
+		    ax.yaxis.set_ticks([None])
+                    errorstring = 'Data not calibrated because there were multiple \nscans with the same scanid when observing this target.'
+                    pl.text(0,.1,'\n'.join((target_name, projid, scans, errorstring)),size=10)
 
                 pl.savefig(os.path.splitext(sys.argv[1])[0]+'.png')
     ff.close()
