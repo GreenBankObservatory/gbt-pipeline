@@ -8,3 +8,5 @@ Cal_*
 *.log
 *.par
 *.png
+*.flag
+*.fixed_lags

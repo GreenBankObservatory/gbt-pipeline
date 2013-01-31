@@ -95,14 +95,14 @@ if __name__ == '__main__':
     ff = fitsio.FITS(infile)
     hdr = fitsio.read_header(infile, 1)
 
-    fignum = 0
     for ext in range(len(ff)):
 	if 'nrows' in ff[ext].info:
             tdata = ff[ext].read()
 	    for row in range(len(tdata)):
+		target_name = tdata['OBJECT'][row].strip()
+                projid = tdata['PROJID'][row].strip()
+                scans = hdr['SCANLIST']
 		if not np.all(np.isnan(tdata['DATA'][row])):
-		    target_name = tdata['OBJECT'][row].strip()
-                    projid = tdata['PROJID'][row].strip()
 		    coord1name = tdata['CTYPE2'][row].strip()
 		    coord1val = tdata['CRVAL2'][row]
 		    coord2name = tdata['CTYPE3'][row].strip()
@@ -124,7 +124,6 @@ if __name__ == '__main__':
                     integ_m = int(exposure/60)
                     integ_s = exposure-integ_m*60
 		    
-                    scans = hdr['SCANLIST']
 
 		    titlestring = (
                     'Scans {scans}\n'
@@ -145,8 +144,6 @@ if __name__ == '__main__':
 			az=azimuth, el=elevation, tsys=tsys, date=date,
                         ex=exposure, scans=scans)
 		    
-		    fig = pl.figure(fignum)
-
 		    ax = pl.subplot(212)
 		   
 		    freq = freq_axis(tdata[row])
@@ -169,7 +166,15 @@ if __name__ == '__main__':
 		    ax.yaxis.set_ticks([None])                
 		    pl.text(0,.1,titlestring,size=10)
 		    
-		    pl.savefig(os.path.splitext(sys.argv[1])[0]+'.png')
-		    fignum += 1
+                else:
+                    pl.figure()
+                    pl.subplot(212)
+                    ax = pl.subplot(211, frame_on=False, navigate=False, axisbelow=False)
+		    ax.xaxis.set_ticklabels([None])
+		    ax.yaxis.set_ticklabels([None])
+		    ax.xaxis.set_ticks([None])
+		    ax.yaxis.set_ticks([None])                
+                    pl.text(0,.1,'\n'.join((target_name, projid, scans)),size=10)
 
+                pl.savefig(os.path.splitext(sys.argv[1])[0]+'.png')
     ff.close()
