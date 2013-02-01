@@ -8,8 +8,8 @@ function get_sources
     sources = sources_all[where((procedure eq 'OnOff' or procedure eq 'OffOn') and (restfreq gt 1.419e+09 and restfreq lt 1.421e+09))]
 
  ;   print,'number of sources',n_elements(sources)
-;    sources = sources[uniq(sources)]
+    sources = sources[uniq(sources,sort(sources))]
 ;    print,'number of sources',n_elements(sources)
-    return, unique(sources)
+    return, sources
 end
 
