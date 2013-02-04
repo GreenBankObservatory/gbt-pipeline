@@ -48,6 +48,7 @@ pro flag_broad_rfi, scans, sourcename
           ; it works - so no point in overthinking the access here
           ; and worrying about buffering it.  If it's a problem,
           ; getps will need to be modified as well.
+         
           for ipol=0,1 do begin
              thisPol = getchunk(/keep,plnum=ipol)
              ; each element of thisPol corresponds to the calibrated
@@ -55,7 +56,7 @@ pro flag_broad_rfi, scans, sourcename
              ; polarization ipol.  
              for jj=0,n_elements(thisPol)-1 do begin
                 fft_flag, thisPol[jj], scans[ii], jj, sourcename, isflagged=isflagged
-                if not isflagged then accum
+                if not isflagged then accum,dc=thisPol[jj]
              endfor
              data_free, thisPol
           endfor
