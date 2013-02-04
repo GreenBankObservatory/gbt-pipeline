@@ -24,27 +24,36 @@ pro spectralpipe, filename
         sourcename = sources[isource]
         scans = get_scans(sourcename)
 
-        print, 'sourcname ', sourcename, ' scans ', scans
+        print, 'sourcename ', sourcename, ' scans ', scans
 
-        ;inspect every integration for wavy baselines
-        flag_broad_rfi, scans, sourcename
+        ; Check to see if the same scan number was used more than once
+        ;  when observing this source.  If so, create an empty output
+        ;  file and a plot with an error message.
+        if duplicate_scans(scans) then begin
 
-        ; get an average of all scans on the source
-        ; average_source_scans, scans
-	
-	; blank out the channels near band edges
-        blank_edges
-	
-        smooth_spectrum
-        blank_galactic
-       	flag_narrow_rfi
-        fit_baseline
-	write_output, sourcename, scans
+            write_empty_output, sourcename, scans
+            if makeplots eq 1 then make_plot, sourcename
 
-        if makeplots eq 1 then begin
-            spawn, '/home/gbtpipeline/integration/spectralpipe/showreduced ' + sourcename + '_' + !g.s[0].date + '.fits'
-        endif
-   
+        endif else begin
+
+	    ;inspect every integration for wavy baselines
+	    flag_broad_rfi, scans, sourcename
+
+	    ; get an average of all scans on the source
+	    ; average_source_scans, scans
+	    
+	    ; blank out the channels near band edges
+	    blank_edges
+	    
+	    smooth_spectrum
+	    blank_galactic
+	    flag_narrow_rfi
+	    fit_baseline
+	    write_output, sourcename, scans
+
+	    if makeplots eq 1 then make_plot, sourcename
+
+        endelse 
     endfor ; end loop over sources
 
     unfreeze
