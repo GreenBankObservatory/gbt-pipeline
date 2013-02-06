@@ -36,9 +36,13 @@ pro spectralpipe, filename
 
         endif else begin
 
-	    ;inspect every integration for wavy baselines
-            ; this also averages all integrations that are not flagged
-	    flag_broad_rfi, scans, sourcename
+           ; average all data from all scans for this source
+           ; only examines IFNUM=0, FDNUM=0 for now
+           ; assumes data has both plnum=0 and plnum=1
+           ; if do_flag_broad_rfi is true, then inspect every 
+           ; integration for wavy baselines
+           ; only integrations that are not flagged are averaged
+           average_source_scans, scans, sourcename, /do_flag_broad_rfi
 
 	    ; blank out the channels near band edges
 	    blank_edges
