@@ -32,13 +32,15 @@ def deg2HMS(ra='', dec='', round=False):
   if dec:
     if str(dec)[0] == '-':
       ds, dec = '-', abs(dec)
+    else:
+      ds = '+'
     deg = int(dec)
     decM = abs(int((dec-deg)*60))
     if round:
       decS = int((abs((dec-deg)*60)-decM)*60)
     else:
       decS = (abs((dec-deg)*60)-decM)*60
-    DEC = '{0}{1} {2} {3}'.format(ds, deg, decM, decS)
+    DEC = '{0}{1:02d} {2:02d} {3:02d}'.format(ds, deg, decM, decS)
   
   if ra:
     if str(ra)[0] == '-':
@@ -49,7 +51,7 @@ def deg2HMS(ra='', dec='', round=False):
       raS = int(((((ra/15)-raH)*60)-raM)*60)
     else:
       raS = ((((ra/15)-raH)*60)-raM)*60
-    RA = '{0}{1} {2} {3}'.format(rs, raH, raM, raS)
+    RA = '{0}{1:02d} {2:02d} {3:02.1f}'.format(rs, raH, raM, raS)
   
   if ra and dec:
     return (RA, DEC)
@@ -69,20 +71,28 @@ def deg2HMS(ra='', dec='', round=False):
 # which must be one of OPTICAL, RADIO, or TRUE.  Defaults to RADIO.
 #
 # @returns velocity in m/s
-def freqtovel(freq, restfreq, veldef='RADIO'):
+#    case veldef of
+#        'RADIO': result = !gc.light_speed * (1.0d - double(freq) / restfreq)
+#        'OPTICAL': result = !gc.light_speed * (restfreq / double(freq) - 1.0d)
+#        'TRUE': begin
+#            g = (double(freq) / restfreq)^2
+#            result = !gc.light_speed * (1.0d - g) / (1.0d + g)
+#        end
+#        else: message, 'unrecognized velocity definition'
+#    endcase 
 
-    LIGHT_SPEED = 299792458.0/1e3 # speed of light in a vacuum (km/s)
+def freqtovel(freq, restfreq, veldef='RADIO'):
+    LIGHT_SPEED = 299792458.0 / 1e3 # speed of light in a vacuum (km/s)
     freq = float(freq)
     restfreq = float(restfreq)
-    
-    #print '[{vd}]'.format(vd=veldef)
+
     if veldef.startswith('RADI'):
-        result = LIGHT_SPEED * ((restfreq - freq) / restfreq)
+        result = LIGHT_SPEED * (1 - freq/restfreq)
     elif veldef.startswith('OPTI'):
-        result = LIGHT_SPEED * (restfreq / (freq - restfreq))
+        result = LIGHT_SPEED * (restfreq/freq - 1)
     elif veldef.startswith('RELA'):
         gg = (freq / restfreq)**2
-        result = LIGHT_SPEED * ((restfreq - gg) / (restfreq + gg))
+        result = LIGHT_SPEED * (1 - gg) / (1 + gg)
     else:
         print 'unrecognized velocity definition'
 
@@ -116,7 +126,7 @@ if __name__ == '__main__':
 		    date = tdata['TIMESTAMP'][row]
                     restfreq = tdata['RESTFREQ'][row]/1e9
                     velocity = int(tdata['VELOCITY'][row]/1e3)
-                    velframe = tdata['VELDEF'][row]
+		    veldef = tdata['VELDEF'][row]
 
                     exposure = tdata['EXPOSURE'][row]
                     integ_h = int(exposure/3600.)
@@ -125,49 +135,68 @@ if __name__ == '__main__':
                     integ_s = exposure-integ_m*60
 		    
 
-		    titlestring = (
-                    'Scans {scans}\n'
-                    'Project ID {pid}\n'
-		    'Sky Frequency {fs:.3f} GHz\n'
-                    'Rest Frequency {rf:.3f} GHz\n'
-                    'Velocity {vel:d} km/s\n'
-                    'Velocity reference frame {vframe}\n'
-		    'Date {date}\n'
-		    '{cn1}:{cv1} {cn2} {cv2}\n'
-		    'AZ {az:.1f}\n'
-                    'EL {el:.1f}\n'
-                    'Integration time {hh:d}h {mm:d}m {ss:.1f}s\n'
-		    'Tsys {tsys:.2f}').format(
-			pid=projid, fs=fsky, rf=restfreq, cn1=coord1name,
-			cv1=cv1, cn2=coord2name, cv2=cv2, vel=velocity,
-                        vframe=velframe, hh=integ_h, mm=integ_m, ss=integ_s,
-			az=azimuth, el=elevation, tsys=tsys, date=date,
-                        ex=exposure, scans=scans)
+		    titlestring1 = (
+                    'Project ID: {pid}\n'
+		    'Sky Frequency:  {fs:7.3f} GHz\n'
+                    'Rest Frequency: {rf:7.3f} GHz\n'
+                    'Velocity: {vel:d} km/s {vframe}\n'
+                    'Effective Tint: {hh:d}h {mm:d}m {ss:.1f}s').format(
+			pid=projid, fs=fsky, rf=restfreq,
+                        hh=integ_h, mm=integ_m, ss=integ_s, 
+			vel=velocity, vframe=veldef)
+
+		    titlestring2 = (
+                    'Scans: {scans}\n'
+                    'Date: {date}\n'\
+                    '{cn1}: {cv1}, {cn2}: {cv2}\n'
+		    'AZ: {az:.1f}, EL: {el:.1f}\n'
+		    'Tsys: {tsys:.2f} K').format(
+			cn1=coord1name,	cv1=cv1, cn2=coord2name, cv2=cv2,
+                        date=date,
+			az=azimuth, el=elevation, tsys=tsys,
+                        scans=scans)
 		    
+                    pl.figure(figsize=(8,4))
 		    ax = pl.subplot(212)
 		   
 		    freq = freq_axis(tdata[row])
 		    restfreq = tdata['RESTFREQ'][row]
-		    veldef = tdata['VELDEF'][row]
 		    velo = np.array([freqtovel(fidx,restfreq) for fidx in freq])
 		    
 		    data = tdata['DATA'][row]
-		    pl.plot(velo,data)
+
+                    # Scale the y-axis to mJy if the peak is < 100 mJy, and to Jy if it is > 100 mJy
+                    if np.ma.masked_invalid(data).max() <= .1:
+		        pl.plot(velo,data*1000)
+	                pl.ylabel('Flux Density (mJy)')
+                    else:
+		        pl.plot(velo,data)
+	                pl.ylabel('Flux Density (Jy)')
 		    
-		    pl.title(target_name)
-		    pl.ylabel('Jy')
-		    pl.xlabel('km/s')
+		    pl.title(target_name+'\n')
+
+                    vdef, refframe = veldef.split('-')
+                    vdefs = {'RADI':'Radio', 'OPTI':'Optical', 'RELA':'Relativistic'}
+		    pl.xlabel('\n' + refframe.title() + ' ' + vdefs[vdef] + ' Velocity (km/s)')
 
 		    # create a subplot with no border or tickmarks
-		    ax = pl.subplot(211, frame_on=False, navigate=False, axisbelow=False)
+		    ax = pl.subplot(221, frame_on=False, navigate=False, axisbelow=False)
 		    ax.xaxis.set_ticklabels([None])
 		    ax.yaxis.set_ticklabels([None])
 		    ax.xaxis.set_ticks([None])
 		    ax.yaxis.set_ticks([None])                
-		    pl.text(0,.1,titlestring,size=10)
-		    
+		    pl.text(.1,.05,titlestring1, size=10, family='monospace')
+
+		    # create a subplot with no border or tickmarks
+		    ax = pl.subplot(222, frame_on=False, navigate=False, axisbelow=False)
+		    ax.xaxis.set_ticklabels([None])
+		    ax.yaxis.set_ticklabels([None])
+		    ax.xaxis.set_ticks([None])
+		    ax.yaxis.set_ticks([None])                
+		    pl.text(.1,.05,titlestring2, size=10, family='monospace')
+	    
                 else:
-                    pl.figure()
+                    pl.figure(figsize=(8,4))
                     pl.subplot(212)
                     ax = pl.subplot(211, frame_on=False, navigate=False, axisbelow=False)
 		    ax.xaxis.set_ticklabels([None])
@@ -175,7 +204,8 @@ if __name__ == '__main__':
 		    ax.xaxis.set_ticks([None])
 		    ax.yaxis.set_ticks([None])
                     errorstring = 'Data not calibrated because there were multiple \nscans with the same scanid when observing this target.'
-                    pl.text(0,.1,'\n'.join((target_name, projid, scans, errorstring)),size=10)
+                    pl.text(0, 0,'\n'.join((target_name, projid, scans, errorstring)), size=10)
 
+                pl.subplots_adjust(top=1.2, bottom=.15)
                 pl.savefig(os.path.splitext(sys.argv[1])[0]+'.png')
     ff.close()
