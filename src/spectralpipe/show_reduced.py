@@ -123,7 +123,7 @@ if __name__ == '__main__':
 		    elevation = tdata['ELEVATIO'][row]
 		    lst = tdata['LST'][row]/1e9
 		    tsys = tdata['TSYS'][row]
-		    date = tdata['TIMESTAMP'][row]
+		    date = tdata['TIMESTAMP'][row].strip().replace('_','-',2).replace('_',' ') + ' UT'
                     restfreq = tdata['RESTFREQ'][row]/1e9
                     velocity = int(tdata['VELOCITY'][row]/1e3)
 		    veldef = tdata['VELDEF'][row]
@@ -148,7 +148,7 @@ if __name__ == '__main__':
 		    titlestring2 = (
                     'Scans: {scans}\n'
                     'Date: {date}\n'\
-                    '{cn1}: {cv1}, {cn2}: {cv2}\n'
+                    '{cv1}, {cv2} J2000\n'
 		    'AZ: {az:.1f}, EL: {el:.1f}\n'
 		    'Tsys: {tsys:.2f} K').format(
 			cn1=coord1name,	cv1=cv1, cn2=coord2name, cv2=cv2,
