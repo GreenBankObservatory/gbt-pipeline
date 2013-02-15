@@ -1,4 +1,4 @@
-pro average_source_scans, scans, sourcename, do_flag_broad_rfi=do_flag_broad_rfi
+pro average_source_scans, scans, sourcename, do_flag_broad_rfi=do_flag_broad_rfi, naccum=naccum
     compile_opt idl2
 
     ; average both polarizations for all scans in the given scan list
@@ -13,6 +13,7 @@ pro average_source_scans, scans, sourcename, do_flag_broad_rfi=do_flag_broad_rfi
 
     ; make sure the accum buffer is empty
     sclear
+    naccum = 0
 
     keep_ints = keyword_set(do_flag_broad_rfi)
 
@@ -91,7 +92,7 @@ pro average_source_scans, scans, sourcename, do_flag_broad_rfi=do_flag_broad_rfi
     ; either this is the ave of the 2 polarizations from the two calls
     ; to getps or it's the ave of all of the individual integrations
     ; ignoring any flags found here.
-    ave
+    ave, count=naccum
 
     if keep_ints then begin
        ; restore the original keep file
