@@ -8,7 +8,15 @@ pro write_output, sourcename, scans
     fileout, outfilename
     keep
 
-    ; update outfile header with list of scans used
+    ; write out velocities to be used for plots
+    unfreeze
+    show
+    velfilename = sourcename + '_' + !g.s[0].date + '.vdata' 
+    file_delete, velfilename, /ALLOW_NONEXISTENT
+    write_ascii, velfilename
+    freeze
+
+   ; update outfile header with list of scans used
     fd = readfits(outfilename, header, EXTEN_NO=1)
 
     scanlist = compress_scanlist(scans)

@@ -13,7 +13,8 @@ pro spectralpipe, filename
     endif
 
     makeplots = 1
-    
+   
+    velo 
     freeze
     sources = get_sources()
     print,'sources', sources

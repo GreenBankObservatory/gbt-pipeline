@@ -159,11 +159,11 @@ if __name__ == '__main__':
                     pl.figure(figsize=(8,4))
 		    ax = pl.subplot(212)
 		   
-		    freq = freq_axis(tdata[row])
-		    restfreq = tdata['RESTFREQ'][row]
-		    velo = np.array([freqtovel(fidx,restfreq) for fidx in freq])
-		    
-		    data = tdata['DATA'][row]
+                    vdatafile = os.path.splitext(sys.argv[1])[0]+'.vdata'
+                    veldata = np.loadtxt(vdatafile, skiprows=3)
+                    os.unlink(vdatafile)
+                    velo = veldata[:,0]
+                    data = veldata[:,1]
 
                     # Scale the y-axis to mJy if the peak is < 100 mJy, and to Jy if it is > 100 mJy
                     if np.ma.masked_invalid(data).max() <= .1:
