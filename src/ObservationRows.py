@@ -26,13 +26,35 @@ from ordereddict import OrderedDict
 from collections import namedtuple
 
 class ObservationRows:
+    """Store index file information.
+
+       The ObserservationRows class defines a structure to get specific
+       information about the spectra out of the index file which was
+       produced by the sdfits filler program.
+
+       This is essientially a table of the raw SDFITS file rows, organized
+       with a lookup key of scan/feed/window/polarization.
+
+       When rows are added to this object (addRow), the FITS extension,
+       row of the FITS table and scan type are stored.
+
+       A list of rows for each scan/feed/window/polarization can be 
+       retrieved with the 'get' method.
+
+    """
     def __init__(self):
         self.rows = OrderedDict()
         self.Key = namedtuple('key', 'scan, feed, window, polarization')
         
     def addRow(self, scan, feed, window, polarization,
-                       fitsExtension, rowOfFitsFile, typeOfScan):
-        
+               fitsExtension, rowOfFitsFile, typeOfScan):
+        """Add rows to the ObservationRows object.
+
+           When rows are added to this object (addRow), the FITS extension,
+           row of the FITS table and scan type are stored.
+
+        """
+       
         key = self.Key(scan, feed, window, polarization)
         
         if key in self.rows:
@@ -43,6 +65,9 @@ class ObservationRows:
                               'TYPE': typeOfScan }
             
     def get(self, scan, feed, window, polarization):
+        """Retreive a list of rows for scan/feed/win/pol.
+
+        """
         try:
             key = (scan, feed, window, polarization)
             return self.rows[key]
@@ -50,14 +75,26 @@ class ObservationRows:
             raise
         
     def scans(self):
+        """Return a list of scans in the observation.
+
+        """
         return list(set([xx.scan for xx in self.rows.keys()]))
 
     def feeds(self):
+        """Return a list of feeds in the observation.
+
+        """
         return list(set([xx.feed for xx in self.rows.keys()]))
     
     def windows(self):
+        """Return a list of windows in the observation.
+
+        """
         return list(set([xx.window for xx in self.rows.keys()]))
 
     def pols(self):
+        """Return a list of polarizations in the observation.
+
+        """
         return list(set([xx.polarization for xx in self.rows.keys()]))
     

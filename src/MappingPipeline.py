@@ -612,7 +612,6 @@ class MappingPipeline:
                             ta = self.cal.antenna_temp(avgTsysInterp, csig, crefInterp )
                             tsys = avgTsysInterp
                         else:
-                            #import pdb; pdb.set_trace()
                             ta = self.cal.antenna_temp(avgTsys1, csig, avgCref1 )
                             
                             tsys = avgTsys1

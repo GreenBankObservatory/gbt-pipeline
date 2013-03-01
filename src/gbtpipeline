@@ -38,11 +38,13 @@ elif [ $me = "/home/gbtpipeline/old" ]; then
         VERSION='old'
 fi
 
+# if the pipeline tools directory is not included in the PATH, add it
 if [[ "$PATH" != */home/gbtpipeline/${VERSION}* ]]
 then
         PATH=/home/gbtpipeline/${VERSION}/tools:"$PATH"
 fi
 
+# set the PYTHONPATH, or add to it
 if [ -z "$PYTHONPATH" ]
 then
         PYTHONPATH=/home/gbtpipeline/${VERSION}/contrib
@@ -67,3 +69,4 @@ source /home/gbt7/pipeline/${VERSION}-env/bin/activate
 export LD_LIBRARY_PATH=/opt/local/lib:$LD_LIBRARY_PATH
 
 python /home/gbtpipeline/${VERSION}/gbt_pipeline.py $*
+

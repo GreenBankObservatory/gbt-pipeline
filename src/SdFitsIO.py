@@ -57,7 +57,7 @@ class SdFits:
         
         self.pu = Pipeutils()
         
-    def get_maps(self, indexfile, debug=False):
+    def find_maps(self, indexfile, debug=False):
         """Find mapping blocks. Also find samplers used in each map
     
         Keywords:
@@ -210,7 +210,7 @@ class SdFits:
             # we can assume all integrations of a single scan are within the same
             #   FITS extension
             observation.addRow(scanid, feed, windowNum, pol,
-                                       fitsExtension, rowOfFitsFile, typeOfScan)
+                               fitsExtension, rowOfFitsFile, typeOfScan)
             
         try:
             ifile.close()
