@@ -15,6 +15,7 @@ function get_project_info
   ;      scans:[scanList],
   ;      duplicates:[duplicateScans],
   ;      missing:[missingScans]},
+  ;      srctype:sourceType,
   ;  s1:{...}
   ;  through s<N-1>
   ; }
@@ -68,18 +69,19 @@ function get_project_info
      dupScans = dupScans[uniq(dupScans)]
   endif
 
-  restFreqLimits = [1.419e+09,1.421e+09]
+  H1restFreqLimits = [1.419e+09, 1.421e+09]
+  H2OrestFreqLimits = [22.234080e+09, 22.236080e+09]
 
   ; do the frequency selection first
-  restfreqSel = restfreq gt restFreqLimits[0] and restfreq lt restFreqLimits[1]
+  restfreqSel = (restfreq gt H1restFreqLimits[0] and restfreq lt H1restFreqLimits[1]) or (restfreq gt H2OrestFreqLimits[0] and restfreq lt H2OrestFreqLimits[1])
   if total(restfreqSel) eq 0 then begin
      print,'No observations found within the desired rest frequency limits.'
      return,-1
   endif
 
-  psIndx = where((procedure eq 'OnOff' or procedure eq 'OffOn') and restfreqSel, count)
+  psIndx = where((procedure eq 'OnOff' or procedure eq 'OffOn' or procedure eq 'Nod') and restfreqSel, count)
   if count le 0 then begin
-     print,'No position switching data found for the desired rest frequency'
+     print,'No position switching or Nod data found for the desired rest frequency'
      return,-1
   endif
   psSources = sources[psIndx]
@@ -189,7 +191,14 @@ function get_project_info
      if duplicateScans[0] ne -1 then duplicateScans = duplicateScans[uniq(duplicateScans,sort(duplicateScans))]
      if missingScans[0] ne -1 then missingScans = missingScans[uniq(missingScans,sort(missingScans))]
      ; and assemble the structure for this source
-     sourceStruct = {scans:firstScans, duplicates:duplicateScans,missing:missingScans,source:thisSource}
+     if (restfreq[0] gt H1restFreqLimits[0] and restfreq[0] lt H1restFreqLimits[1]) then begin
+         sourceType='HI'
+     endif else begin
+         if (restfreq[0] gt H2OrestFreqLimits[0] and restfreq[0] lt H2OrestFreqLimits[1]) then begin
+             sourceType='H2O'
+         endif
+     endelse
+     sourceStruct = {scans:firstScans, duplicates:duplicateScans,missing:missingScans,source:thisSource,srctype:sourceType}
      ; add to result
                                 ; it would have been nice to use the
                                 ; source name as the tag name but tag

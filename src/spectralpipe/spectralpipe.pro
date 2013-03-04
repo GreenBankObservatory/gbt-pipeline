@@ -34,6 +34,7 @@ pro spectralpipe, filename
        scans = sourceInfo.scans
        dups = sourceInfo.duplicates
        missing = sourceInfo.missing
+       srctype = sourceInfo.srctype
 
        print, 'sourcename ', sourcename, ' scans ', scans
 
@@ -76,8 +77,8 @@ pro spectralpipe, filename
 	    blank_edges
 	    
 	    smooth_spectrum
-	    blank_galactic
-	    flag_narrow_rfi
+      if srctype eq 'HI' then blank_galactic
+	    if srctype eq 'HI' then flag_narrow_rfi
 	    fit_baseline
 	    write_output, sourcename, scans
 

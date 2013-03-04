@@ -47,11 +47,25 @@ pro average_source_scans, scans, sourcename, do_flag_broad_rfi=do_flag_broad_rfi
     for ii=0, n_elements(scans)-1 do begin
        if keep_ints then fileout,tmpFitsFile
 
-       getps, scans[ii], plnum=0, units='Jy',status=stat0, keepints=keep_ints
-       ; accum here if no integration flagging is going to happen
-       if stat0 ge 0 and not keep_ints then accum
+       si = scan_info(scans[ii])
+       if si.procedure eq 'Nod' then begin
 
-       getps, scans[ii], plnum=1, units='Jy',status=stat1, keepints=keep_ints
+           getnod, scans[ii], plnum=0, units='Jy',status=stat0, keepints=keep_ints
+           ; accum here if no integration flagging is going to happen
+           if stat0 ge 0 and not keep_ints then accum
+
+           getnod, scans[ii], plnum=1, units='Jy',status=stat1, keepints=keep_ints
+    
+       endif else begin 
+
+           getps, scans[ii], plnum=0, units='Jy',status=stat0, keepints=keep_ints
+           ; accum here if no integration flagging is going to happen
+           if stat0 ge 0 and not keep_ints then accum
+
+           getps, scans[ii], plnum=1, units='Jy',status=stat1, keepints=keep_ints
+
+       endelse
+
        ; accum here if no integration flagging is going to happen
        if stat1 ge 0 and not keep_ints then accum
 
