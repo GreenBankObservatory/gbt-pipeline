@@ -11,15 +11,15 @@ def deg2hms(ra='', dec='', doRound=False):
     if dec:
         if str(dec)[0] == '-':
             ds, dec = '-', abs(dec)
-    else:
-        ds = '+'
+        else:
+            ds, dec = '+', abs(dec)
     deg = int(dec)
     decM = abs(int((dec-deg)*60))
     if doRound:
         decS = int((abs((dec-deg)*60)-decM)*60)
     else:
         decS = (abs((dec-deg)*60)-decM)*60
-    DEC = '{0}{1:02d} {2:02d} {3:02d}'.format(ds, deg, decM, decS)
+    DEC = '{0}{1:02d}:{2:02d}:{3:02d}'.format(ds, deg, decM, decS)
   
     if ra:
         if str(ra)[0] == '-':
@@ -30,7 +30,7 @@ def deg2hms(ra='', dec='', doRound=False):
             raS = int(((((ra/15)-raH)*60)-raM)*60)
         else:
             raS = ((((ra/15)-raH)*60)-raM)*60
-        RA = '{0}{1:02d} {2:02d} {3:02.1f}'.format(rs, raH, raM, raS)
+        RA = '{0}{1:02d}:{2:02d}:{3:02.1f}'.format(rs, raH, raM, raS)
   
     if ra and dec:
         return (RA, DEC)
@@ -76,24 +76,29 @@ if __name__ == '__main__':
 
         titlestring1 = (
         'Project ID: {pid}\n'
-        'Sky Frequency:  {fs:7.3f} GHz\n'
-        'Rest Frequency: {rf:7.3f} GHz\n'
-        'Velocity: {vel:d} km/s {vframe}\n'
-        'Effective Tint: {hh:d}h {mm:d}m {ss:.1f}s').format(
-        pid=projid, fs=fsky, rf=restfreq,
-        hh=integ_h, mm=integ_m, ss=integ_s, 
-        vel=velocity, vframe=veldef)
-
-        titlestring2 = (
         'Scans: {scans}\n'
         'Date: {date}\n'\
-        '{cv1}, {cv2} J2000\n'
-        'AZ: {az:.1f}, EL: {el:.1f}\n'
+        'Eff Int Time: {hh:d}h {mm:d}m {ss:.1f}s\n'
         'Tsys: {tsys:.2f} K').format(
-        cn1=coord1name, cv1=cv1, cn2=coord2name, cv2=cv2,
+        pid=projid,
+        scans=scans, 
         date=date,
-        az=azimuth, el=elevation, tsys=tsys,
-        scans=scans)
+        hh=integ_h, mm=integ_m, ss=integ_s, 
+        tsys=tsys )
+
+        titlestring2 = (
+        '{cv1} {cv2} J2000\n'
+        'AZ: {az:.1f}, EL: {el:.1f}\n'
+        'Rest Frequency: {rf:7.3f} GHz\n'
+        'Sky Frequency:  {fs:7.3f} GHz\n'
+        'Velocity: {vel:d} km/s {vframe}\n'
+        ).format(
+        cv1=cv1, cv2=cv2,
+        az=azimuth, el=elevation,
+        fs=fsky,
+        rf=restfreq,
+        vel=velocity, vframe=veldef)
+        
         
         pl.figure(figsize=(8, 4))
         ax = pl.subplot(212)
