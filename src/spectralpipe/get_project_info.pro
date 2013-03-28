@@ -1,14 +1,10 @@
 function get_project_info
-  compile_opt idl2
-  if nrecords() le 0 then begin
-     print,"Nothing seen in the input data file.  Use filein first."
-     return,-1
-  endif
   ; summarize information about all of the position switch scans in the 
   ; current filein presumably a raw project file
   ; returns -1 on failure, else a structure of this form:
-  ; Note that all of the scan numbers here actually exist and 
-  ; are all the PROCSEQN==1 scan of an OnOff or OffOn procedure.
+  ;
+  ; (Note that all of the scan numbers here actually exist and 
+  ; are all the PROCSEQN==1 scan of an OnOff, OffOn or Nod procedure.)
   ;                           
   ; {sources:[array of source names],
   ;  s0:{source:sourceName,
@@ -29,34 +25,49 @@ function get_project_info
   ; variable naming conventions and source names may not.  The sources
   ; field is present to make it easier to get a list of all sources
   ; described by this structure.
+  ;
   ; For each of the source structure fields, a value of -1 indicates
   ; that there were no scans of that type found for this source.
+  ;
   ; The scans field contains the array of valid scans (both scans are
   ; present and are not duplicated elsewhere).
+  ;
   ; The duplicates field contains the list of PROCSEQN=1 scans that 
-  ; have any duplicate or where the companion PROCSEQN=2 scan is a
+  ; have any duplicate or where the companion PROCSEQN=2 scan is
   ; duplcated in this file.  
+  ;
   ; The missing field is the list of PROCSEQN=1 scans that where the
   ; accompanying PROCSEQN=2 scan was not found.
+  
+  compile_opt idl2
+
+  if nrecords() le 0 then begin
+     print,"Nothing seen in the input data file.  Use filein first."
+     return,-1
+  endif
 
   ; the index fields we're interested in
-  sources=!g.lineio->get_index_values('SOURCE')
-  procedure=!g.lineio->get_index_values('PROCEDURE')
-  restfreq=!g.lineio->get_index_values('RESTFREQ')
-  scans=!g.lineio->get_index_values('SCAN')
-  timestamp=!g.lineio->get_index_values('TIMESTAMP')
-  procseqn=!g.lineio->get_index_values('PROCSEQN')
+  sources = !g.lineio->get_index_values('SOURCE')
+  procedure = !g.lineio->get_index_values('PROCEDURE')
+  restfreq = !g.lineio->get_index_values('RESTFREQ')
+  scans = !g.lineio->get_index_values('SCAN')
+  timestamp = !g.lineio->get_index_values('TIMESTAMP')
+  procseqn = !g.lineio->get_index_values('PROCSEQN')
 
-  ; It's useful to identify all of the duplicate scans first
-  ; they might be associated with any procedure or procseqn or
+  ; It's useful to identify all of the duplicate scans first.
+  ; They might be associated with any procedure or procseqn or
   ; restfreq so the downstream selections really aren't a help
   ; in finding them.
   
-  ; timestamps are sorted already, so this identifies the unique scans
+  ; Identify the unique scans. (timestamps are sorted already)
   uniqScanIndices = uniq(timestamp)
-  possUniqScans = scans[uniqScanIndices]
+  possUniqScans = scans[uniqScanIndices] ; position-switched unique scans
   uniqueScans = scans[uniq(possUniqScans,sort(possUniqScans))]
-  hasDupScans = 0
+
+  hasDupScans = 0 ; duplicate scans flag
+
+  ; if number of position-switched unique scans != number of unique scans
+  ;  then there must be duplicates
   if n_elements(uniqueScans) ne n_elements(possUniqScans) then begin
      ; there are duplicates, find them by sorting
      ; then differencing them and watching for 0s
@@ -69,29 +80,46 @@ function get_project_info
      dupScans = dupScans[uniq(dupScans)]
   endif
 
-  H1restFreqLimits = [1.419e+09, 1.421e+09]
-  H2OrestFreqLimits = [22.234080e+09, 22.236080e+09]
+  ; set some filters on frequency ranges to get only specific types of
+  ; observations
+  H1restFreqLimits = [1.419e+09, 1.421e+09] ; extragalactic H1
+  H2OrestFreqLimits = [22.234080e+09, 22.236080e+09] ; water masers
 
-  ; do the frequency selection first
-  restfreqSel = (restfreq gt H1restFreqLimits[0] and restfreq lt H1restFreqLimits[1]) or (restfreq gt H2OrestFreqLimits[0] and restfreq lt H2OrestFreqLimits[1])
+  ; do the frequency selection first based on the filters defined above
+  restfreqSel = (restfreq gt H1restFreqLimits[0] and $
+                 restfreq lt H1restFreqLimits[1]) $
+                or $
+                (restfreq gt H2OrestFreqLimits[0] and $
+                 restfreq lt H2OrestFreqLimits[1])
   if total(restfreqSel) eq 0 then begin
      print,'No observations found within the desired rest frequency limits.'
      return,-1
   endif
 
-  psIndx = where((procedure eq 'OnOff' or procedure eq 'OffOn' or procedure eq 'Nod') and restfreqSel, count)
+  ; make sure suppored procedures are at this rest frequency
+  psIndx = where((procedure eq 'OnOff' or $
+                  procedure eq 'OffOn' or $
+                  procedure eq 'Nod') $
+                and restfreqSel, count)
   if count le 0 then begin
-     print,'No position switching or Nod data found for the desired rest frequency'
+     print,'No position switching data found for the desired rest frequency'
      return,-1
   endif
+
+  ; get a list of position-switched sources and scans
   psSources = sources[psIndx]
   psScans = scans[psIndx]
   psProcseqn = procseqn[psIndx]
   uniqSources = psSources[uniq(psSources,sort(psSources))]
 
+  ; store the unique list of source names for the output structure.
+  ; the sources will only be those at the correct rest frequencies
+  ; with supported procedure names (e.g. OffOn, OnOff, Nod)
   result = {sources:uniqSources}
 
-  ; information about each source
+  ; now, get more specific information about each source and
+  ; add it to the stucture defined in the comment at the beginning of
+  ; this function
   for jj=0,n_elements(uniqSources)-1 do begin
      thisSource = uniqSources[jj]
      firstScans = psScans[where(psSources eq thisSource and psProcseqn eq 1)]
@@ -101,6 +129,7 @@ function get_project_info
      duplicateScans = -1
      missingScans = -1
      scanMask = make_array(n_elements(firstScans),value=1)
+
      ; look for and remove duplicates from firstScans list
      if hasDupScans then begin
         if n_elements(dupScans) lt n_elements(firstScans) then begin
@@ -128,7 +157,8 @@ function get_project_info
               endif
            endfor
         endelse
-     endif
+     endif ; end if duplicate scans
+
      if duplicateScans[0] ge -1 then begin
         ; some scans were removed
         okIndex = where(scanMask,count)
@@ -140,6 +170,7 @@ function get_project_info
            scanMask = scanMask[okIndex]
         endelse
      endif
+
      ; look for second scan
      if firstScans[0] ge 0 then begin
         for ll=0,n_elements(firstScans)-1 do begin
@@ -186,27 +217,41 @@ function get_project_info
         endif else begin
            firstScans = firstScans[okIndex]
         endelse
-     endif
+     endif ; end first scans
+
      ; sort and remove duplications in duplcates and missingScans
-     if duplicateScans[0] ne -1 then duplicateScans = duplicateScans[uniq(duplicateScans,sort(duplicateScans))]
-     if missingScans[0] ne -1 then missingScans = missingScans[uniq(missingScans,sort(missingScans))]
+     if (duplicateScans[0] ne -1) then begin
+        duplicateScans = duplicateScans[uniq(duplicateScans,sort(duplicateScans))]
+     endif
+     if (missingScans[0] ne -1) then begin
+        missingScans = missingScans[uniq(missingScans,sort(missingScans))]
+     endif
      ; and assemble the structure for this source
-     if (restfreq[0] gt H1restFreqLimits[0] and restfreq[0] lt H1restFreqLimits[1]) then begin
+     if (restfreq[0] gt H1restFreqLimits[0] and $
+         restfreq[0] lt H1restFreqLimits[1]) then begin
          sourceType='HI'
      endif else begin
-         if (restfreq[0] gt H2OrestFreqLimits[0] and restfreq[0] lt H2OrestFreqLimits[1]) then begin
+         if (restfreq[0] gt H2OrestFreqLimits[0] and $
+             restfreq[0] lt H2OrestFreqLimits[1]) then begin
              sourceType='H2O'
          endif
      endelse
-     sourceStruct = {scans:firstScans, duplicates:duplicateScans,missing:missingScans,source:thisSource,srctype:sourceType}
+     sourceStruct = { scans      : firstScans, $
+                      duplicates : duplicateScans, $
+                      missing    : missingScans, $
+                      source     : thisSource, $
+                      srctype    : sourceType}
      ; add to result
-                                ; it would have been nice to use the
-                                ; source name as the tag name but tag
-                                ; naming rules are more restrictive
-                                ; than source naming rule so just do
-                                ; this
-     tagName = "s"+strtrim(string(jj),2)
-     result = create_struct(result,tagName,sourceStruct)
-  endfor
+     ; would have been nice to use the source name as the tag name but tag
+     ; naming rules are more restrictive than source naming rule
+     ; so just do this
+     tagName = "s" + strtrim(string(jj), 2) ; source identifier
+
+     result = create_struct(result, tagName, sourceStruct)
+
+  endfor ; end for each unique source
+
   return, result
+
 end
+

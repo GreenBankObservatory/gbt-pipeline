@@ -1,7 +1,20 @@
+; This spectralpipe procedure is meant to process GBT spectral line data
+; stored in the SDFITS format.  For each source in the input file, a
+; calibrated SDFITS file with a single spectrum is produced.  Also, there
+; is a png plot of the spectrum with useful metadata displayed in the
+; header.  The spectralpipe procedure is run from a GBTIDL command line
+; with a single input paramter, the uncalibrated SDFITS filename.
 pro spectralpipe, filename
+    ; compile_opt is a compile-time directive and idl2 means that the 
+    ; default integer type is a 32-bit integer instead of a 16-bit integer
+    ; it limits the array index syntax to just [].
+    ; the default also allows () - which leads to confusion when reading 
+    ; the code because it's difficult tell when one is a function and one
+    ; is an array.
     compile_opt idl2
 
-    filein, filename
+    filein, filename ; read the input file into the !g structure
+
     ; make sure it worked
     if !g.line_filein_name ne filename then begin
        print,'Could not open : ',filename
@@ -14,8 +27,11 @@ pro spectralpipe, filename
 
     makeplots = 1
    
-    velo 
-    freeze
+    velo ; change the idl plotter x-axis to velocity
+    freeze ; freeze the plotter so it doesn't slow down processing
+
+    ; collect a bunch of information from the input file
+    ; and put it into the projectInfo structure
     projectInfo = get_project_info()
     if size(projectInfo,/type) ne 8 then begin
        print,"No PS scans that could be used found in data."
