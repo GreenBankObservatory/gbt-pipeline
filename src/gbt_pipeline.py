@@ -248,8 +248,7 @@ def calibrate_maps(log, cl_params, row_list, term):
             sys.stdout.flush()
 
             # run the calibration for each feed/pol in this spectral window
-            for idx, pp in enumerate(maps_for_this_window):
-                mp, window, feed, pol = pp
+            for mp, window, feed, pol in maps_for_this_window:
                
                 # pipe output will be printed in order of window
                 if PARALLEL:
@@ -264,13 +263,11 @@ def calibrate_maps(log, cl_params, row_list, term):
             if PARALLEL:
                 for pp in pids:
                     pp.start()
-                for pp in maps_for_this_window:
-                    mp, window, feed, pol = pp
+                for mp, window, feed, pol in maps_for_this_window:
                     log.doMessage('DBG', 'Feed {feed} Pol {pol} started.'.format(feed = feed, pol = pol))
                 for pp in pids:
                     pp.join()
-                for pp in maps_for_this_window:
-                    mp, window, feed, pol = pp
+                for mp, window, feed, pol in maps_for_this_window:
                     log.doMessage('DBG', 'Feed {feed} Pol {pol} finished.'.format(feed = feed, pol = pol))
         # iterate to the next window
  

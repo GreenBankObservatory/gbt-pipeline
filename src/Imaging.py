@@ -78,8 +78,7 @@ class Imaging:
             
         windows = set([])
         feeds = set([])
-        for pp in pipes:
-            mp, window, feed, pol = pp
+        for mp, window, feed, pol in pipes:
             windows.add(str(window))
             feeds.add(str(feed))
 
