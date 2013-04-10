@@ -1,5 +1,6 @@
 *.index
 *.fits
+*.vdata
 Cal_*
 *.pyc
 *~
