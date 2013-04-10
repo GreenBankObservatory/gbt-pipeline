@@ -1,0 +1,17 @@
+.com average_source_scans.pro
+.com blank_edges.pro
+.com blank_galactic.pro
+.com compress_scanlist.pro
+.com duplicate_scans.pro
+.com flag_broad_rfi.pro
+.com fft_flag.pro
+.com fit_baseline.pro
+.com flag_narrow_rfi.pro
+.com get_project_info.pro
+.com get_scans.pro
+.com get_sources.pro
+.com make_plot.pro
+.com smooth_spectrum.pro
+.com write_output.pro
+.com write_empty_output.pro
+.com spectralpipe.pro
