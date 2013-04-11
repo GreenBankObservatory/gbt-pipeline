@@ -41,7 +41,12 @@ class SdFitsIndexRowReader:
         self.row = row
     
     def __getitem__(self, key):
-        return self.row[self.lookup[key]].lstrip()
+        try:
+            val = self.row[self.lookup[key]].lstrip()
+        except KeyError:
+            val = ''
+        finally:
+            return val
         
 class SdFits:
     """Class contains methods to read and write to the GBT SdFits format.
@@ -72,52 +77,43 @@ class SdFits:
         
         """
     
-        myFile = open(indexfile,'rU')
-        
-        scans = {}
         map_scans = {}
-    
-        MapParams = namedtuple("MapParams", "refscan1 mapscans refscan2")
-        
-        # skip over the index file header lines
-        while True:
-            line = myFile.readline()
-            # look for start of row data or EOF (i.e. not line)
-            if '[rows]' in line or not line:
-                row = myFile.readline().split()
-                row = myFile.readline().split()
-                break
-            
-        #import pdb; pdb.set_trace()
-        while row:
-    
-            obsid = row[7]
-            scan = int(row[10])
-            scans[scan] = (obsid)
-    
-            # read the next row
-            row = myFile.readline().split()
-    
-        myFile.close()
-    
+        observation = self.parseSdfitsIndex(indexfile)
+        feed = observation.feeds()[0]
+        window = observation.windows()[0]
+        pol = observation.pols()[0]
+ 
         # print results
         if debug:
             print '------------------------- All scans'
-            for scan in scans:
-                print 'scan',scan,scans[scan]
+            for scanid in observation.scans():
+                scanstruct = observation.get(scanid, feed, window, pol)
+                print 'scan', scanid, scanstruct['OBSID']
     
             print '------------------------- Relavant scans'
-    
-        for scan in scans:
-            if scans[scan].upper()=='MAP' or scans[scan].upper()=='OFF':
-                map_scans[scan] = scans[scan]
-    
+   
+        for scanid in observation.scans():
+            scanstruct = observation.get(scanid, feed, window, pol)
+            obsid = scanstruct['OBSID'].upper()
+            procscan = scanstruct['PROCSCAN'].upper()
+
+            # keyword check should depend on presence of PROCSCAN key, which is an
+            # alternative to checking SDFITVER.
+            # OBSID is the old way, PROCSCAN is the new way MR8Q312
+            # only do the following for an "OLD" SDFITS version
+
+            # create a new list that only has 'MAP' and 'OFF' scans
+            if not procscan and (obsid=='MAP' or obsid=='OFF'):
+                    map_scans[scanid] = obsid
+            elif procscan=='MAP' or procscan=='OFF':
+                    map_scans[scanid] = procscan
+     
         mapkeys = map_scans.keys()
         mapkeys.sort()
     
         if debug:
-            for scan in mapkeys:
-                print 'scan',scan,map_scans[scan]
+            for scanid in mapkeys:
+                print 'scan', scanid, map_scans[scanid]
     
         maps = [] # final list of maps
         ref1 = None
@@ -128,6 +124,7 @@ class SdFits:
         if debug:
             print 'mapkeys', mapkeys
     
+        MapParams = namedtuple("MapParams", "refscan1 mapscans refscan2")
         for idx,scan in enumerate(mapkeys):
     
             # look for the offs
@@ -155,16 +152,15 @@ class SdFits:
                 mapscans = []
                 
         if debug:
-            import pprint
-            pprint.pprint(maps)
+            import pprint; pprint.pprint(maps)
     
             for idx,mm in enumerate(maps):
-                print "Map",idx
-                if mm[2]:
-                    print "\tReference scans.....",mm[0],mm[2]
+                print "Map", idx
+                if mm.refscan2:
+                    print "\tReference scans.....", mm.refscan1, mm.refscan2
                 else:
-                    print "\tReference scan......",mm[0]
-                print "\tMap scans...........",mm[1]
+                    print "\tReference scan......", mm.refscan1
+                print "\tMap scans...........", mm.mapscans
     
         return maps
     
@@ -192,25 +188,26 @@ class SdFits:
         iterator = re.finditer(r' *\S+',header)
         for idx,mm in enumerate(iterator):
             lookup_table[fields[idx]] = slice(mm.start(),mm.end())
-        
+       
         rr = SdFitsIndexRowReader(lookup_table)
-        
+
         for row in ifile:
         
             rr.setrow(row)
-            
             scanid = int(rr['SCAN'])
             feed = int(rr['FDNUM'])
             windowNum = int(rr['IFNUM'])
             pol = int(rr['PLNUM'])
             fitsExtension = int(rr['EXT'])
             rowOfFitsFile = int(rr['ROW'])
-            typeOfScan = ''
+            typeOfScan = rr['PROCEDURE']
+            obsid = rr['OBSID']
+            procscan = rr['PROCSCAN']
             
             # we can assume all integrations of a single scan are within the same
             #   FITS extension
             observation.addRow(scanid, feed, windowNum, pol,
-                               fitsExtension, rowOfFitsFile, typeOfScan)
+                               fitsExtension, rowOfFitsFile, typeOfScan, obsid, procscan)
             
         try:
             ifile.close()

@@ -47,7 +47,7 @@ class ObservationRows:
         self.Key = namedtuple('key', 'scan, feed, window, polarization')
         
     def addRow(self, scan, feed, window, polarization,
-               fitsExtension, rowOfFitsFile, typeOfScan):
+               fitsExtension, rowOfFitsFile, typeOfScan, obsid, procscan):
         """Add rows to the ObservationRows object.
 
            When rows are added to this object (addRow), the FITS extension,
@@ -62,7 +62,9 @@ class ObservationRows:
         else:
             self.rows[key] = {'EXTENSION': fitsExtension,
                               'ROW': [rowOfFitsFile],
-                              'TYPE': typeOfScan }
+                              'TYPE': typeOfScan,
+                              'OBSID': obsid,
+                              'PROCSCAN': procscan }
             
     def get(self, scan, feed, window, polarization):
         """Retreive a list of rows for scan/feed/win/pol.
