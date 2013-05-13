@@ -80,7 +80,7 @@ class Imaging:
         feeds = set([])
         for mp, window, feed, pol in pipes:
             windows.add(str(window))
-            feeds.add(str(feed))
+            feeds.add(feed)
 
         scanrange = str(cl_params.mapscans[0])+'_'+str(cl_params.mapscans[-1])
 
@@ -127,7 +127,7 @@ class Imaging:
                 keeptempfiles = '0'
             
             doimg_cmd = ' '.join(('doImage',
-                dbconScript, aipsNumber, ','.join(map(str,feeds)),
+                dbconScript, aipsNumber, ','.join(map(str,sorted(feeds))),
                 str(cl_params.average), channels, display_idlToSdfits,
                 idlToSdfits_rms_flag, str(cl_params.verbose),
                 idlToSdfits_baseline_subtract, keeptempfiles,
