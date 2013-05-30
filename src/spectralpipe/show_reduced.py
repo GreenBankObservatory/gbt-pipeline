@@ -39,23 +39,36 @@ def deg2hms(ra='', dec='', doRound=False):
 
 if __name__ == '__main__':
 
+    # grab the SDFITS output spectrum file name
     infile = sys.argv[1]
 
-    ff = fitsio.FITS(infile)
-    hdr = fitsio.read_header(infile, 1)
+    # the velocity axis file is inferred from the SDFITS file name
+    vdatafile = os.path.splitext(sys.argv[1])[0]+'.vdata'
 
-    tdata = ff[1].read()
+    ff = fitsio.FITS(infile)  # open the SDFITS file
+    hdr = fitsio.read_header(infile, 1)  # grab the header structure
 
+    tdata = ff[1].read()  # read the table data (only 1 row)
+
+    # get some metadata from a couple of table fields
+    #  to add to the plot header
     target_name = tdata['OBJECT'][0].strip()
     projid = tdata['PROJID'][0].strip()
-    scans = hdr['SCANLIST']
+    scans = hdr['SCANLIST'] # this key was added by the pipeline
 
     # if the data is not blank
     if not np.all(np.isnan(tdata['DATA'][0])):
+
+        # get a lot more info for the plot header
+        # note that all of this data is coming from the table fields
+        # and not the SDFITS header.  it doesn't really matter that
+        # it's coming from the table.  it just happens that what we
+        # we want on the plot is in the table.
         coord1name = tdata['CTYPE2'][0].strip()
         coord1val = tdata['CRVAL2'][0]
         coord2name = tdata['CTYPE3'][0].strip()
         coord2val = tdata['CRVAL3'][0]
+        # convert coordinates from degrees to hms notation
         cv1, cv2 = deg2hms(ra=coord1val, dec=coord2val, doRound=True)
         fsky = tdata['CRVAL1'][0]/1e9
         azimuth = tdata['AZIMUTH'][0]
@@ -66,15 +79,16 @@ if __name__ == '__main__':
         restfreq = tdata['RESTFREQ'][0]/1e9
         velocity = int(tdata['VELOCITY'][0]/1e3)
         veldef = tdata['VELDEF'][0]
-
+        # get the exposure time and display it as hms
         exposure = tdata['EXPOSURE'][0]
         integ_h = int(exposure/3600.)
         exposure -=  integ_h*3600
         integ_m = int(exposure/60)
         integ_s = exposure-integ_m*60
         
+        # now put all of that data into strings for the plot header
 
-        titlestring1 = (
+        titlestring1 = (  # left side of the plot header
         'Project ID: {pid}\n'
         'Scans: {scans}\n'
         'Date: {date}\n'\
@@ -86,7 +100,7 @@ if __name__ == '__main__':
         hh=integ_h, mm=integ_m, ss=integ_s, 
         tsys=tsys )
 
-        titlestring2 = (
+        titlestring2 = (  # right side of the plot header
         '{cv1} {cv2} J2000\n'
         'AZ: {az:.1f}, EL: {el:.1f}\n'
         'Rest Frequency: {rf:7.3f} GHz\n'
@@ -103,9 +117,7 @@ if __name__ == '__main__':
         pl.figure(figsize=(8, 4))
         ax = pl.subplot(212)
        
-        vdatafile = os.path.splitext(sys.argv[1])[0]+'.vdata'
         veldata = np.loadtxt(vdatafile, skiprows=3)
-        os.unlink(vdatafile)
         velo = veldata[:, 0]
         data = veldata[:, 1]
 
@@ -158,4 +170,6 @@ if __name__ == '__main__':
     pl.subplots_adjust(top=1.2, bottom=.15)
     pl.savefig(os.path.splitext(sys.argv[1])[0]+'.png')
 
+#    os.unlink(vdatafile)
     ff.close()
+

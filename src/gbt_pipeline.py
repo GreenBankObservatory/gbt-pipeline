@@ -355,7 +355,12 @@ def calibrate_file(term, log, cl_params):
         #  followed by another reference scan.  The returned structure
         #  is a list of tuples of (reference1, mapscans, reference2)
         maps = sdf.find_maps( indexfile )
-        log.doMessage('INFO','Found', len(maps),'map(s).' )
+        
+        if maps:
+            log.doMessage('INFO','Found', len(maps),'map(s).' )
+        else:
+            log.doMessage('ERR','No scans specified and found no position-switched maps.')
+            sys.exit()
 
         # calibrate each map found in the input file
         for map_number, map_params in enumerate(maps):
