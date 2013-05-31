@@ -70,7 +70,7 @@ export LD_LIBRARY_PATH=/opt/local/lib:$LD_LIBRARY_PATH
 
 STAT_FILE="/home/scratch/pipeline/stats.log"
 if [ -w $STAT_FILE ]; then
-    echo `whoami` - `date` - $* >> $STAT_FILE
+    echo `whoami`,`date`,${VERSION},$* >> $STAT_FILE
 fi
 
 python /home/gbtpipeline/${VERSION}/gbt_pipeline.py $*
