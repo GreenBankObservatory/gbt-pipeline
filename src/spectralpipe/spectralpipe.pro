@@ -96,6 +96,8 @@ pro spectralpipe, filename
       if srctype eq 'HI' then blank_galactic
 	    if srctype eq 'HI' then flag_narrow_rfi
 	    fit_baseline
+            ; set the frequency rest frame in the data to the tracked one.
+            setfframe
 	    write_output, sourcename, scans
 
 	    if makeplots eq 1 then make_plot, sourcename
