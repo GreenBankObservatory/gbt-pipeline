@@ -37,6 +37,7 @@ import os
 import sys
 
 CREATE_PLOTS = False
+PIPELINE_VERSION = '1.0'  # to record in output primary header
 
 if CREATE_PLOTS:
     import pylab
@@ -183,14 +184,14 @@ class MappingPipeline:
                 tambients.append(tambient)
                 elevations.append(elevation)
         
-        avgCref, avgTsys, avgTimestamp, avgTambient, avgElevation = \
+        avgCref, avgTsys, avgTimestamp, avgTambient, avgElevation, sumExposure = \
             self.cal.getReferenceAverage(crefs, tsyss, exposures, timestamps, tambients, elevations)
         
         self.log.doMessage('INFO', 'Tsys for scan {scan} feed {feed} '
                 'window {window} pol {pol}: {tsys:.1f}'.format(scan=scan,
                 feed=feed, window=window, pol=pol, tsys=avgTsys))
         
-        return avgCref, avgTsys, avgTimestamp, avgTambient, avgElevation
+        return avgCref, avgTsys, avgTimestamp, avgTambient, avgElevation, sumExposure
     
     def get_dtype(self, feed, window, pol):
         
@@ -239,6 +240,8 @@ class MappingPipeline:
         # copy primary header from input to output file
         primary_header = fitsio.read_header(self.infilename, 0)
         self.outfile[0].write_keys(primary_header, clean=True)
+
+        self.outfile[0].write_key('PIPE_VER', PIPELINE_VERSION, comment="GBT Pipeline Version") 
 
         return dtype
 
@@ -368,8 +371,8 @@ class MappingPipeline:
                 
                 output_data = np.zeros(rows2write, dtype = dtype)
                 
-                sigrefState = [{'cal_on':None, 'cal_off':None, 'TP':None, 'rownum':None},
-                               {'cal_on':None, 'cal_off':None, 'TP':None, 'rownum':None}]
+                sigrefState = [{'cal_on':None, 'cal_off':None, 'TP':None, 'rownum':None, 'extime':None},
+                               {'cal_on':None, 'cal_off':None, 'TP':None, 'rownum':None, 'extime':None}]
                 
                 # now start at the beginning and calibrate all the integrations
                 for rowNum in chunk:
@@ -406,6 +409,12 @@ class MappingPipeline:
                             
                             # create an output row with 'nan' data and real metadata
                             output_data[outputidx] = row.data
+                            #
+                            # we can probably replace the following line with a more pythonic
+                            #
+                            # for xx in output_data[outputidx]['DATA']:
+                            #     xx = float('nan')
+                            #
                             for xx in range(len(output_data[outputidx]['DATA'])):
                                 output_data[outputidx]['DATA'][xx] = float('nan')
                             
@@ -414,15 +423,20 @@ class MappingPipeline:
                             self.show_progress(outputidx, rows2write)
                             
                             # used these, so clear for the next iteration
-                            sigrefState = [{'cal_on':None, 'cal_off':None, 'TP':None},
-                                           {'cal_on':None, 'cal_off':None, 'TP':None}]
+                            sigrefState = [{'cal_on':None, 'cal_off':None, 'TP':None, 'rownum':None, 'EXPOSURE':None},
+                                           {'cal_on':None, 'cal_off':None, 'TP':None, 'rownum':None, 'EXPOSURE':None}]
                             continue
 
                         # noise diode is being fired during signal integrations
-                        sigrefState[0]['TP'] = \
-                            self.cal.total_power(sigrefState[0]['cal_on']['DATA'], sigrefState[0]['cal_off']['DATA'])
-                        sigrefState[1]['TP'] = \
-                            self.cal.total_power(sigrefState[1]['cal_on']['DATA'], sigrefState[1]['cal_off']['DATA'])
+                        sigrefState[0]['TP'], sigrefState[0]['EXPOSURE'] = self.cal.total_power(sigrefState[0]['cal_on']['DATA'],
+                                                                                                sigrefState[0]['cal_off']['DATA'],
+                                                                                                sigrefState[0]['cal_on']['EXPOSURE'],
+                                                                                                sigrefState[0]['cal_off']['EXPOSURE'])
+                        sigrefState[1]['TP'], sigrefState[1]['EXPOSURE'] = self.cal.total_power(sigrefState[1]['cal_on']['DATA'],
+                                                                                                sigrefState[1]['cal_off']['DATA'],
+                                                                                                sigrefState[1]['cal_on']['EXPOSURE'],
+                                                                                                sigrefState[1]['cal_off']['EXPOSURE'])
+
                                                     
                     else:
                         continue  # read more rows until we have all 4 states
@@ -433,7 +447,7 @@ class MappingPipeline:
                     elevation = sigrefState[0]['cal_off']['ELEVATIO']
                     receiver = sigrefState[0]['cal_off']['FRONTEND'] 
                     
-                    ta, tsys = self.cal.ta_fs(sigrefState)
+                    ta, tsys, exposure = self.cal.ta_fs(sigrefState)
                     
                     if self.cl.units != 'ta':
                         
@@ -487,6 +501,9 @@ class MappingPipeline:
                         sys.exit(9)
                         
                     row['TSYS'] = tsys
+                    row['TUNIT7'] = self.cl.units.title()  # .title() makes first letter upper
+                    row['EXPOSURE'] = exposure
+
                     output_data[outputidx] = row.data
                     
                     outputidx = outputidx + 1
@@ -507,8 +524,8 @@ class MappingPipeline:
         self.outfile.close()
         
     def calibrate_ps_sdfits_integrations(self, feed, window, pol,
-                          avgCref1, avgTsys1, crefTime1, refTambient1, refElevation1,
-                          avgCref2, avgTsys2, crefTime2, refTambient2, refElevation2,
+                          avgCref1, avgTsys1, crefTime1, refTambient1, refElevation1, refExposure1,
+                          avgCref2, avgTsys2, crefTime2, refTambient2, refElevation2, refExposure2,
                           beam_scaling):
         
         dtype = self.get_dtype(feed, window, pol)
@@ -578,16 +595,16 @@ class MappingPipeline:
                     if cal_switching and cal_off and cal_on:
                         # noise diode is being fired during signal integrations
         
-                        csig = self.cal.total_power(cal_on['DATA'], cal_off['DATA'])
+                        csig, sig_exposure = self.cal.total_power(cal_on['DATA'], cal_off['DATA'],
+                                   cal_on['EXPOSURE'], cal_off['EXPOSURE'])
         
                         if CREATE_PLOTS:
-                            exposure = cal_on['EXPOSURE']+cal_off['EXPOSURE']
-                            exposures.append(exposure)
+                            exposures.append(sig_exposure)
         
                     # if there is more than one row, this isn't the last one, this and the next are CAL=='F',
                     #    then the diode is not firing
                     elif not cal_switching:
-                        csig = cal_off['DATA']
+                        csig, sig_exposure = cal_off['DATA'], cal_off['EXPOSURE']
                     
                     # we are cal switching but we only have one cal state,
                     #   then read the next row
@@ -608,11 +625,21 @@ class MappingPipeline:
                             avgTsysInterp = \
                                 self.cal.interpolate_by_time(avgTsys1, avgTsys2,
                                                              crefTime1, crefTime2, intTime)
-            
-                            ta = self.cal.antenna_temp(avgTsysInterp, csig, crefInterp )
+                            if refExposure2:
+                                refExposure = (refExposure1+refExposure2)/2.
+                            else:
+                                refExposure = refExposure1
+                            ta, exposure = self.cal.antenna_temp(avgTsysInterp, csig, crefInterp,
+                                      sig_exposure, refExposure )
                             tsys = avgTsysInterp
                         else:
-                            ta = self.cal.antenna_temp(avgTsys1, csig, avgCref1 )
+                            if refExposure2:
+                                refExposure = (refExposure1+refExposure2)/2.
+                            else:
+                                refExposure = refExposure1
+
+                            ta, exposure = self.cal.antenna_temp(avgTsys1, csig, avgCref1,
+                                      sig_exposure, refExposure )
                             
                             tsys = avgTsys1
                                             
@@ -715,6 +742,8 @@ class MappingPipeline:
                             sys.exit(9)
                             
                         row['TSYS'] = tsys
+                        row['TUNIT7'] = self.cl.units.title()
+                        row['EXPOSURE'] = exposure
 
                     output_data[outputidx] = row.data
                         
@@ -755,8 +784,7 @@ class MappingPipeline:
             if CREATE_PLOTS:
                 ref_tsyss = np.array(ref_tsyss)
                 exposures = np.array(exposures)
-                weights = exposures / ref_tsyss**2
-                averaged_integrations = np.average(calibrated_integrations, axis = 0, weights = weights)
+                averaged_integrations = self.cal.average_spectra(calibrated_integrations, ref_tsyss, exposures)
                 pylab.plot(averaged_integrations, label = str(scan)+' tsys('+str(ref_tsyss.mean())[:5]+')')
             
         if CREATE_PLOTS:
@@ -777,14 +805,14 @@ class MappingPipeline:
         sys.stdout.flush()
     
     def calibrate_sdfits_integrations(self, feed, window, pol,
-                          avgCref1 = None, avgTsys1 = None, crefTime1 = None, refTambient1 = None, refElevation1 = None,
-                          avgCref2 = None, avgTsys2 = None, crefTime2 = None, refTambient2 = None, refElevation2 = None,
-                          beam_scaling = None):
+                          avgCref1=None, avgTsys1=None, crefTime1=None, refTambient1=None, refElevation1=None, refExposure1=None,
+                          avgCref2=None, avgTsys2=None, crefTime2=None, refTambient2=None, refElevation2=None, refExposure2=None,
+                          beam_scaling=None):
         
         if avgCref1 != None:
             self.calibrate_ps_sdfits_integrations(feed, window, pol,
-                          avgCref1, avgTsys1, crefTime1, refTambient1, refElevation1,
-                          avgCref2, avgTsys2, crefTime2, refTambient2, refElevation2,
+                          avgCref1, avgTsys1, crefTime1, refTambient1, refElevation1, refExposure1,
+                          avgCref2, avgTsys2, crefTime2, refTambient2, refElevation2, refExposure2,
                           beam_scaling)
         else:
             self.calibrate_fs_sdfits_integrations(feed, window, pol,

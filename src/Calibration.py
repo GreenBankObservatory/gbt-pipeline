@@ -47,8 +47,8 @@ class Calibration:
 
     # ------------- Unit methods: do not depend on any other pipeline methods
 
-    def total_power(self, cal_on, cal_off):  
-        return np.mean((cal_on, cal_off), axis = 0)
+    def total_power(self, cal_on, cal_off, t_on, t_off):  
+        return np.mean((cal_on, cal_off), axis = 0), t_on+t_off
 
     def tsky_correction(self, tsky_sig, tsky_ref, spillover):
         return spillover*(tsky_sig-tsky_ref)
@@ -259,10 +259,11 @@ class Calibration:
         cal_on = (cal_on[low:high]).mean()
         return tcal*(cal_off/(cal_on-cal_off))+tcal/2
 
-    def antenna_temp(self, tsys, sig, ref):
+    def antenna_temp(self, tsys, sig, ref, t_sig, t_ref):
         ref_smoothed = smoothing.boxcar(ref, self.SMOOTHING_WINDOW)
-        result = tsys * ((sig-ref_smoothed)/ref_smoothed)
-        return result
+        spectrum = tsys * ((sig-ref_smoothed)/ref_smoothed)
+        exposure_time =  t_sig * t_ref * self.SMOOTHING_WINDOW / (t_sig+t_ref*self.SMOOTHING_WINDOW)
+        return spectrum, exposure_time
     
     def _ta_fs_one_state(self, sigref_state, sigid, refid):
 
@@ -280,17 +281,17 @@ class Calibration:
         tsys = self.tsys(tcal,  ref_cal_on['DATA'],  ref_cal_off['DATA'])
 
 
-        antenna_temp = self.antenna_temp(tsys, sig, ref )
+        antenna_temp, exposure = self.antenna_temp(tsys, sig, ref,
+                                         t_sig=sigref_state[sigid]['EXPOSURE'],
+                                         t_ref=sigref_state[refid]['EXPOSURE'] )
         
-        return antenna_temp, tsys
+        return antenna_temp, tsys, exposure
         
     def ta_fs(self, sigref_state):
         
-        ta0, tsys0 = self._ta_fs_one_state(sigref_state, 0, 1)
-        ta1, tsys1 = self._ta_fs_one_state(sigref_state, 1, 0)
+        ta0, tsys0, exposure0 = self._ta_fs_one_state(sigref_state, 0, 1) 
+        ta1, tsys1, exposure1 = self._ta_fs_one_state(sigref_state, 1, 0)
 
-        tsys = np.mean((tsys0, tsys1))
-        #print 'Tsys in fs integration', tsys
                                                         
         # shift in frequency
         sig_centerfreq = sigref_state[0]['cal_off']['OBSFREQ']
@@ -316,11 +317,22 @@ class Calibration:
         xxx = xxp-fractional_shift
 
         yyy = np.interp(xxx, xxp, yyp)
+        ta1_shifted = yyy
+        
+        
+        exposures = np.array([exposure0,exposure1]) 
+        tsyss = np.array([tsys0,tsys1])
+        tas = np.array([ta0,ta1_shifted])
         
         # average shifted spectra
-        ta = (ta0+yyy)/2.
-              
-        return ta, tsys
+        ta =  self.average_spectra(tas, tsyss, exposures)
+
+        # average tsys
+        tsys =  self.average_tsys(tsyss, exposures)
+
+        exposure_sum = exposure0 + exposure1
+
+        return ta, tsys, exposure_sum
                 
     def ta_star(self, antenna_temp, beam_scaling, opacity, spillover):
         # opacity is corrected for elevation
@@ -338,6 +350,17 @@ class Calibration:
         aa2 = (integration_timestamp-first_ref_timestamp) / time_btwn_ref_scans
         return aa1*reference1 + aa2*reference2
 
+    def make_weights(self, tsyss, exposures):
+        return exposures / tsyss**2
+
+    def average_tsys(self, tsyss, exposures):
+        weights = self.make_weights(tsyss, exposures)
+        return np.sqrt(np.average( tsyss**2, axis=0, weights=weights))
+
+    def average_spectra(self, specs, tsyss, exposures):
+        weights = self.make_weights(tsyss, exposures)
+        return np.average(specs, axis = 0, weights = weights)
+
     def getReferenceAverage(self, crefs, tsyss, exposures, timestamps,
                             tambients, elevations):
         
@@ -349,17 +372,17 @@ class Calibration:
         tambients = np.array(tambients)
         elevations = np.array(elevations)        
 
-        weights = exposures / tsyss**2
-        avg_tsys = np.average(tsyss, axis = 0, weights = weights)
+        avg_tsys = self.average_tsys(tsyss, exposures)
         
         avg_tsys80 = avg_tsys.mean(0) # single value for mid 80% of band
-        avg_cref = np.average(crefs, axis = 0, weights = weights)
-        
+        avg_cref = self.average_spectra(crefs, tsyss, exposures)
+        exposure = np.sum(exposures)
+
         avg_timestamp = timestamps.mean()
         avg_tambient = tambients.mean()
         avg_elevation = elevations.mean()
         
-        return avg_cref, avg_tsys80, avg_timestamp, avg_tambient, avg_elevation
+        return avg_cref, avg_tsys80, avg_timestamp, avg_tambient, avg_elevation, exposure
 
     def tsky(self, ambient_temp_k, freq_hz, tau):
         """Determine the sky temperature contribution at a frequency

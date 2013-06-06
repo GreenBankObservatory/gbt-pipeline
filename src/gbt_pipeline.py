@@ -79,6 +79,8 @@ def calibrate_win_feed_pol(log, cl_params, window, feed, pol, pipe):
     refTimestamp2 = None
     refTambient2 = None
     refElevation2 = None
+    refExposure1 = None
+    refExposure2 = None
     
     # if we are using reference spectra
     if cl_params.refscans:
@@ -99,7 +101,7 @@ def calibrate_win_feed_pol(log, cl_params, window, feed, pol, pipe):
         #   this involves averaging the reference integrations and computing
         #   a weighted average of the Tsys, timestamp, ambient temperature,
         #   and elevation.
-        refSpectrum1, refTsys1, refTimestamp1, refTambient1, refElevation1 = \
+        refSpectrum1, refTsys1, refTimestamp1, refTambient1, refElevation1, refExposure1 = \
             pipe.getReference(cl_params.refscans[0], feed, window, pol)
         
         # check to see if there are any rows for the second reference scan
@@ -119,8 +121,7 @@ def calibrate_win_feed_pol(log, cl_params, window, feed, pol, pipe):
             #  this involves averaging the reference integrations and computing
             #  a weighted average of the Tsys, timestamp, ambient temperature,
             #  and elevation.
-            refSpectrum2, refTsys2, refTimestamp2, 
-            refTambient2, refElevation2 = \
+            refSpectrum2, refTsys2, refTimestamp2, refTambient2, refElevation2, refExposure2 = \
                pipe.getReference(cl_params.refscans[1], feed, window, pol)
 
     # calibrate the signal (map) scans
@@ -131,8 +132,8 @@ def calibrate_win_feed_pol(log, cl_params, window, feed, pol, pipe):
     #   It determines the correct calibration path and writes the calibrated
     #   SDFITS output file specific to this feed/window/polarization.
     pipe.calibrate_sdfits_integrations( feed, window, pol,\
-            refSpectrum1, refTsys1, refTimestamp1, refTambient1, refElevation1, \
-            refSpectrum2, refTsys2, refTimestamp2, refTambient2, refElevation2, \
+            refSpectrum1, refTsys1, refTimestamp1, refTambient1, refElevation1, refExposure1, \
+            refSpectrum2, refTsys2, refTimestamp2, refTambient2, refElevation2, refExposure2, \
             cl_params.beamscaling )
 
 def preview_zenith_tau(log, row_list, cl_params, feeds, windows, pols):

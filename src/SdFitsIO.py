@@ -221,14 +221,14 @@ class SdFits:
         cal = Calibration()
         cal_ondata = cal_on['DATA']
         cal_offdata = cal_off['DATA']
-        cref = cal.total_power(cal_ondata, cal_offdata)
+        cref, exposure = cal.total_power(cal_ondata, cal_offdata, cal_on['EXPOSURE'], cal_off['EXPOSURE'])
+
         tcal = cal_off['TCAL']
         tsys = cal.tsys( tcal, cal_ondata, cal_offdata )
         
         dateobs = cal_off['DATE-OBS']
         timestamp = self.pu.dateToMjd(dateobs)
             
-        exposure = cal_on['EXPOSURE'] + cal_off['EXPOSURE']
         tambient = cal_off['TAMBIENT']
         elevation = cal_off['ELEVATIO']
         
