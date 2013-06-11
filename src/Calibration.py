@@ -30,6 +30,7 @@ This includes both Position-switched and Frequency-switched calibration.
 import numpy as np
 import math
 import smoothing
+from Pipeutils import Pipeutils
 
 class Calibration:
     """Class containing all the calibration methods for the GBT Pipeline.
@@ -44,11 +45,12 @@ class Calibration:
         self.BB = .0132  # Ruze equation parameter
         self.UNDER_2GHZ_TAU_0 = 0.008
         self.SMOOTHING_WINDOW = 3
+        self.pu = Pipeutils()
 
     # ------------- Unit methods: do not depend on any other pipeline methods
 
     def total_power(self, cal_on, cal_off, t_on, t_off):  
-        return np.mean((cal_on, cal_off), axis = 0), t_on+t_off
+        return np.ma.mean((cal_on, cal_off), axis = 0), t_on+t_off
 
     def tsky_correction(self, tsky_sig, tsky_ref, spillover):
         return spillover*(tsky_sig-tsky_ref)
@@ -257,10 +259,12 @@ class Calibration:
         high = int(.9*nchan)
         cal_off = (cal_off[low:high]).mean()
         cal_on = (cal_on[low:high]).mean()
-        return tcal*(cal_off/(cal_on-cal_off))+tcal/2
+        return np.float(tcal*(cal_off/(cal_on-cal_off))+tcal/2)
 
     def antenna_temp(self, tsys, sig, ref, t_sig, t_ref):
         ref_smoothed = smoothing.boxcar(ref, self.SMOOTHING_WINDOW)
+        ref_smoothed = self.pu.masked_array(ref_smoothed)
+     
         spectrum = tsys * ((sig-ref_smoothed)/ref_smoothed)
         exposure_time =  t_sig * t_ref * self.SMOOTHING_WINDOW / (t_sig+t_ref*self.SMOOTHING_WINDOW)
         return spectrum, exposure_time
@@ -284,14 +288,12 @@ class Calibration:
         antenna_temp, exposure = self.antenna_temp(tsys, sig, ref,
                                          t_sig=sigref_state[sigid]['EXPOSURE'],
                                          t_ref=sigref_state[refid]['EXPOSURE'] )
-        
         return antenna_temp, tsys, exposure
         
     def ta_fs(self, sigref_state):
         
         ta0, tsys0, exposure0 = self._ta_fs_one_state(sigref_state, 0, 1) 
         ta1, tsys1, exposure1 = self._ta_fs_one_state(sigref_state, 1, 0)
-
                                                         
         # shift in frequency
         sig_centerfreq = sigref_state[0]['cal_off']['OBSFREQ']
@@ -302,11 +304,10 @@ class Calibration:
 
         # do integer channel shift to second spectrum
         ta1_ishifted = np.roll(ta1, int(channel_shift))
-        
         if channel_shift > 0:
-            ta1_ishifted[:channel_shift] = 0
+            ta1_ishifted[:channel_shift] = float('nan') 
         elif channel_shift < 0:
-            ta1_ishifted[channel_shift:] = 0
+            ta1_ishifted[channel_shift:] = float('nan')
 
         # do fractional channel shift
         fractional_shift = channel_shift - int(channel_shift)
@@ -317,12 +318,12 @@ class Calibration:
         xxx = xxp-fractional_shift
 
         yyy = np.interp(xxx, xxp, yyp)
-        ta1_shifted = yyy
+        ta1_shifted = self.pu.masked_array(yyy)
         
         
         exposures = np.array([exposure0,exposure1]) 
         tsyss = np.array([tsys0,tsys1])
-        tas = np.array([ta0,ta1_shifted])
+        tas = [ta0,ta1_shifted]
         
         # average shifted spectra
         ta =  self.average_spectra(tas, tsyss, exposures)
@@ -359,7 +360,11 @@ class Calibration:
 
     def average_spectra(self, specs, tsyss, exposures):
         weights = self.make_weights(tsyss, exposures)
-        return np.average(specs, axis = 0, weights = weights)
+        if float('nan') in specs[0] or float('nan') in specs[1]:
+            weight0 = np.ma.array([weights[0]]*len(specs[0]), mask=specs[0].mask)
+            weight1 = np.ma.array([weights[1]]*len(specs[1]), mask=specs[1].mask)
+            weights = [weight0.filled(0), weight1.filled(0)]
+        return np.ma.average(specs, axis = 0, weights = weights)
 
     def getReferenceAverage(self, crefs, tsyss, exposures, timestamps,
                             tambients, elevations):

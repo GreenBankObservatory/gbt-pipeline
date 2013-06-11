@@ -187,7 +187,7 @@ def calibrate_maps(log, cl_params, row_list, term):
     if cl_params.mapscans:
         log.doMessage('INFO','Mapscan(s):', ','.join([str(xx) for xx in cl_params.mapscans]) )
     else:
-        log.doMessage('ERR', '{t.bold}ERROR{t.normal}: Need map scan(s).\n'.format(t = self.term))
+        log.doMessage('ERR', '{t.bold}ERROR{t.normal}: Need map scan(s).\n'.format(t = term))
         sys.exit()
     
     # make sure there are no map scans specified in the mapscans parameter
