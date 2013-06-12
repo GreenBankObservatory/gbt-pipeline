@@ -29,32 +29,36 @@ me=`dirname $fullpath`
 
 if [ $me = "/home/gbtpipeline/integration" ]; then
 	echo "!!!!!!!!!! TEST VERSION !!!!!!!!!!!!"
-        VERSION='integration'        
+        VERSION='integration'
 
 elif [ $me = "/home/gbtpipeline/release" ]; then
         VERSION='release'
 
 elif [ $me = "/home/gbtpipeline/old" ]; then
         VERSION='old'
+else
+    # assume integration, actual path of script is probably a personal sandbox
+        echo "!!!! UNKNOWN VERSION, ASSUMING TEST ENVIRONMENT !!!!"
+        VERSION='integration'        
 fi
 
 # if the pipeline tools directory is not included in the PATH, add it
-if [[ "$PATH" != */home/gbtpipeline/${VERSION}* ]]
+if [[ "$PATH" != *${me}* ]]
 then
-        PATH=/home/gbtpipeline/${VERSION}/tools:"$PATH"
+        PATH=${me}/tools:"$PATH"
 fi
 
 # set the PYTHONPATH, or add to it
 if [ -z "$PYTHONPATH" ]
 then
-        PYTHONPATH=/home/gbtpipeline/${VERSION}/contrib
-        PYTHONPATH=/home/gbtpipeline/${VERSION}:"$PYTHONPATH"
+        PYTHONPATH=${me}/contrib
+        PYTHONPATH=${me}:"$PYTHONPATH"
 else
         lclpythonpath="$PYTHONPATH"
-        if [[ $lclpythonpath != */home/gbtpipeline/${VERSION}* ]]
+        if [[ $lclpythonpath != *${me}* ]]
         then
-                PYTHONPATH=/home/gbtpipeline/${VERSION}/contrib:"$PYTHONPATH"
-                PYTHONPATH=/home/gbtpipeline/${VERSION}:"$PYTHONPATH"
+                PYTHONPATH=${me}/contrib:"$PYTHONPATH"
+                PYTHONPATH=${me}:"$PYTHONPATH"
         fi
 fi
 
@@ -73,5 +77,5 @@ if [ -w $STAT_FILE ]; then
     echo `whoami`,`date`,${VERSION},$* >> $STAT_FILE
 fi
 
-python /home/gbtpipeline/${VERSION}/gbt_pipeline.py $*
+python ${me}/gbt_pipeline.py $*
 

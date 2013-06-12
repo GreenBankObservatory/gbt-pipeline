@@ -53,6 +53,8 @@ import sys
 import os
 import math
 
+from fixAipsImages import fixAipsImages
+
 argc = len(sys.argv)
 if argc < 2:
     print ''
@@ -118,7 +120,7 @@ imxSize  = (2*round(spectra.header.crpix[3]/1.95)) + 20
 imySize  = (2*round(spectra.header.crpix[4]/1.95)) + 20
 raDeg    = spectra.header.crval[3]
 decDeg   = spectra.header.crval[4]
-nuRef    = spectra.header.crval[2]
+nuRest   = spectra.header.restfreq
 dNu      = spectra.header.cdelt[2]
 xType    = spectra.header.ctype[3]
 yType    = spectra.header.ctype[4]
@@ -127,9 +129,8 @@ bunit    = spectra.header.bunit
 print 'Observing coordinates: ',xType, yType, ' Unit: ', bunit
 if inRefFreqHz != 0.:
    restFreqHz = inRefFreqHz
-   print "Using Rest Frequency: ", restFreqHz/1.E6, " MHz"
 else:
-   restFreqHz = nuRef
+   restFreqHz = nuRest
 
 NH3_1_1=   23694.5060E6
 #special case of favorite rest frequency (override here).
@@ -206,7 +207,7 @@ if decSign < 0.:
         sdgrd.aparm[5] = -1. * sdgrd.aparm[5]
         if sdgrd.aparm[5] == 0:
             sdgrd.aparm[6] = -1.* sdgrd.aparm[6]
-print raDeg, decDeg, '->',sdgrd.aparm[1:6]
+print raDeg, decDeg, '->',sdgrd.aparm[1:7]
 #transfer cellsize 
 sdgrd.cellsize[1] = cellsize
 sdgrd.cellsize[2] = cellsize
@@ -282,21 +283,6 @@ image.update()                  # This step does not seem to work!
 ## keep track of the latest cube squence for later processing
 outseq = AIPSCat()[mydisk][-1].seq
 
-## Write the last Entry in the catalog to disk
-fittp.indisk=mydisk
-fittp.inname=AIPSCat()[mydisk][-1].name
-fittp.inclass=AIPSCat()[mydisk][-1].klass
-fittp.inseq=AIPSCat()[mydisk][-1].seq
-restFreqName = "_%.0f_MHz" % (restFreqHz * 1.E-6)
-outName = AIPSCat()[mydisk][-1].name + restFreqName
-outimage = outName+'_cube.fits'
-if os.path.exists(outimage):
-    os.remove(outimage)
-    print 'Removed existing file to make room for new one :',outimage
-
-fittp.dataout='PWD:'+outimage
-fittp.go()
-
 gridType = image.header.ctype[0]
 
 #transfer coordinate back after gridding
@@ -329,6 +315,21 @@ image.header.ctype[1]=yType
 image.header.niter=1
 image.header.update()
 
+## Write the last Entry in the catalog to disk
+fittp.indisk=mydisk
+fittp.inname=AIPSCat()[mydisk][-1].name
+fittp.inclass=AIPSCat()[mydisk][-1].klass
+fittp.inseq=AIPSCat()[mydisk][-1].seq
+restFreqName = "_%.0f_MHz" % (restFreqHz * 1.E-6)
+outName = AIPSCat()[mydisk][-1].name + restFreqName
+outcube = outName+'_cube.fits'
+if os.path.exists(outcube):
+    os.remove(outcube)
+    print 'Removed existing file to make room for new one :',outcube
+
+fittp.dataout='PWD:'+outcube
+fittp.go()
+
 # squash the frequency axis to make a continuum image
 sqash.indisk=mydisk
 sqash.outdisk=mydisk
@@ -345,11 +346,11 @@ fittp.indisk=mydisk
 fittp.inname=AIPSCat()[mydisk][-1].name
 fittp.inclass=AIPSCat()[mydisk][-1].klass
 fittp.inseq=AIPSCat()[mydisk][-1].seq
-outimage = outName+'_cont.fits'
-if os.path.exists(outimage):
-    os.remove(outimage)
-    print 'Removed existing file to make room for new one :',outimage
-fittp.dataout='PWD:'+outimage
+outcont = outName+'_cont.fits'
+if os.path.exists(outcont):
+    os.remove(outcont)
+    print 'Removed existing file to make room for new one :',outcont
+fittp.dataout='PWD:'+outcont
 fittp.go()
 
 #Run trans task on sdgrd file to prepare for the Moment map
@@ -397,11 +398,13 @@ fittp.indisk=mydisk
 fittp.inname=AIPSCat()[mydisk][-1].name
 fittp.inclass=AIPSCat()[mydisk][-1].klass
 fittp.inseq=AIPSCat()[mydisk][-1].seq
-outimage = outName+'_line.fits'
-if os.path.exists(outimage):
-    os.remove(outimage)
-    print 'Removed existing file to make room for new one :',outimage
+outline = outName+'_line.fits'
+if os.path.exists(outline):
+    os.remove(outline)
+    print 'Removed existing file to make room for new one :',outline
 
-fittp.dataout='PWD:'+outimage
+fittp.dataout='PWD:'+outline
 fittp.go()
 
+# clean up output images: reset FREQ axis to appropriate reference frame
+fixAipsImages([outcube,outline,outcont])
