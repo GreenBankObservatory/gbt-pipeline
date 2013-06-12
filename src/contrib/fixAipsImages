@@ -38,5 +38,5 @@ fi
 source /home/gbt7/pipeline/${VERSION}-env/bin/activate
 export LD_LIBRARY_PATH=/opt/local/lib:$LD_LIBRARY_PATH
 
-python ${me}/contrib/fixAipsImages.py $*
+python ${me}/fixAipsImages.py $*
 
