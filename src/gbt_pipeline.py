@@ -270,9 +270,9 @@ def calibrate_maps(log, cl_params, row_list, term):
                     pp.join()
                 for mp, window, feed, pol in maps_for_this_window:
                     log.doMessage('DBG', 'Feed {feed} Pol {pol} finished.'.format(feed = feed, pol = pol))
-        # iterate to the next window
- 
-        return calibrated_maps
+
+    # iterate to the next window
+    return calibrated_maps
 
 def command_summary(cl_params, term, log):
     log.doMessage('INFO','{t.underline}Command summary{t.normal}'.format(t = term))
