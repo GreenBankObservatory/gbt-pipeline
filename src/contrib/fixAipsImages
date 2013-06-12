@@ -1,0 +1,42 @@
+#!/bin/bash
+
+
+# --------------- check the machine architecture and OS version before running
+ARCH=`arch`
+retval=0
+if [ $ARCH != 'x86_64' ]; then
+    echo -n "The machine arctitecture must be 64-bit.  "
+    echo    "Please find another machine and continue."
+    retval=1
+fi
+ 
+ret=`grep 'release 6.' /etc/redhat-release`
+if [ $? -ne 0 ]
+then
+    echo -n "The operating system must be Redhat Version 6.  "
+    echo    "Please find another machine and continue."
+    retval=2
+fi
+if [ $retval -ne 0 ]
+then
+    exit $retval 
+fi
+
+# --------- get the path of the script pipeline script to determine the version
+
+# simplified from what's in gbtpipeline, only need the python install itself, nothing
+# in the gbtpipeline at this point
+
+fullpath=`readlink -f $0`
+me=`dirname $fullpath`
+VERSION='release'
+
+if [ $# -gt 0 ]; then
+    echo "fixAipsImages" $*
+fi
+
+source /home/gbt7/pipeline/${VERSION}-env/bin/activate
+export LD_LIBRARY_PATH=/opt/local/lib:$LD_LIBRARY_PATH
+
+python ${me}/fixAipsImages.py $*
+
