@@ -1,5 +1,6 @@
 #!/bin/bash
 
+unset PYTHONPATH
 
 # --------------- check the machine architecture and OS version before running
 ARCH=`arch`
