@@ -30,17 +30,17 @@ me=`dirname $fullpath`
 
 if [ $me = "/home/gbtpipeline/integration" ]; then
 	echo "!!!!!!!!!! TEST VERSION !!!!!!!!!!!!"
-        VERSION='integration'
+        GBTPIPEVERSION='integration'
 
 elif [ $me = "/home/gbtpipeline/release" ]; then
-        VERSION='release'
+        GBTPIPEVERSION='release'
 
 elif [ $me = "/home/gbtpipeline/old" ]; then
-        VERSION='old'
+        GBTPIPEVERSION='old'
 else
     # assume integration, actual path of script is probably a personal sandbox
         echo "!!!! UNKNOWN VERSION, ASSUMING TEST ENVIRONMENT !!!!"
-        VERSION='integration'        
+        GBTPIPEVERSION='integration'        
 fi
 
 # if the pipeline tools directory is not included in the PATH, add it
@@ -70,12 +70,12 @@ if [ $# -gt 0 ]; then
     echo "gbtpipeline" $*
 fi
 
-source /home/gbt7/pipeline/${VERSION}-env/bin/activate
+source /home/gbt7/pipeline/${GBTPIPEVERSION}-env/bin/activate
 export LD_LIBRARY_PATH=/opt/local/lib:$LD_LIBRARY_PATH
 
 STAT_FILE="/home/scratch/pipeline/stats.log"
 if [ -w $STAT_FILE ]; then
-    echo `whoami`,`date`,${VERSION},$* >> $STAT_FILE
+    echo `whoami`,`date`,${GBTPIPEVERSION},$* >> $STAT_FILE
 fi
 
 python ${me}/gbt_pipeline.py $*

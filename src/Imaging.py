@@ -72,6 +72,11 @@ class Imaging:
             dbconScript = RELCONTRIBDIR + DBCONSCRIPT
             mapScript = RELCONTRIBDIR + MAPSCRIPT
 
+        elif os.path.isfile('contrib' + DBCONSCRIPT) and os.path.isfile('contrib' + MAPSCRIPT):
+
+            dbconScript = 'contrib' + DBCONSCRIPT
+            mapScript = 'contrib' + MAPSCRIPT
+
         else:
             log.doMessage('ERR',"Imaging script(s) not found.  Stopping after calibration.")
             sys.exit()
