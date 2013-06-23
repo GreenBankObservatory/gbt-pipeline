@@ -10,9 +10,8 @@ The GBT Pipeline Project has two main goals.
 
 The first is to generate a quick-look data reduction pipeline for GBT
 spectroscopy data that is capable of processing at least 80% of all
-sessions observed with the GBT in "Standard Observing Modes".
-
-The quick-look pipeline will operate with minimal user intervention.
+sessions observed with the GBT in "Standard Observing Modes". The
+quick-look pipeline will operate with minimal user intervention.
 Starting with the name of a GBT project directory, the pipeline will
 run the sdfits filler, determine the observing mode used for
 spectroscopic data, calibrate and average data for each target in the
