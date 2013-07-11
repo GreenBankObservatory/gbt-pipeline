@@ -93,17 +93,20 @@ pro spectralpipe, filename
 	    blank_edges
 	    
 	    smooth_spectrum
-      if srctype eq 'HI' then blank_galactic
-	    if srctype eq 'HI' then flag_narrow_rfi
-	    fit_baseline
+            
+            if srctype eq 'HI' then blank_galactic
+            if (srctype eq 'HI' || srctype eq 'TP_Source') then flag_narrow_rfi
+            
+            fit_baseline
+
             ; set the frequency rest frame in the data to the tracked one.
             setfframe
-	    write_output, sourcename, scans
+            write_output, sourcename, scans
 
-	    if makeplots eq 1 then make_plot, sourcename
+            if makeplots eq 1 then make_plot, sourcename
 
-        endelse 
-    endfor ; end loop over sources
+         endelse 
+     endfor                     ; end loop over sources
 
     unfreeze
 

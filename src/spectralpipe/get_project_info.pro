@@ -226,7 +226,11 @@ function get_project_info
      if (missingScans[0] ne -1) then begin
         missingScans = missingScans[uniq(missingScans,sort(missingScans))]
      endif
+
      ; and assemble the structure for this source
+     
+     sourceType='TP_Source' ; default value
+     
      if (restfreq[0] gt H1restFreqLimits[0] and $
          restfreq[0] lt H1restFreqLimits[1]) then begin
          sourceType='HI'
