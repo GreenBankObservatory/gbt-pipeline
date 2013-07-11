@@ -92,10 +92,11 @@ pro spectralpipe, filename
 	    ; blank out the channels near band edges
 	    blank_edges
 	    
+            if (srctype eq 'HI' || srctype eq 'TP_Source') then flag_narrow_rfi
+
 	    smooth_spectrum
             
             if srctype eq 'HI' then blank_galactic
-            if (srctype eq 'HI' || srctype eq 'TP_Source') then flag_narrow_rfi
             
             fit_baseline
 
