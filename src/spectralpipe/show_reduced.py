@@ -40,10 +40,15 @@ def deg2hms(ra='', dec='', doRound=False):
 if __name__ == '__main__':
 
     # grab the SDFITS output spectrum file name
-    infile = sys.argv[1]
+    #   the join is there in case the filename contains
+    #   spaces, so "source foo.fits" becomes
+    #   '_'.join(['source', #   'foo.fits']), becomes
+    #   'source_foo.fits'
+    
+    infile = ' '.join(sys.argv[1:])
 
     # the velocity axis file is inferred from the SDFITS file name
-    vdatafile = os.path.splitext(sys.argv[1])[0]+'.vdata'
+    vdatafile = os.path.splitext(infile)[0]+'.vdata'
 
     ff = fitsio.FITS(infile)  # open the SDFITS file
     hdr = fitsio.read_header(infile, 1)  # grab the header structure
@@ -154,7 +159,7 @@ if __name__ == '__main__':
         pl.text(.1, .05, titlestring2, size=10, family='monospace')
 
     else:
-    # if the data is blank
+        # if the data is blank
 
         pl.figure(figsize=(8, 4))
         pl.subplot(212)
@@ -168,8 +173,12 @@ if __name__ == '__main__':
         pl.text(0, 0, '\n'.join((target_name, projid, scans, errorstring)), size=10)
 
     pl.subplots_adjust(top=1.2, bottom=.15)
-    pl.savefig(os.path.splitext(sys.argv[1])[0]+'.png')
+    pl.savefig(os.path.splitext(infile)[0]+'.png')
 
-#    os.unlink(vdatafile)
+    try:
+        os.unlink(vdatafile)
+    except:
+        pass  # just continue on if the file isn't there
+
     ff.close()
 
