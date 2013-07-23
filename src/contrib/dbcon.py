@@ -1,4 +1,4 @@
-# Copyright (C) 2007 Associated Universities, Inc. Washington DC, USA.
+# Copyright (C) 2013 Associated Universities, Inc. Washington DC, USA.
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,98 +20,17 @@
 #       P. O. Box 2
 #       Green Bank, WV 24944-0002 USA
 
-from AIPS import *
 from AIPS import AIPS
 from AIPSTask import AIPSTask
-from AIPSData import *
-from AIPSData import AIPSUVData
 
 import sys
-import os
 import optparse
+
+from aips_utils import Catalog
 
 DISK_ID = 2                        # choose a good default work disk
 BADDISK = 1                       # list a disk to avoid (0==no avoidance)
-
-def last_catalog_entry():
-    """Return the most recent AIPS catalog entry"""
-    return get_catalog_entry(-1)
-
-def get_catalog_entry(n):
-    """Return an AIPS catalog entry."""
-    return AIPSCat()[DISK_ID][n]
-
-def load_into_aips(myfiles):
-    """Load files into AIPS with UVLOD task."""
-    uvlod = AIPSTask('uvlod')
-    uvlod.outdisk = DISK_ID            # write all input data to a select disk
-    uvlod.userno = AIPS.userno
-
-    first_file = True   # to help determine center freq to use
-
-    for this_file in myfiles:        # input all AIPS single dish FITS files
-        print 'Adding {0} to AIPS.'.format(this_file)
-        uvlod.datain = 'PWD:' + this_file
-        uvlod.go()
-    
-        # get the center frequency of the sdf file that was just loaded
-        last = last_catalog_entry()
-        spectra = AIPSUVData(last.name, last.klass, DISK_ID, last.seq)
-        center_freq = spectra.header.crval[2]
-    
-        # if this is the first file loaded, look for
-        # the same frequency in the next ones
-        if first_file:
-            expected_freq = center_freq
-            first_file = False
-        
-        # if frequency of sdf file just loaded and 1st file differ by
-        # more than 100 kHz, do not use the current file
-        if abs(expected_freq - center_freq) > 1e5:
-            print 'Frequencies differ: {0} != {1}'.format(center_freq, expected_freq)
-            print '  Rejecting {0}'.format(this_file)
-            spectra.zap()
-
-def empty_catalog(do_empty, aipsid):
-    """Empty the AIPS catalog."""
-    if not do_empty:
-        choice = raw_input('Is it OK to clear your AIPS '
-                           'catalog (id={0})? [y/n] '.format(aipsid))
-        if choice.lower() == 'n':
-            print "Can not continue without an empty catalog.  Exiting."
-            sys.exit()
-        elif choice.lower() == 'y':
-            AIPSCat().zap()                 # empty the catalog
-        else:
-            empty_catalog(do_empty, aipsid)  # if they didn't type 'y' or 'n', ask again.
-    else:
-        AIPSCat().zap()
- 
-def run_dbcon(entryA, entryB):
-    """Combine the data in AIPS with the DBCON task"""
-    dbcon = AIPSTask('dbcon')
-
-    # always do firs
-    dbcon.indisk = dbcon.outdisk = dbcon.in2disk = DISK_ID
-    dbcon.userno = AIPS.userno
-    
-    file1 = get_catalog_entry(entryA)
-    dbcon.inname = file1.name
-    dbcon.inclass = file1.klass
-    dbcon.inseq = file1.seq
-    
-    file2 = get_catalog_entry(entryB)
-    dbcon.in2name = file2.name
-    dbcon.in2class = file2.klass
-    dbcon.in2seq = file2.seq
-    
-    dbcon.reweight[1] = 0
-    dbcon.reweight[2] = 0
-    
-    print 'combining 1: ', dbcon.inname, dbcon.inclass, dbcon.inseq
-    print 'combining 2: ', dbcon.in2name, dbcon.in2class, dbcon.in2seq
-    
-    dbcon.go()
+cat = Catalog()   # initialize a catalog object
 
 def read_command_line(argv):
     """Read options from the command line."""
@@ -133,25 +52,77 @@ def read_command_line(argv):
         print 'ERROR: No sdf files supplied.  Exiting.'
         sys.exit()
 
+    cat.config(AIPS.userno, DISK_ID)  # configure the catalog object
+
     # start with a clean slate by trying to empty the catalog
-    empty_catalog(options.empty_catalog, AIPS.userno)
+    cat.empty(options.empty_catalog)
     
     return myfiles
 
-def zap_entry(n):
-    """Remove an entry from the AIPS catalog using python index"""
+def load_into_aips(myfiles):
+    """Load files into AIPS with UVLOD task."""
+    uvlod = AIPSTask('uvlod')
+    uvlod.outdisk = DISK_ID            # write all input data to a select disk
+    uvlod.userno = AIPS.userno
 
-    entry = get_catalog_entry(n)
-    uvdata = AIPSUVData(entry.name, entry.klass, DISK_ID, entry.seq)
-    uvdata.zap()
+    first_file = True   # to help determine center freq to use
+
+    for this_file in myfiles:        # input all AIPS single dish FITS files
+        print 'Adding {0} to AIPS.'.format(this_file)
+        uvlod.datain = 'PWD:' + this_file
+        uvlod.go()
+    
+        # get the center frequency of the sdf file that was just loaded
+        last = cat.last_entry()
+        spectra = cat.get_uv(last)
+        center_freq = spectra.header.crval[2]
+    
+        # if this is the first file loaded, look for
+        # the same frequency in the next ones
+        if first_file:
+            expected_freq = center_freq
+            first_file = False
+        
+        # if frequency of sdf file just loaded and 1st file differ by
+        # more than 100 kHz, do not use the current file
+        if abs(expected_freq - center_freq) > 1e5:
+            print 'Frequencies differ: {0} != {1}'.format(center_freq, expected_freq)
+            print '  Rejecting {0}'.format(this_file)
+            spectra.zap()
+
+def run_dbcon(entryA, entryB):
+    """Combine the data in AIPS with the DBCON task"""
+    dbcon = AIPSTask('dbcon')
+
+    # always do firs
+    dbcon.indisk = dbcon.outdisk = dbcon.in2disk = DISK_ID
+    dbcon.userno = AIPS.userno
+    
+    file1 = cat.get_entry(entryA)
+    dbcon.inname = file1.name
+    dbcon.inclass = file1.klass
+    dbcon.inseq = file1.seq
+    
+    file2 = cat.get_entry(entryB)
+    dbcon.in2name = file2.name
+    dbcon.in2class = file2.klass
+    dbcon.in2seq = file2.seq
+    
+    dbcon.reweight[1] = 0
+    dbcon.reweight[2] = 0
+    
+    print 'combining 1: ', dbcon.inname, dbcon.inclass, dbcon.inseq
+    print 'combining 2: ', dbcon.in2name, dbcon.in2class, dbcon.in2seq
+    
+    dbcon.go()
 
 def print_source_names():
-    n_files = len(AIPSCat()[DISK_ID])
+    n_files = len(cat)
     
     source_names = set([])
     for x in range(n_files):
-        entry = get_catalog_entry(x)
-        uvdata = AIPSUVData(entry.name, entry.klass, DISK_ID, entry.seq)
+        entry = cat.get_entry(x)
+        uvdata = cat.get_uv(entry)
         source_names.add(uvdata.header.object)
 
     print len(source_names), 'object(s) observed:', ', '.join(source_names)
@@ -159,7 +130,7 @@ def print_source_names():
 def combine_files():
     """A containing function that chooses when to run the AIPS DBCON task."""
 
-    n_files = len(AIPSCat()[DISK_ID])
+    n_files = len(cat)
     print_source_names()
 
     # if more than 1 file combine them with DBCON
@@ -170,11 +141,11 @@ def combine_files():
         # and keep adding in one if there are more
         for ii in range(n_files-1, 1, -1):
             run_dbcon(-1, ii)
-            zap_entry(-2)   # zap previous dbcon to save space 
+            cat.zap_entry(-2)   # zap previous dbcon to save space 
 
         # remove uv files
         for ii in range(n_files):
-            zap_entry(0)
+            cat.zap_entry(0)
 
 def time_sort_data():
     """Time-sort data in AIPS with the UVSRT task."""
@@ -190,7 +161,7 @@ def time_sort_data():
     uvsrt.baddisk[1] = BADDISK
     uvsrt.outcl = 'UVSRT'
     uvsrt.sort = 'TB'
-    last = last_catalog_entry()
+    last = cat.last_entry()
     uvsrt.inname = last.name
     uvsrt.inclass = last.klass
     uvsrt.inseq = last.seq
@@ -198,37 +169,13 @@ def time_sort_data():
     # will write to entry 1 because input sdf/uv files were removed
     uvsrt.go()
 
-    zap_entry(-1)  # remove the DBCON entry
-
-def write_dbcon_fits(source_name):
-    """FITTP task writes out a DBCON fits file, may not be necessary"""
-    
-    fittp = AIPSTask('fittp')
-    fittp.userno = AIPS.userno
-
-    # and write the last thing now in the catalog to disk
-    fittp.indisk = DISK_ID
-    fittp.userno = AIPS.userno
-
-    last = last_catalog_entry()
-    fittp.inname = last.name
-    fittp.inclass = last.klass
-    fittp.inseq = last.seq
-
-    outfile = source_name + '_dbcon.fits'
-
-    if os.path.exists(outfile):
-        os.remove(outfile)
-        print 'Removed existing file to make room for new one :', outfile
-
-    fittp.dataout = 'PWD:' + outfile
-    fittp.go()
+    cat.zap_entry(-1)  # remove the DBCON entry
 
 def print_summary():
     """Print a simple summary to the screen of image RA/DEC and size."""
     # Extract the observations summary
-    last = last_catalog_entry()
-    spectra = AIPSUVData(last.name, last.klass, DISK_ID, last.seq)
+    last = cat.last_entry()
+    spectra = cat.get_uv(last)
 
     # and read parameters passed inside the spectra data header
     raDeg    = spectra.header.crval[3]
@@ -246,5 +193,3 @@ if __name__ == '__main__':
     combine_files()
     print_summary()
     time_sort_data()
-    
-#    write_dbcon_fits()  # probably optional
