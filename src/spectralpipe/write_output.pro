@@ -1,8 +1,11 @@
 pro write_output, sourcename, scans
     compile_opt idl2
 
+    ; remove whitespace from sourcename for writing files
+    srcname = strcompress(sourcename, /REMOVE_ALL)
+
     ; Write out the reduced data
-    outfilename = sourcename + '_' + !g.s[0].date + '.fits'
+    outfilename = srcname + '_' + !g.s[0].date + '.fits'
     print, 'writing ', outfilename
     file_delete, outfilename, /ALLOW_NONEXISTENT
     fileout, outfilename
@@ -11,7 +14,7 @@ pro write_output, sourcename, scans
     ; write out velocities to be used for plots
     unfreeze
     show
-    velfilename = sourcename + '_' + !g.s[0].date + '.vdata' 
+    velfilename = srcname + '_' + !g.s[0].date + '.vdata' 
     file_delete, velfilename, /ALLOW_NONEXISTENT
     write_ascii, velfilename
     freeze
