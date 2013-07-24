@@ -122,10 +122,20 @@ function get_project_info
   ; this function
   for jj=0,n_elements(uniqSources)-1 do begin
      thisSource = uniqSources[jj]
-     firstScans = psScans[where(psSources eq thisSource and psProcseqn eq 1)]
-     firstScans = firstScans[uniq(firstScans,sort(firstScans))]
-     secondScans = psScans[where(psSources eq thisSource and psProcseqn eq 2)]
-     secondScans = secondScans[uniq(secondScans,sort(secondScans))]
+     whereFirstScans = where(psSources eq thisSource and psProcseqn eq 1,count)
+     if count le 0 then begin
+        firstScans = -1
+     endif else begin
+        firstScans = psScans[whereFirstScans]
+        firstScans = firstScans[uniq(firstScans,sort(firstScans))]
+     endelse
+     whereSecondScans = where(psSources eq thisSource and psProcseqn eq 2,count)
+     if count le 0 then begin
+        secondScans = -1
+     endif else begin
+        secondScans = psScans[whereSecondScans]
+        secondScans = secondScans[uniq(secondScans,sort(secondScans))]
+     endelse
      duplicateScans = -1
      missingScans = -1
      scanMask = make_array(n_elements(firstScans),value=1)

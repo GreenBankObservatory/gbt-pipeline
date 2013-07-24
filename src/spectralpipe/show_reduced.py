@@ -40,12 +40,7 @@ def deg2hms(ra='', dec='', doRound=False):
 if __name__ == '__main__':
 
     # grab the SDFITS output spectrum file name
-    #   the join is there in case the filename contains
-    #   spaces, so "source foo.fits" becomes
-    #   '_'.join(['source', #   'foo.fits']), becomes
-    #   'source_foo.fits'
-    
-    infile = ' '.join(sys.argv[1:])
+    infile = sys.argv[1]
 
     # the velocity axis file is inferred from the SDFITS file name
     vdatafile = os.path.splitext(infile)[0]+'.vdata'
