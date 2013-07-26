@@ -98,8 +98,8 @@ pro average_source_scans, scans, sourcename, do_flag_broad_rfi=do_flag_broad_rfi
           endfor
           ; switch to the dummy file so we can remove the tmp files
           fileout,dummyFitsFile
-          file_delete,tmpFitsFile,/allow_nonexistent
-          file_delete,tmpIndexFile,/allow_nonexistent
+          file_delete,tmpFitsFile,/allow_nonexistent,/noexpand_path
+          file_delete,tmpIndexFile,/allow_nonexistent,/noexpand_path
         endif
     endfor
 
@@ -113,8 +113,8 @@ pro average_source_scans, scans, sourcename, do_flag_broad_rfi=do_flag_broad_rfi
        fileout,currFileOut
 
        ; this shouldn't be necessary, but just in case
-       file_delete,dummyFitsFile,/allow_nonexistent
-       file_delete,dummyIndexFile,/allow_nonexistent
+       file_delete,dummyFitsFile,/allow_nonexistent,/noexpand_path
+       file_delete,dummyIndexFile,/allow_nonexistent,/noexpand_path
     endif
 end
 

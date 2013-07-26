@@ -4,10 +4,14 @@ pro write_output, sourcename, scans
     ; remove whitespace from sourcename for writing files
     srcname = strcompress(sourcename, /REMOVE_ALL)
 
+    ; remove characters that cause keep to fail
+    remchar, srcname, '['
+    remchar, srcname, ']'
+
     ; Write out the reduced data
     outfilename = srcname + '_' + !g.s[0].date + '.fits'
     print, 'writing ', outfilename
-    file_delete, outfilename, /ALLOW_NONEXISTENT
+    file_delete, outfilename, /ALLOW_NONEXISTENT,/noexpand_path
     fileout, outfilename
     keep
 
@@ -15,7 +19,7 @@ pro write_output, sourcename, scans
     unfreeze
     show
     velfilename = srcname + '_' + !g.s[0].date + '.vdata' 
-    file_delete, velfilename, /ALLOW_NONEXISTENT
+    file_delete, velfilename, /ALLOW_NONEXISTENT,/noexpand_path
     write_ascii, velfilename
     freeze
 

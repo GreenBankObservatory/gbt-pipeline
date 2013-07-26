@@ -153,6 +153,16 @@ if __name__ == '__main__':
         ax.yaxis.set_ticks([None])                
         pl.text(.1, .05, titlestring2, size=10, family='monospace')
 
+        # retrieve the git commit hash for the plot
+        dir = os.path.dirname(__file__) + '/'
+        verfile = open(dir + 'VERSION')
+
+        version = verfile.readline().strip('\n').strip()
+        verfile.close()
+        pl.figtext(.15, .05, "version " + version, alpha=0.7, size=8)
+        
+        pl.figtext(.7, .05, "Processed by the GBT pipeline.", 
+                   color="red", alpha=0.7, size=8)
     else:
         # if the data is blank
 
