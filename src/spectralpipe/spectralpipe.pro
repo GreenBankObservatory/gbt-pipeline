@@ -76,7 +76,6 @@ pro spectralpipe, filename
 
            ; average all data from all scans for this source
            ; only examines IFNUM=0, FDNUM=0 for now
-           ; assumes data has both plnum=0 and plnum=1
            ; if do_flag_broad_rfi is true, then inspect every 
            ; integration for wavy baselines
            ; only integrations that are not flagged are averaged

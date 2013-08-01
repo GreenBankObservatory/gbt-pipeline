@@ -54,7 +54,9 @@ pro average_source_scans, scans, sourcename, do_flag_broad_rfi=do_flag_broad_rfi
            ; accum here if no integration flagging is going to happen
            if stat0 ge 0 and not keep_ints then accum
 
-           getnod, scans[ii], plnum=1, units='Jy',status=stat1, keepints=keep_ints
+           if si.n_polarizations gt 1 then begin
+              getnod, scans[ii], plnum=1, units='Jy',status=stat1, keepints=keep_ints
+           endif
     
        endif else begin 
 
@@ -62,14 +64,24 @@ pro average_source_scans, scans, sourcename, do_flag_broad_rfi=do_flag_broad_rfi
            ; accum here if no integration flagging is going to happen
            if stat0 ge 0 and not keep_ints then accum
 
-           getps, scans[ii], plnum=1, units='Jy',status=stat1, keepints=keep_ints
+           if si.n_polarizations gt 1 then begin
+              getps, scans[ii], plnum=1, units='Jy',status=stat1, keepints=keep_ints
+           endif
 
        endelse
 
        ; accum here if no integration flagging is going to happen
-       if stat1 ge 0 and not keep_ints then accum
+       if si.n_polarizations gt 1 then begin
+          if stat1 ge 0 and not keep_ints then accum
+       endif
 
-       if keep_ints and (stat0 gt 0 or stat1 ge 0) then begin
+       status_ok = 0
+       if si.n_polarizations eq 1 and stat0 ge 0 then status_ok = 1
+       if si.n_polarizations eq 2 then begin
+          if (stat0 ge 0 and stat1 ge 0) then status_ok = 1
+       endif
+
+       if keep_ints and status_ok then begin
           ; something was definitely written to the keep file
           ; status = -1 indicates something went very wrong, e.g.
           ; one of the scans expected for the PS pair was missing
@@ -81,7 +93,7 @@ pro average_source_scans, scans, sourcename, do_flag_broad_rfi=do_flag_broad_rfi
           ; and worrying about buffering it.  If it's a problem,
           ; getps will need to be modified as well. 
           ; one polariation at a time
-          for ipol=0,1 do begin
+          for ipol=0,si.n_polarizations-1 do begin
              thisPol = getchunk(/keep,plnum=ipol)
              ; initialized to 0 - unflagged
              flagged_rec = intarr(n_elements(thisPol))
