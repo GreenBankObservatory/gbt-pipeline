@@ -178,8 +178,8 @@ class Weather:
                 break
 
         time_corrected_coeffs = []
-        for xx in zip(prev_coeffs, next_coeffs):
-            new_coeff = self.cal.interpolate_by_time(xx[0], xx[1],
+        for coeff in zip(prev_coeffs, next_coeffs):
+            new_coeff = self.cal.interpolate_by_time(coeff[0], coeff[1],
                                                      prev_time, next_time,
                                                      integration_mjd_timestamp)
             time_corrected_coeffs.append(new_coeff)

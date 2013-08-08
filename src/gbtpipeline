@@ -1,5 +1,6 @@
 #!/bin/bash
 
+unset PYTHONPATH
 
 # --------------- check the machine architecture and OS version before running
 ARCH=`arch`
@@ -29,30 +30,36 @@ me=`dirname $fullpath`
 
 if [ $me = "/home/gbtpipeline/integration" ]; then
 	echo "!!!!!!!!!! TEST VERSION !!!!!!!!!!!!"
-        VERSION='integration'        
+        GBTPIPEVERSION='integration'
 
 elif [ $me = "/home/gbtpipeline/release" ]; then
-        VERSION='release'
+        GBTPIPEVERSION='release'
 
 elif [ $me = "/home/gbtpipeline/old" ]; then
-        VERSION='old'
+        GBTPIPEVERSION='old'
+else
+    # assume integration, actual path of script is probably a personal sandbox
+        echo "!!!! UNKNOWN VERSION, ASSUMING TEST ENVIRONMENT !!!!"
+        GBTPIPEVERSION='integration'        
 fi
 
-if [[ "$PATH" != */home/gbtpipeline/${VERSION}* ]]
+# if the pipeline tools directory is not included in the PATH, add it
+if [[ "$PATH" != *${me}* ]]
 then
-        PATH=/home/gbtpipeline/${VERSION}/tools:"$PATH"
+        PATH=${me}/tools:"$PATH"
 fi
 
+# set the PYTHONPATH, or add to it
 if [ -z "$PYTHONPATH" ]
 then
-        PYTHONPATH=/home/gbtpipeline/${VERSION}/contrib
-        PYTHONPATH=/home/gbtpipeline/${VERSION}:"$PYTHONPATH"
+        PYTHONPATH=${me}/contrib
+        PYTHONPATH=${me}:"$PYTHONPATH"
 else
         lclpythonpath="$PYTHONPATH"
-        if [[ $lclpythonpath != */home/gbtpipeline/${VERSION}* ]]
+        if [[ $lclpythonpath != *${me}* ]]
         then
-                PYTHONPATH=/home/gbtpipeline/${VERSION}/contrib:"$PYTHONPATH"
-                PYTHONPATH=/home/gbtpipeline/${VERSION}:"$PYTHONPATH"
+                PYTHONPATH=${me}/contrib:"$PYTHONPATH"
+                PYTHONPATH=${me}:"$PYTHONPATH"
         fi
 fi
 
@@ -63,7 +70,13 @@ if [ $# -gt 0 ]; then
     echo "gbtpipeline" $*
 fi
 
-source /home/gbt7/pipeline/${VERSION}-env/bin/activate
+source /home/gbt7/pipeline/${GBTPIPEVERSION}-env/bin/activate
 export LD_LIBRARY_PATH=/opt/local/lib:$LD_LIBRARY_PATH
 
-python /home/gbtpipeline/${VERSION}/gbt_pipeline.py $*
+STAT_FILE="/home/scratch/pipeline/stats.log"
+if [ -w $STAT_FILE ]; then
+    echo `whoami`,`date`,${GBTPIPEVERSION},$* >> $STAT_FILE
+fi
+
+python ${me}/gbt_pipeline.py $*
+

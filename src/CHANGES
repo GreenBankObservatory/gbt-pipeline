@@ -1,319 +1,631 @@
-commit de4dad2954652ce6974c39034b20ad394710add4
+commit 87419cc8ac5aa51b08dd6cba344b3ab1389d5629
 Author: Joe Masters <jmasters@nrao.edu>
-Date:   Thu Feb 9 17:02:18 2012 -0500
+Date:   Wed Aug 7 14:37:06 2013 -0400
 
-    Removed explicit backend id from infile check. Added doctests.
+    Updated version string in VERSION file and header for release.
     
-    Previously the input fits file had to end in acs.fits or vegas.fits,
-    but now it just eneds to end in fits.
-    
-    A couple comments were updated.  An error message was updated.
-    An imported and unused module (multiprocessing) was removed from
-    gbt_pipeline.py.  Doctests were added to a couple functions in
-    pipeutils.
+    Also removed the .gitattributes file that seemed to be causing unnecessary
+    diffs from windows commits.
 
-commit 2779d5d1e7c7e274b5ed4e1d90e49f8e080aa581
+commit a80669cca1f08089c6a2814e689e089a67de0a39
 Author: Joe Masters <jmasters@nrao.edu>
-Date:   Wed Feb 8 15:50:59 2012 -0500
+Date:   Wed Jul 3 12:36:43 2013 -0400
 
-    Updated to allow sdfits to run on non-acs data, added doctest for tatm.
-    
-    If necessary, the pipeline can be used to invoke the sdfits filler when
-    SDFITS input is not available.  Previously, when the filler wass run, it explicitly
-    set backend=acs. This was updated to allow vegas (and any other) SDFITS files to be
-    filled as well.
-    
-    We could make it more sophisticated later, but what I just coded up was to not
-    use -backends, then after sdfits is done look to see if there is more than one
-    output SDFITS file.  If so, there is an error and the user is asked to check
-    the input directory and provide only one input to the pipeline.
+    Remove old, unused idl scripts contributed from Rachel.
 
-commit 89e14461e480a9f3c2a9c159f2c7d7678ea3e614
+commit b65771771ecf04eb3a21a014b59ab52a2ed7f083
 Author: Joe Masters <jmasters@nrao.edu>
-Date:   Wed Feb 8 15:50:27 2012 -0500
+Date:   Sat Jun 22 21:03:31 2013 -0400
 
-    Updated a few comments in gbt_pipeline.py
+    Repaired minor typo in README.
 
-commit 4e6e62c77c95cc227851bcf3c829e9b5c1b51cd5
+commit e0925c184fd589b913659754f97cdd70d7415c0d
 Author: Joe Masters <jmasters@nrao.edu>
-Date:   Wed Feb 8 15:49:09 2012 -0500
+Date:   Sat Jun 22 20:57:57 2013 -0400
 
-    Removed extra section from pipeline-report.
-
-commit 8b3c0a3bcdf8e7f44f96aa11dbb3be0e8a3481e8
-Author: Joe Masters <jmasters@nrao.edu>
-Date:   Wed Feb 8 12:57:43 2012 -0500
-
-    Added start of pipeline requirements and timeline document.
+    Added file to perform LF normalization.  Updated README.
     
-    A long-desired document, and one of the recommendations of
-    the OSO Data Management report for GBSO.
+    The LF normalization .gitattributes addition is useful in the case where
+    a file might be edited on a windows computer.  I also added content to the
+    README file.
 
-commit 325cbae1021122ede60fe62521fa30e6c8ec8e27
+commit 2d16b5755d22cd0c4f5833b1b10f8d9dcf7411ef
 Author: Joe Masters <jmasters@nrao.edu>
-Date:   Thu Jan 12 15:45:15 2012 -0500
+Date:   Tue Jun 18 16:24:31 2013 -0400
 
-    Add the full path of doImage to the log files.
-    
-    This way we can know if we used the one in
-    release or test.
+    Write comment about spectral pipeline to primary header.
 
-commit e97f81fb8a93e2c6c886065412feae629ffa94fb
+commit 6077a12e23feaed1db0ac2972c3e72d053c31f35
 Author: Joe Masters <jmasters@nrao.edu>
-Date:   Thu Jan 12 14:45:27 2012 -0500
+Date:   Fri Jun 14 15:51:28 2013 -0400
 
-    Updated the frequency in output files to MHz.
+    Bug fix to not fail on imaging if AIPS setup was already run.
     
-    The calibrated spectra are now formatted as follows:
-    <object>_<feed>_<start map scan>_<end map scan>_<centerfreq>_MHz_<sampler>.fits
+    The imaging step would fail when the AIPS login script
+    (e.g. . /home/AIPS/LOGIN.SH) was already run in the user's
+    environment.  It turns out that AIPS would not set the VERSION
+    environment variable if it was already set, which was being
+    done by the pipeline.  I simply changed the variable the pipeline
+    script used to GBTPIPEVERSION.
     
-    The output images now include 'MHz' after the frequency.
+    I also added code to Imaging.py to allow local imaging steps to be
+    run, mainly for development.
 
-commit eefe8b7643730182c99d9dd9cf52c513aef23b25
+commit 6e790c3b32417dadde164cd3d53fecba7b09fdde
 Author: Joe Masters <jmasters@nrao.edu>
-Date:   Wed Jan 11 15:27:13 2012 -0500
+Date:   Thu Jun 13 17:15:41 2013 -0400
 
-    Updated to use system Obit installation, ParselTongue2, old AIPS.
-    
-    ParselTongue2 can be used with the system-side Obit install,
-    although it uses Python2.4.  I removed the pyfits lines from the
-    imaging scripts because they were not needed in the contrib
-    python scripts.  The AIPS sqash task revealed a but after the new
-    year change to a new version.  I changed the doImage script to use
-    the OLD AIPS version for stability and to aviod this problem.
+    Clear PYTHONPATH for pipeline environment
 
-commit e9814cfa4a136ba9718efa76bf9a4d8810a9670f
-Merge: 8b3aede 1996bc2
+commit 240f979f759eec5feb0284b94b0180e597c799a7
+Merge: e5c5473 b1c44be
 Author: Joe Masters <jmasters@nrao.edu>
-Date:   Thu Nov 17 16:08:04 2011 -0500
+Date:   Wed Jun 12 14:52:59 2013 -0400
 
     Merge branch 'master' of github.com:jmasters/gbt-pipeline
 
-commit 1996bc2f3c2f611d3d3da40e3067c2148a027b25
+commit e5c5473fd92b88f6bb56752697f3afe1c7d07de0
 Author: Joe Masters <jmasters@nrao.edu>
-Date:   Thu Nov 17 15:58:04 2011 -0500
+Date:   Wed Jun 12 14:52:10 2013 -0400
 
-    Updated the help output for command line options.
+    Bugfix: wrong indentation in loop caused only 1 IF to process.
+
+commit b1c44be7e81fae18569b6379d5af093e6f2943b7
+Author: Bob Garwood <bgarwood@nrao.edu>
+Date:   Wed Jun 12 13:31:26 2013 -0400
+
+    fixed a path problem in fixAipsImages
+
+commit 101288d2597fa0358027f21dd4bc8273c62f793c
+Author: Bob Garwood <bgarwood@nrao.edu>
+Date:   Wed Jun 12 11:34:24 2013 -0400
+
+    fix bug in setting RESTFREQ on output cubes, velocity information
+
+commit efb664b95ba60c2742a5b0c955fba1c511519acb
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Tue Jun 11 14:05:07 2013 -0400
+
+    Do spectrum averaging like GBTIDL regarding nan values.
     
-    The program name is now gbtpipeline instead of
-    gbtpipeline.py and the summary of all the command
-    line options is succinctly presented as [options].
+    Also a small typo bug fix in log output.
 
-commit 8b3aeded278ff0ccfaaf15f52262e756604a44cc
+commit af1dbacdda196850c950a0828097f26d13f71611
 Author: Joe Masters <jmasters@nrao.edu>
-Date:   Tue Nov 15 16:17:33 2011 -0500
+Date:   Thu Jun 6 18:06:49 2013 -0400
 
-    Added comments, changed one log message.
-
-commit 8c5d953e1800f7d3c8c3a0a1145c1305f9e903fc
-Author: Glen Langston <glangsto@43m-map.(none)>
-Date:   Wed Oct 19 14:19:02 2011 -0400
-
-    Add example pipeline input parameter file for demo W51 data
-
-commit 1d87bceeef79f923b6ba601296c34f94a376a376
-Author: Joe Masters <jmasters@nrao.edu>
-Date:   Tue Oct 18 15:44:42 2011 -0400
-
-    Removed duplicate README in source directory
+    Fixed computation of tsys, exposure time and recording of units.
     
-    There is already a README file one level up the tree.
+    Also added version of pipe to header.
 
-commit 2636be24e38171587552b6da06c95926d4e3c824
+commit f3e2346bff825a8f2325cc335f242aee15d4168b
+Merge: 6219d54 58f04e1
 Author: Joe Masters <jmasters@nrao.edu>
-Date:   Fri Oct 14 11:42:24 2011 -0400
+Date:   Fri May 31 10:31:13 2013 -0400
 
-    Removed idlToSdfits and dependency directory from repository.
+    Merge branch 'master' of github.com:jmasters/gbt-pipeline
+
+commit 6219d54bd3eb9c8ceef32d072ad19d9aa8acab6c
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Fri May 31 10:28:47 2013 -0400
+
+    Updated stats log format to csv.
+
+commit 58f04e14e9e6aaaa1cc42d95d1526d8debffb91b
+Author: Bob Garwood <bgarwood@nrao.edu>
+Date:   Thu May 30 16:15:59 2013 -0400
+
+    Uses setfframe now
+
+commit 874484922e192e312d6d17ed9cfa0681a5617eb3
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Thu May 30 15:53:02 2013 -0400
+
+    Added feature to record running of pipe in central log.
+
+commit 7ab18b4ea0a7e5537da7b5d1efc7940676574c21
+Merge: 4a0299b 0331537
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Thu May 30 13:31:47 2013 -0400
+
+    Merge branch 'master' of github.com:jmasters/gbt-pipeline
+
+commit 4a0299b0dcd10fc6dc0310eef4d6694617492a1f
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Thu May 30 13:30:43 2013 -0400
+
+    Added error when trying autofind on FS map. Cleanup show_reduced.
+
+commit 0331537f68e22f70e72f68eb0570a88ac6bef0d4
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Mon May 13 14:35:23 2013 -0400
+
+    Bugfix: by default, sort the list of feeds imaged by AIPS.
     
-    It would be better to keep this repository lightwight with pipeline
-    code only.  I previously only wanted to capture the idlToSdits code
-    *somewhere*, but it is better stored elsewhere.
+    The list of feeds going into AIPS had been unsorted, by default.
+    For the KFPA, this allowed a feed other than 0 to be first in the
+    list, giving wrong map center information to AIPS and creating a
+    final map that was off center.
 
-commit 30aed083396f2e125990a071017a2efeb792575f
+commit 00090d7ca7404400a60d5eed594bf47970def06a
 Author: Joe Masters <jmasters@nrao.edu>
-Date:   Fri Oct 14 11:22:21 2011 -0400
+Date:   Thu May 2 13:40:14 2013 -0400
 
-    Updated README to better reflect the current status.
+    Added docx source for Mapping Pipelinen User's Guide.
+
+commit 18effd6feef20edf9490c9dd469361a6c95d97f0
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Wed Apr 24 09:59:04 2013 -0400
+
+    Updated Mapping Pipeline User's Guide to latest version.
+
+commit 5eca1c73af0f2379c9a90657b03185ed9ab29b6f
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Thu Apr 11 14:28:58 2013 -0400
+
+    Updates to support MR8Q312: SDFITS keyword updates.
     
-    The biggest change since the old version is that the pipeline
-    is no longer specific to the KFPA project and both the FS and PS
-    observing modes are supported.
-
-commit bb57e30418a2ca023db614f7346f0041991ead97
-Author: Joe Masters <jmasters@nrao.edu>
-Date:   Thu Oct 13 17:40:51 2011 -0400
-
-    Added lots of comments and performed a small amount of cleanup.
+    Rationalization of use of OBSID, SCANID and PROCTYPE
+    https://safe.nrao.edu/wiki/bin/view/GB/Software/ModificationRequest8Q312
     
-    This is essentially all in the gbt_pipeline file and should
-    improve code readability.
+    The map finding code uses PROCSCAN when it is present (which it should
+    be from now on as a default setting).  Otherwise, it uses OBSID as it
+    did previously.
 
-commit 00ce79b36e3fc3e1dffecca598dfb7a0fa8da7c3
+commit b1caa0f17e6fe02730c5ec2cd5dedd8e84d77ceb
 Author: Joe Masters <jmasters@nrao.edu>
-Date:   Wed Oct 12 11:47:05 2011 -0400
+Date:   Wed Apr 10 17:12:18 2013 -0400
 
-    Removed obsolete source files
-
-commit 4bcc7405247e7dda82b4d88f32a86a8f756cfa2c
-Merge: 8f4dc02 47d6aa9
-Author: Joe Masters <jmasters@nrao.edu>
-Date:   Tue Oct 11 16:39:13 2011 -0400
-
-    Merge branch 'master' of github.com:jmasters/KFPA-Pipeline
-
-commit 8f4dc02eacbf0f5e9511dd5f73eb098d999e9ee4
-Author: Joe Masters <jmasters@nrao.edu>
-Date:   Tue Oct 11 16:37:24 2011 -0400
-
-    Update to read input sdfits with 'acs' or 'vegas' in filename.
+    Added recompile script for spectral pipeline.
     
-    We are going with the assumption that input fits files follow
-    the current naming scheme of <project id>.raw.<backend>.fits
+    This is useful for developement so that we can recompile changes
+    and reuse them in an existing gbtidl session.
 
-commit 47d6aa92c2d2cce0dcf0dc97ade79e69f0a3fbb3
+commit 1ef2f4f1a982a9968eb18eb76693cdb0e95db9e7
 Author: Joe Masters <jmasters@nrao.edu>
-Date:   Mon Sep 12 21:08:02 2011 -0400
+Date:   Wed Apr 10 16:33:53 2013 -0400
 
-    Bugfix #2 to get the imaging step working again for 32-bit python.
+    Minor variable rename for readability (no-op)
+
+commit 311e3ccf39802c16259b23989438094119c78e96
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Wed Apr 10 16:32:01 2013 -0400
+
+    Made better use of tuple unpacking in loops. (no-op)
+
+commit 53931b55b1b78b33486243bb60c48a2c6d51e562
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Wed Apr 10 16:27:00 2013 -0400
+
+    Added *.vdata files to .gitignore
     
-    This time I'm using a seperate pipeline 32-bit python build until
-    we can get a proper 64-bit install for obit and parseltongue.  This
-    will require some more work, but is the next logical step to have
-    a standalone environment.
+    These are temporary output files from the spectral pipe.  They
+    are used to store velocity axis information from GBTIDL for plotting
+    in the png files.
 
-commit 9143cc296dc9529624bcea06e779ed6ffa343bf9
-Merge: 29b3b12 59937fe
+commit f74aa8d7b78c94fc8b547f0993e4fa1b87e85798
 Author: Joe Masters <jmasters@nrao.edu>
-Date:   Mon Sep 12 14:12:25 2011 -0400
+Date:   Wed Apr 10 16:23:44 2013 -0400
 
-    Merge branch 'master' of github.com:jmasters/KFPA-Pipeline
+    Added make_archivable script for spectral pipe products to archive.
 
-commit 29b3b129a92d409b75931c0bc8dbe649cc36324f
+commit ea274ab98ef37e373a1fa81076553f1ca78e0eac
 Author: Joe Masters <jmasters@nrao.edu>
-Date:   Mon Sep 12 14:07:27 2011 -0400
+Date:   Thu Mar 28 11:28:39 2013 -0400
 
-    Bugfix to point to 32-bit version of python for imaging step.
+    Added a bunch of comments to spectralpipe and get_project_info.
+
+commit a08e2b4302ca00cb554810fb933f62abe895e12a
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Wed Mar 27 09:58:17 2013 -0400
+
+    Updated header of plots.
+
+commit 977352eb50b653697b68bbdbbba465082ef003f3
+Merge: 9424c1d 0efcaba
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Mon Mar 25 15:40:00 2013 -0400
+
+    Merge branch 'master' of github.com:jmasters/gbt-pipeline
+
+commit 0efcaba0499bec75438090c2cb097e3297232a09
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Thu Mar 21 11:32:20 2013 -0400
+
+    Updated README text
+
+commit 9424c1d312e47ccedc1e2b10f57c7736f319b886
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Mon Mar 4 15:31:01 2013 -0500
+
+    Updated show_reduced.py script for spectral pipe.
+
+commit 598f29b4cdd05783bd0bf73ee61d061e8bd6c999
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Mon Mar 4 14:50:48 2013 -0500
+
+    Modified spectralpipe to work with H2O maser observations.
+
+commit bc5592c4939a1a1762281573556fe42b18dc3e8c
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Fri Mar 1 16:21:25 2013 -0500
+
+    Added many comments to mapping code.  Minor code cleanup.
+
+commit d706c7b3c9ce5313bf4394197e7807425326f464
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Fri Feb 22 15:43:38 2013 -0500
+
+    Updated write_empty_output to write blanked data, not total power.
+
+commit 0261fb3f40f2f9598dee18b45d7c2b79b66a7bfd
+Merge: fdd36ee 24fc4ed
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Fri Feb 15 17:24:17 2013 -0500
+
+    Merge branch 'master' of github.com:jmasters/gbt-pipeline
+
+commit fdd36eeaa1a1441f4ff137f866cb3e974fae8838
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Fri Feb 15 17:20:10 2013 -0500
+
+    Display correct velocities in plots.
     
-    When the GB /opt/local/bin/python was upgraded to 64-bit, this step
-    broke because it was expecting a 32-bit build compatible with this Obit
-    32-bit libraries.  I change the step to point to the older, 32-bit version
-    of python, but a more elegant solution is in order.
+    This is done by writing out an ascii file with the velocities
+    and data from GBTIDL, reading it in with the python plotting
+    program, then removing the file.  Unfortunately, I couldn't find
+    a python module that supported conversion to all the reference frames
+    we use with the GBT.
 
-commit 59937fef95ccd18e033d14b3d487c2551d4e3683
+commit 24fc4edfeb5c4bd4c26a4bb60d99f7afdf2f3b91
 Author: Joe Masters <jmasters@nrao.edu>
-Date:   Thu Jul 28 14:48:03 2011 -0400
+Date:   Thu Feb 14 16:59:58 2013 -0500
 
-    Write pipeline version to primary header history.
+    Updated date and ra, dec strings in spectral plot.
+
+commit a3bc4ac2b2f4acb9f7727e12c66b706b1def4d0f
+Author: Bob Garwood <bgarwood@nrao.edu>
+Date:   Fri Feb 8 14:25:00 2013 -0500
+
+    get_project_info added plus additional defensive programming
+
+commit 5e97a50d23ac59d10b6e59b5a5d596c8269bb5f9
+Merge: e400081 a189cbf
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Thu Feb 7 11:08:08 2013 -0500
+
+    Merge branch 'master' of github.com:jmasters/gbt-pipeline
+
+commit e400081b8a21e20a2de96781eec59ffa3af30515
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Thu Feb 7 11:07:50 2013 -0500
+
+    Updated plot formatting and freqtovel code.
+
+commit 9dd89fbb98f5b6d10a5c3b8983e9c95e92b07e9a
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Thu Feb 7 11:05:53 2013 -0500
+
+    Removed obsolete unique.pro
+
+commit a189cbfe14eb1163065ac56406ee2e71fc3e2cf3
+Author: Bob Garwood <bgarwood@nrao.edu>
+Date:   Wed Feb 6 11:38:15 2013 -0500
+
+    reorganized code to make it clearer who's doing what and to make it easier to skip the flag_broad_rfi step
+
+commit ecedc8e6f12b8e03f64849ccf11f159f3b77c1dd
+Author: Bob Garwood <bgarwood@nrao.edu>
+Date:   Mon Feb 4 15:52:16 2013 -0500
+
+    speedup version that actually works.
+
+commit 3b72002a6644afa3a13a2c25a68e03a84aa34b3a
+Merge: 64e17bd ca1fc48
+Author: Bob Garwood <bgarwood@nrao.edu>
+Date:   Mon Feb 4 13:07:54 2013 -0500
+
+    resolved conflicts after merge
+
+commit 64e17bd59b1948115af2e992a912e947a9038618
+Author: Bob Garwood <bgarwood@nrao.edu>
+Date:   Fri Feb 1 10:31:43 2013 -0500
+
+    speed up efforts
+
+commit ca1fc483945b0cf3f78de4ed672429820b2cd0ec
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Thu Jan 31 16:35:34 2013 -0500
+
+    Added a more helpful message to plot output when data is "bad".
     
-    This shows up in the header of each FITS file containing
-    calibrated spectra but it does not appear in the header of
-    the image cube.
+    This is when the spectral pipeline encounters a target with
+    repeated scan ids.
 
-commit c875e52012b4436500e0fcb94ef5e6bc97c78ef2
+commit bd9fc331b1094248f2027cca9eb87dad10236db2
 Author: Joe Masters <jmasters@nrao.edu>
-Date:   Thu Jul 28 14:22:07 2011 -0400
+Date:   Thu Jan 31 15:45:26 2013 -0500
 
-    Use local stable version of idlToSdfits.
+    Updated code to write null data and plots when scan #s are repeated.
     
-    There is a single version in /home/gbtpipeline/bin/
+    Also, added .flag and .fixed_lags to .gitignore
+    These are both outputs of the sdfits filler.
 
-commit 8428420d6f2821f478555d11052134ee2c493e42
+commit 9fe11f6272bb72985300b8444006ab89da300e8d
 Author: Joe Masters <jmasters@nrao.edu>
-Date:   Mon Jul 11 10:56:32 2011 -0400
+Date:   Thu Jan 31 11:07:02 2013 -0500
 
-    Bug fix to sky model contribution (tsky).
-
-commit 7de20bb8daa746efd2436468a4cbf4529335548d
-Author: Joe Masters <jmasters@nrao.edu>
-Date:   Mon Jun 13 14:29:38 2011 -0400
-
-    Updated GPL to NRAO-GB standard from addBoilerPlate script.
-
-commit ccf6f173933d9c330dabec64a4f27393791bede9
-Author: Joe Masters <jmasters@nrao.edu>
-Date:   Mon Jun 13 14:13:00 2011 -0400
-
-    Removed files accidentally added in the last commit.
-
-commit a07c5bf35013dfd5f883ce61ef05793906dcdb54
-Author: Joe Masters <jmasters@nrao.edu>
-Date:   Mon Jun 13 14:10:25 2011 -0400
-
-    Added GPL to source files.  Added full GPL as COPYING.
-
-commit a5b616d61c9f2dc994bfd5321f42e53f66667b7d
-Author: Joe Masters <jmasters@nrao.edu>
-Date:   Mon Jun 13 14:07:57 2011 -0400
-
-    Added GPL to source files.  Added full GPL as COPYING.
-
-commit 5b7e3fb890c54877b3e6f73e2bc5a5d9b448b0a9
-Author: Joe Masters <jmasters@nrao.edu>
-Date:   Thu Apr 21 17:34:58 2011 -0400
-
-    Bugfix for FS mode to flip spectra.
+    Cleared Python environment variables for showreduced.
     
-    Need to resolve outstanding fractional shift issue.
+    I also cleaned up the plot metadata output a little bit.
 
-commit 48af6228fa3a90a8197c6f098e7d8bdbedf88c1f
+commit 3bb0bec75c52b592d182c1149db11aa399d22b9a
 Author: Joe Masters <jmasters@nrao.edu>
-Date:   Thu Apr 21 15:02:30 2011 -0400
+Date:   Wed Jan 30 15:27:12 2013 -0500
 
-    Allow setting of zentih opacity value at command line.
+    Added 'compile_opt idl2' to all IDL procedures/functions.
+    
+    According to Bob, "This is a compile-time directive and idl2 means that
+    the default integer type is a 32-bit integer instead of a 16-bit integer
+    and it limits the array index syntax to just [] (the default also allows
+    () - which leads to confusion when reading the code because it's
+    difficult tell when one is a function and one is an array)."
+    
+    Also, the unique.pro code was replaced with a much simpler use of the
+    IDL UNIQ function.  This was tried on a previous iteration of the code
+    but didn't included the necessary sort step to ensure unique values in
+    the returned structure.
 
-commit e804bde00a8599ebb6fcc3908722945f99c40376
+commit 29a333416a5ff12ac74f671ebc62ca38afa3a60b
 Author: Joe Masters <jmasters@nrao.edu>
-Date:   Wed Apr 13 11:38:28 2011 -0400
+Date:   Wed Jan 30 12:43:06 2013 -0500
 
-    Bugfix for last commit.
+    Put in full path to showreduced from spectralpipe.pro
     
-    Passed integer and remainder for shift instead of only remainder.
+    Otherwise showreduced won't get called unless it's already
+    in the user's path, which isn't likely.
 
-commit 2bdf71b5737baf94ad43c84aeb8028a1027bdb59
+commit 7205306533e2fb6cedb045e951d999014e7b17b1
+Merge: 2abae45 a281208
 Author: Joe Masters <jmasters@nrao.edu>
-Date:   Wed Apr 13 11:25:39 2011 -0400
+Date:   Wed Jan 30 11:50:40 2013 -0500
 
-    Fixed fractional channel shift.
-    
-    It should work on multiple spectra as well as a
-    single spectrum.
+    Merge branch 'master' of github.com:jmasters/gbt-pipeline
 
-commit fe27dc5b5ccb67535c0765180f18917f0a9ae5ef
+commit 2abae459e78412ccb2aac775a6e0a5725804936e
 Author: Joe Masters <jmasters@nrao.edu>
-Date:   Tue Apr 12 17:27:38 2011 -0400
+Date:   Wed Jan 30 11:42:40 2013 -0500
 
-    Fixed a line I missed in the last commit to fix a bug.
+    Write input scan numbers to output header.
     
-    The low frequency observations were being cut out of tsky
-    calculation.
+    The format of the scan numbers is a range string.
+    For example, "1-4, 12-16, 31-33".
 
-commit ff502a2caf9025ba4be7ce520e781f1d9d8e1492
+commit a2812085f742977ef2de3e71892c60a086a04970
 Author: Joe Masters <jmasters@nrao.edu>
-Date:   Tue Apr 12 16:46:39 2011 -0400
+Date:   Tue Jan 29 14:34:56 2013 -0500
 
-    Allow calibration above Ta for low frequencies < 6 GHz.
-    
-    Frequencies less than 2 GHz have a zenith opacity of .008.
+    Added new values to header of plot.
 
-commit 41e9af78c32b4c3204e2198ccef6d8a189a2afa3
+commit cace01e30457d106800e60fb68c32254c61d8c62
 Author: Joe Masters <jmasters@nrao.edu>
-Date:   Tue Apr 12 12:30:46 2011 -0400
+Date:   Fri Jan 25 13:46:04 2013 -0500
 
-    Added several new options, noise diode check and low freq opacity.
+    Added code to remove existing output before writing new file.
     
-    The user can now set the 0 frequency channel main beam efficiency
-    so that etaMB is computed seperately from aperture efficiency, etaA.
-    
-    The user can also for a FS map to be calibrated as PS.
-    
-    The default zenith opacity for frequencies < 2 GHz is now to
-    to .008.
-    
-    There is a new check to make sure the noise diode is firing for
-    the refscans.
+    If existing output isn't deleted, then gbtidl will just append
+    rows to the exiting output file.
 
-commit 344551baa0123ed182a4f77f5e1cb22140fd3bcc
+commit e674e0afb6ff5e965e3099159ad3f0952e197712
 Author: Joe Masters <jmasters@nrao.edu>
-Date:   Fri Apr 8 12:22:29 2011 -0400
+Date:   Fri Jan 25 13:21:01 2013 -0500
 
-    Added a couple doctest strings.
+    Included showreduced to make plots as part of pipeline.
+    
+    This may eventually appear as an option at the commandn line.
+    I also improved the output name of the plot file.
+    
+    Previously the format was <fitsfileroot.fits>_0.png
+    
+    The new format is <fitsfileroot>.png
+    
+    I also removed a couple unused and commented out lines of code.
+
+commit 359e1b241f884c72d0ab1c60a0d4a669b041ad01
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Fri Jan 25 13:16:10 2013 -0500
+
+    Changed narrow RFI sigma threshold from 3 to 4.
+
+commit 8c1b6119b6a7fb539cee7eef7a0d7c0132898368
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Wed Jan 23 15:54:01 2013 -0500
+
+    Moved showreduced to spectralpipe/. Updated to fix segfault bug.
+    
+    There was a problem accessing row data when there is only one row
+    in the input file.  I used a different method for accessing data
+    and that seems to have solved it.
+
+commit 0a7869a9227013b4d60593681af3eaae63e11324
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Wed Jan 23 12:44:33 2013 -0500
+
+    Removed to obsolete files.  Added file extension to release notes.
+
+commit 77754827262b9dc82e61fdaf05eeb3472eec82ed
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Wed Jan 23 11:34:41 2013 -0500
+
+    Moved spectral pipe code to subdirectory. Removed old files.
+
+commit edd4ded62ec5489ea2c22789ff949dbe3da67737
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Tue Jan 22 12:05:24 2013 -0500
+
+    Fixed a bug: output row index wasn't reset with each chunk.
+    
+    When the output row index exceeded the BUFFER_SIZE the row index
+    wasn't getting reset to 0 on each iteration over an output chunk,
+    resulting in an IndexError at runtime.
+
+commit 798e902919c8f3fa84ea1c98a3e8dfc67f13e9dd
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Fri Jan 4 16:21:31 2013 -0500
+
+    Split spectralpipe IDL code into subroutines.
+    
+    I also attempted to fix the flag_broad_rfi FFT wavy baseline
+    detection code.  It works on one test dataset.  I need to check it
+    on others.
+
+commit 068cf7fd9048478a422d7e4d4dcf20ecf9a17827
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Fri Dec 21 18:02:55 2012 -0500
+
+    Updated get_sources.pro for restfreq and procname.
+    
+    Now we only get a list of sources for the types of
+    observations that the code currently supports.  The current filters
+    are restfreq~= 1420 GHz and procname = OnOff or OffOn.
+
+commit 762853188a59d2f679170ff354c1bbdf84e600d7
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Fri Dec 21 17:25:25 2012 -0500
+
+    Conversion of spectral pipe to idl nearly complete.
+    
+    Only need to check for restfreq==1420 and
+    procname==onoff or offon.
+
+commit 4e20df131747dd3fa074570ec64174ec11707f5c
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Thu Dec 20 17:26:36 2012 -0500
+
+    Added gbtidl version of spectral pipeline code.
+
+commit 9e22d2f230d009dd12566f53661166d4782fe839
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Thu Dec 13 15:29:48 2012 -0500
+
+    Show data in velocity instead of channels.
+
+commit 8ec58f4e2c02616863e6d8275db563a3665c9841
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Thu Dec 13 14:19:30 2012 -0500
+
+    Fixed typo in python script name.
+
+commit cfd9ea1a26e89894a2418e45ed024a6ddc0d8890
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Thu Dec 13 14:17:28 2012 -0500
+
+    Made showreduced executable.
+
+commit 4634297c033fa0f2b31089918ed026915f723a21
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Thu Dec 13 14:15:07 2012 -0500
+
+    Added showreduced script to make plots from spectral output fits.
+
+commit 0e961e45a0e097ea55a7d016b62c030273f6728a
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Thu Dec 13 14:08:52 2012 -0500
+
+    Improved layout in show_reduced.py
+
+commit 181b610f0de08348b11a80e61c61a0d5cf3387f5
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Thu Dec 13 12:19:19 2012 -0500
+
+    Updated TSYS and TCAL to be an average over all scan in target spectrum.
+
+commit 40001f8e60a6b036aa1074b959f49aeaed983ef0
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Thu Dec 13 11:57:39 2012 -0500
+
+    Updated for EXPOSURE and DURATION in output.
+
+commit 8ef83154ae61b8cc607d2de4c205f8d467b5a398
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Thu Dec 13 11:19:00 2012 -0500
+
+    Fixed DATE-OBS bug to allow compatibility with GBTIDL.
+
+commit 53b81772705c5b47e0615f6e5859ae5d115c1a7f
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Tue Dec 11 14:42:52 2012 -0500
+
+    Added show_reduced.py script to create plots.  Fixed headers.
+
+commit 022b5534aca35981cbc21c1f1661c0d55e3d9cde
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Wed Dec 5 16:09:13 2012 -0500
+
+    Check for OnOff/OffOn earlier. Limit number of output tables.
+
+commit 9b1f3dfc50c0f9b9378bd14643c58a811885eb20
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Tue Dec 4 12:54:07 2012 -0500
+
+    Removed some command line options b/c this is not user-facing.
+
+commit 1fa3837f317fbd4ef6ed0e63ae3cf438ce51d541
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Fri Nov 30 13:39:39 2012 -0500
+
+    Initial checkin of spectralpipe startup script.
+
+commit 908b29b6e8cb646a584aae7c5738f1545e4305f2
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Fri Nov 30 13:37:10 2012 -0500
+
+    Warn when target and reference scans have different # integrations.
+    
+    Before the pipeline would crash.  Now, it skips these scans.
+
+commit 071cc1ddeb8080e8dbd5ec068a1c4d2638fe0142
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Fri Nov 30 11:18:04 2012 -0500
+
+    Added command line options and removed pyfits.
+
+commit 890a17a837d47bc25c6d6f0daeb01011f52955c4
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Thu Nov 29 16:12:53 2012 -0500
+
+    Replaced pyfits with fitsio.
+
+commit d182a9aae1a66f0c34ce851c7ac7d50bddaf9eea
+Merge: 5df301b 3cb0a48
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Tue Nov 27 14:53:55 2012 -0500
+
+    Get spectral_pipeline back into a working state.
+    Merge branch 'spectral'
+    
+    Conflicts:
+    	src/spectral_pipeline.py
+
+commit 3cb0a48e56c346b35bda610220eab3d581bfdef4
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Wed Nov 21 17:17:45 2012 -0500
+
+    Fixed two bugs: bad velocity axis in FITS output, fail on bad procedure.
+    
+    The velocity axis bug was the result of rebinned data no being
+    consistent with the necessary header keys.  The fix was to disable
+    rebinning in favor of higher resolution output.
+    
+    The bad procedure bug was that the code assumed either OnOff or OffOn
+    procedures in the input for every target, even if not for every scan.
+    The fix is to no longer make this assumption.
+
+commit 5df301b5ce74fc6704a542c9295e26e41b6f49e6
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Wed Nov 21 17:14:27 2012 -0500
+
+    Copy primary header from input to output.
+    
+    This fixes a bug that left output unable to be interpreted
+    properly by GBTIDL.

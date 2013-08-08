@@ -1,4 +1,6 @@
+*.index
 *.fits
+*.vdata
 Cal_*
 *.pyc
 *~
@@ -7,3 +9,5 @@ Cal_*
 *.log
 *.par
 *.png
+*.flag
+*.fixed_lags

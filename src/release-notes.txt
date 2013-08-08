@@ -1,142 +1,57 @@
+GBT Mapping Pipeline Version 1.1
 
-KFPA pipeline Version-0.1
+These notes accompany the release of the GBT Mapping Pipeline on
+August 8, 2013. The previous version of the pipeline was 1.0. The most
+significant changes since the last release are described below.
 
-Release date:  2010-01-29
+1) Fixed the output FITS pimary header so that output could be
+properly interpreted by GBTIDL. GBTIDL was re-applying the beam
+offsets, because the output of the pipeline did not include any
+"FITSVER" keyword in the header and GBTIDL uses that keyword to
+differentiate between old-style SDFITS files produced from GBT which
+do not have the beam offsets applied to the antenna pointing and the
+current style, which already incorporates the offsets.  If GBTIDL was
+used to further process pipeline calibrated spectra, the resulting
+output may have had the beam offsets applied twice.
 
--------
-Authors
--------
-Glen Langston	-- glangsto@nrao.edu
-Bob Garwood		-- bgarwood@nrao.edu
-Joe Masters		-- jmasters@nrao.edu
+2) The map finding code uses the PROCSCAN keyword, when it is present
+(beginning with M&C release 13.4). Otherwise, it uses the OBSID
+keyword as it did previously.
 
-------------
-Requirements
-------------
-* network access to to the following programs:
-	/users/glangsto/linux/idlToSdfits/idlToSdfits
-	/users/rmaddale/bin/getForecastValues
-	/opt/local/bin/sdfits 
+3) Sort the list of feeds going into AIPS imaging.
+    
+The list of feeds going into AIPS had been unsorted, by default. For
+the KFPA, this allowed a feed other than 0 to sometimes be first in
+the list, giving wrong map center information to AIPS and creating a
+final map that was off center.
 
-* network access to a GBT project directory if the SDFITS file is not
-  supplied as input to the pipeline.
-	
-* GBTIDL 2.6 (note the pipeline uses a locally modified version
-     of GBTIDL which resides in the position-switched directory)
-     
-* although not extensively tested, it is best to only run the pipeline
-  on a 32-bit machine in Green Bank.
-  
---------
-Features
---------
-This is the initial version of the prototype K-band Focal Plane Array
-data analysis and reduction pipeline.  As such, it is limited in
-scope and functionality but meets the desire of automatic 
-processing of raw position-switched data from a project directory,
-to a file that can be imaged with AIPS.
+4) Fixed exposure time calculation. The previous release did not
+account for both cal states of the integration and resulted in a lower
+total exposure time.
 
-The features of the pipeline are:
-* processing of multi-feed, multi-band, dual polarized, 
-  position-switched K-band data up to a file ready for imaging with
-  AIPS.  This includes calibration of data with and without reference
-  subtraction.  In the later case, calibration is done with the noise
-  diodes.
+The expsoure time calculation used when computing antenna temperature
+(Ta) is:
 
-* integration of Ron Maddalena's weather information for estimated 
-  atmospheric opacities
-  
-* autogeneration of SDFITS input.  If a SDFITS file is not ready to 
-  input to the pipeline, but you know the project directory, the 
-  pipeline will use that directory information to invoke the sdfits
-  program and produce the necessary input.
+        exposure_time_sig * exposure_time_ref * ref_smoothing_window
+t_exp = ------------------------------------------------------------
+        exposure_time_sig + exposure_time_ref * ref_smoothing_window
 
-* ability to find molecular lines in a dataset based on velocities 
-  provided by the user.
-  
-------------------
-Outstanding issues
-------------------
-Issues to be addressed in future versions of the pipeline include, but
-are not limited to:
+5) Improved system temperature calculation. In previous releases, the
+Tsys was not properly weighted based on exposure time and system temp.
+It had been caculated using a simple weighted average of the signal
+and reference system temps, with weight = exposure / tsys^2.
 
-* processing of frequency-swithced data
-* automation of identifing mapping scans within an input dataset, thus
-  eliminating the need to supply scan numbers
-* autogeneration of velocity information for idenifying molecular lines
-  to produce the maps.
-* a direct connection to the AIPS imager
-* conversion to python for reasons of efficiency, portability and 
-  maintainability
-* we need much better documentation!
-* options to turn off or reduce plotting windows and control outputs
-* real-time visualization
+The new average applies the same weights but uses the formula:
+average_tsys = sqrt((tsys_sig^2 + tsys_ref^2)/2)
 
-------------
-Installation
-------------
-The code can be obtained as a tarball here:
-http://github.com/jmasters/KFPA-Pipeline/tarball/Version-0.1.1-beta.tgz
+6) Fixed the calibrated spectra output to record the proper units in
+the header so that the y-axis now has the proper units label when
+viewing spectra in GBTIDL.
 
-Simply unpack the tarball in your chosen directory and it is ready to 
-run.
+7) Fixed label of frequency axis in final AIPS image cube.
 
-----------
-How to run
-----------
-The interface to the pipeline is a simple command line tool with the
-option to supply many parameters.  These are listed below.
+8) Made pipeline AIPS environment independent of existing shell
+environment that might already be setup for AIPS and could cause
+conflicts.
 
-$ ./kfpa_pipeline
-Usage: kfpa_pipeline [--infile=filename] [--begin-scan=scan]
-                     [--end-scan=scan] [--vsource]
-                     [--vsource-width] [--vsource-begin]
-                     [--vsource-end] [--refscan1] [--refscan2]
-                     [--help] [--run-sdfits] [--sdfits-dir=directory]
-                     [--all-scans-as-ref]
-Options:
-  --infile=file           SDFITS file name containing map scans
-  --begin-scan=scan       beginning map scan number
-  --end-scan=scan         ending map scan number
-  --vsource               defines center channel to select (km/sec)
-  --vsource-width         defines median filter width (km/sec)
-  --vsource-begin         defines begin channel to select (km/sec)
-  --vsource-end           defines end channel to select (km/sec)
-  --sdfits-dir=directory  SDFITS input directory; used if infile
-                          option is not usable
-  --refscan1=scan         first reference scan
-  --refscan2=scan         second reference scan
-  --all-scans-as-ref=1    use all scans as reference?
-  --verbose=level         set the verbosity level
-  -h --help               print this help
-
-The pipeline was developed using two test datasets: 
-* project AGBT08B_040_03, a Taurus Molecular Cloud map, and
-* project AGBT03B_034_01, a map of m81
-
-To get an idea of how these are run, see the test scripts:
-* do_tmcKuRa.sh, and
-* do_m81.sh
-
-For example:
-
-$ ./kfpa_pipeline \
-   --sdfits-dir=/home/archive/science-data/tape-0028/AGBT08B_040_03 \
-   --begin-scan=16 --end-scan=49 --vsource-center=5.8 \
-   --vsource-width=2.0 --vsource-begin=-.2 --vsource-end=11.8 \
-   --refscan1=15 --refscan2=51 --all-scans-as-ref=1 --verbose=3
-
-------
-Issues
-------
-There may be an issue processing multi-feed data because a recent test
-did not identify the molecular lines in the 2nd feed.  Other tests did
-not expose this problem, so it is being futher investigated.
-
-------------------
-Questions/feedback
-------------------
-Please direct any questions or feedback about the the KFPA pipeline
-to one of the authors listed above.
-
--- Joe M. 2010-01-29
+9) Do spectrum averaging like GBTIDL regarding NaN values.

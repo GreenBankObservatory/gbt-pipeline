@@ -51,6 +51,8 @@ import sys
 import os
 import math
 
+import pyfits
+
 #import fitsio
 
 def run_idlToSdfits(files, average, channels, display_idlToSdfits,
@@ -88,6 +90,18 @@ def run_idlToSdfits(files, average, channels, display_idlToSdfits,
     
     print 'DBG',idlcmd
     os.system(idlcmd)
+
+    # Note original SDFITS VELDEF value in HISTORY
+    try:
+        f0 = pyfits.open(files[0],mode='readonly',memmap=True)
+        veldef = f0[1].data.field('veldef')[0]
+        hist = '  SDFITS VELDEF = "%s"' % veldef
+        f0.close()
+        sdf = pyfits.open(aipsinname,mode='update',memmap=True)
+        sdf[0].header.add_history(hist,after='VELREF')
+        sdf.close()
+    except:
+        print "Unable to note original SDFITS VELDEF value in sdf file(s).  Final frequency axis may be wrong."
     
     return aipsinname
 
