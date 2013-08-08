@@ -37,7 +37,7 @@ import os
 import sys
 
 CREATE_PLOTS = False
-PIPELINE_VERSION = '1.0'  # to record in output primary header
+PIPELINE_VERSION = '1.1'  # to record in output primary header
 
 if CREATE_PLOTS:
     import pylab

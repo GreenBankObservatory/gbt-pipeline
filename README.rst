@@ -11,24 +11,22 @@ The GBT Pipeline Project has two main goals.
 The first is to generate a quick-look data reduction pipeline for GBT
 spectroscopy data that is capable of processing at least 80% of all
 sessions observed with the GBT in "Standard Observing Modes". The
-quick-look pipeline will operate with minimal user intervention.
-Starting with the name of a GBT project directory, the pipeline will
-run the sdfits filler, determine the observing mode used for
-spectroscopic data, calibrate and average data for each target in the
-session, fit a spectral baseline, and write the reduced data into an
-sdfits file.  Where appropriate, the pipeline will attempt to identify
-and flag RFI.  The pipeline will have some heuristics to help it fit
-the spectral baselines.  In cases where complex baselines or extensive
+quick-look pipeline will operate with minimal user intervention. The
+pipeline determines the observing mode used for spectroscopic data,
+calibrates and averages data for each target in the session, fits a
+spectral baseline, and writes the reduced data into both an sdfits
+file and a png image. Where appropriate, the pipeline attempts to
+identify and flag RFI. In cases where complex baselines or extensive
 RFI are major issues, the observer will always do better to process
-the data by hand.  The pipeline will generate a set of statistics and
-in some cases it will provide nominal scientific parameters (for
-example, fitting extragalactic HI profiles).  The pipeline will
-generate a "summary sheet" for each target observed in the session.
-The purpose of the quick-look pipeline is to provide the community
-with easy access to GBT data, including data from projects that they
-were not involved with.  The product of this pipeline (i.e. reduced
-spectra) will be provided to the astronomical community through the
-NRAO Image Archive.
+the data by hand.
+
+The pipeline will eventually generate a set of statistics and in some
+cases it will provide nominal scientific parameters (for example,
+fitting extragalactic HI profiles). The purpose of the quick-look
+pipeline is to provide the community with easy access to GBT data,
+including data from projects that they were not involved with. The
+product of this pipeline (i.e. reduced spectra) will be provided to
+the astronomical community through an NRAO Image Archive web interface.
 
 The second main goal of the GBT Pipeline Project is to provide a set
 of data processing tools to help observers produce publication-quality
@@ -64,4 +62,4 @@ The spectral pipeline code is written in GBTIDL.
 
 jmasters@nrao.edu
 
-*Last modified*:  22 June 2013
+*Last modified*:  07 August 2013
