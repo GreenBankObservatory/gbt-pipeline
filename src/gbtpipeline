@@ -23,43 +23,46 @@ then
     exit $retval 
 fi
 
-# --------- get the path of the script pipeline script to determine the version
+# ------ use the pipeline command name to determine the version
 
-fullpath=`readlink -f $0`
-me=`dirname $fullpath`
+command=`basename $0`
 
-if [ $me = "/home/gbtpipeline/integration" ]; then
+if [ $command = "gbtpipeline-test" ]; then
 	echo "!!!!!!!!!! TEST VERSION !!!!!!!!!!!!"
         GBTPIPEVERSION='integration'
 
-elif [ $me = "/home/gbtpipeline/release" ]; then
+elif [ $command = "gbtpipeline" ]; then
         GBTPIPEVERSION='release'
 
-elif [ $me = "/home/gbtpipeline/old" ]; then
+elif [ $command = "gbtpipeline-old" ]; then
+	echo "!!!!!!!!!! OLD VERSION !!!!!!!!!!!!"
         GBTPIPEVERSION='old'
 else
     # assume integration, actual path of script is probably a personal sandbox
         echo "!!!! UNKNOWN VERSION, ASSUMING TEST ENVIRONMENT !!!!"
-        GBTPIPEVERSION='integration'        
+        GBTPIPEVERSION='integration'
 fi
 
+fullpath=`readlink -f $0`
+pathdir=`dirname $fullpath`
+
 # if the pipeline tools directory is not included in the PATH, add it
-if [[ "$PATH" != *${me}* ]]
+if [[ "$PATH" != *${pathdir}* ]]
 then
-        PATH=${me}/tools:"$PATH"
+        PATH=${pathdir}/tools:"$PATH"
 fi
 
 # set the PYTHONPATH, or add to it
 if [ -z "$PYTHONPATH" ]
 then
-        PYTHONPATH=${me}/contrib
-        PYTHONPATH=${me}:"$PYTHONPATH"
+        PYTHONPATH=${pathdir}/contrib
+        PYTHONPATH=${pathdir}:"$PYTHONPATH"
 else
         lclpythonpath="$PYTHONPATH"
-        if [[ $lclpythonpath != *${me}* ]]
+        if [[ $lclpythonpath != *${pathdir}* ]]
         then
-                PYTHONPATH=${me}/contrib:"$PYTHONPATH"
-                PYTHONPATH=${me}:"$PYTHONPATH"
+                PYTHONPATH=${pathdir}/contrib:"$PYTHONPATH"
+                PYTHONPATH=${pathdir}:"$PYTHONPATH"
         fi
 fi
 
@@ -75,8 +78,8 @@ export LD_LIBRARY_PATH=/opt/local/lib:$LD_LIBRARY_PATH
 
 STAT_FILE="/home/scratch/pipeline/stats.log"
 if [ -w $STAT_FILE ]; then
-    echo `whoami`,`date`,${GBTPIPEVERSION},$* >> $STAT_FILE
+    echo `whoami`,`date`,$fullpath,$* >> $STAT_FILE
 fi
 
-python ${me}/gbt_pipeline.py $*
+python ${pathdir}/gbt_pipeline.py $*
 

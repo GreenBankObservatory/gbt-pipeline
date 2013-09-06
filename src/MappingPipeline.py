@@ -37,7 +37,7 @@ import os
 import sys
 
 CREATE_PLOTS = False
-PIPELINE_VERSION = '1.1'  # to record in output primary header
+PIPELINE_VERSION = '1.2-integration'  # to record in output primary header
 
 if CREATE_PLOTS:
     import pylab
@@ -401,7 +401,11 @@ class MappingPipeline:
                         if np.all(np.isnan(sigrefState[0]['cal_on']['DATA'].data)) or \
                            np.all(np.isnan(sigrefState[0]['cal_off']['DATA'].data)) or \
                            np.all(np.isnan(sigrefState[1]['cal_on']['DATA'].data)) or \
-                           np.all(np.isnan(sigrefState[1]['cal_off']['DATA'].data)):
+                           np.all(np.isnan(sigrefState[1]['cal_off']['DATA'].data)) or \
+                           (0 == sigrefState[0]['cal_off']['DATA'].ptp() and \
+                            0 == sigrefState[0]['cal_on']['DATA'].ptp()) or \
+                           (0 == sigrefState[1]['cal_off']['DATA'].ptp() and \
+                            0 == sigrefState[1]['cal_on']['DATA'].ptp()):
                         
                             self.log.doMessage('DBG', 'Bad integration. '
                                 'Writing nan values to output.  Input rows', sigrefState[0]['rownum'],

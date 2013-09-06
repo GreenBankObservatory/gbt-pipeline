@@ -40,44 +40,25 @@ class Imaging:
         
         # ------------------------------------------------- identify imaging scripts
         
-        # look in integration or release contrib directories for imaging script
-        # if no script is found, turn imaging off
-        
-        RELCONTRIBDIR = '/home/gbtpipeline/release/contrib'
-        TESTCONTRIBDIR = '/home/gbtpipeline/integration/contrib'
-        DBCONSCRIPT = '/' + 'make_sdf_and_dbcon.py'
-        MAPSCRIPT = '/' + 'mapDefault.py'
-        
-        # if the user opted to do imaging, then check for the presence of
-        # the necessary imaging scripts (dbcon.py, mapDefault.py). the path
-        # to the scripts depends on the version (release vs. test) of the
-        # pipeline which is running.
-        dbconScript = 'None'
-        mapScript = 'None'
-        
-        
-        # test version of pipeline
-        if TESTCONTRIBDIR in sys.path and \
-          os.path.isfile(TESTCONTRIBDIR + DBCONSCRIPT) and \
-          os.path.isfile(TESTCONTRIBDIR + MAPSCRIPT):
+        # set the contrib and tools directory paths
+        # and locations of the needed scripts and tools
+        # if these are not found, turn imaging off
+        pipe_dir = os.path.dirname(os.path.abspath(__file__))
+        contrib_dir = '/'.join((pipe_dir, "contrib"))
+        tools_dir = '/'.join((pipe_dir, "tools"))
 
-            dbconScript = TESTCONTRIBDIR + DBCONSCRIPT
-            mapScript = TESTCONTRIBDIR + MAPSCRIPT
+        dbcon_script = '/'.join((contrib_dir, "make_sdf_and_dbcon.py"))
+        map_script = '/'.join((contrib_dir, "mapDefault.py"))
 
-        # release version of pipeline
-        elif RELCONTRIBDIR in sys.path and \
-          os.path.isfile(RELCONTRIBDIR + DBCONSCRIPT) and \
-          os.path.isfile(RELCONTRIBDIR + MAPSCRIPT):
+        doimage = '/'.join((tools_dir, "doImage"))
 
-            dbconScript = RELCONTRIBDIR + DBCONSCRIPT
-            mapScript = RELCONTRIBDIR + MAPSCRIPT
+        # if the user opted to do imaging, then check for the presence
+        # of the necessary imaging scripts (dbcon.py, mapDefault.py,
+        # doImage).
+        if ((not os.path.isfile(map_script)) or
+            (not os.path.isfile(dbcon_script)) or
+            (not os.path.isfile(doimage))):
 
-        elif os.path.isfile('contrib' + DBCONSCRIPT) and os.path.isfile('contrib' + MAPSCRIPT):
-
-            dbconScript = 'contrib' + DBCONSCRIPT
-            mapScript = 'contrib' + MAPSCRIPT
-
-        else:
             log.doMessage('ERR',"Imaging script(s) not found.  Stopping after calibration.")
             sys.exit()
             
@@ -88,7 +69,6 @@ class Imaging:
             feeds.add(feed)
 
         scanrange = str(cl_params.mapscans[0])+'_'+str(cl_params.mapscans[-1])
-
             
         for win in windows:
         
@@ -108,7 +88,7 @@ class Imaging:
                 chan_max = int(nchans*.98) # end at 98% of nchans
                 channels = str(chan_min) + ':' + str(chan_max)
                 
-            aipsNumber = str(os.getuid())
+            aips_number = str(os.getuid())
             aipsinfiles = ' '.join(imfiles)
             
             if cl_params.display_idlToSdfits:
@@ -131,8 +111,8 @@ class Imaging:
             else:
                 keeptempfiles = '0'
             
-            doimg_cmd = ' '.join(('doImage',
-                dbconScript, aipsNumber, ','.join(map(str,sorted(feeds))),
+            doimg_cmd = ' '.join((doimage,
+                dbcon_script, aips_number, ','.join(map(str,sorted(feeds))),
                 str(cl_params.average), channels, display_idlToSdfits,
                 idlToSdfits_rms_flag, str(cl_params.verbose),
                 idlToSdfits_baseline_subtract, keeptempfiles,
@@ -154,7 +134,7 @@ class Imaging:
             
             # define command to invoke mapping script
             # which in turn invokes AIPS via ParselTongue
-            doimg_cmd = ' '.join(('doImage', mapScript, aipsNumber))
+            doimg_cmd = ' '.join((doimage, map_script, aips_number))
             log.doMessage('DBG', doimg_cmd)
 
             p = subprocess.Popen(doimg_cmd.split(), stdout = subprocess.PIPE, stderr = subprocess.PIPE)
