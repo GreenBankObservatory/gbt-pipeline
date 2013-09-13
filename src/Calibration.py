@@ -331,7 +331,13 @@ class Calibration:
         # average tsys
         tsys =  self.average_tsys(tsyss, exposures)
 
-        exposure_sum = exposure0 + exposure1
+        # only sum the exposure if frequency switch is "in band" (i.e.
+        # overlapping channels); otherwise use the exposure from the
+        # first state only
+        if abs(channel_shift) < len(ta1):
+            exposure_sum = exposure0 + exposure1
+        else:
+            exposure_sum = exposure0
 
         return ta, tsys, exposure_sum
                 
