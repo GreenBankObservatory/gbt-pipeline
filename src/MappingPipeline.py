@@ -157,7 +157,7 @@ class MappingPipeline:
         tambients = [] # used for tsky computation for ta* and beyond
         elevations = [] # used for tsky computation for ta* and beyond
         
-        columns = tuple(self.infile[ext].colnames)
+        columns = tuple(self.infile[ext]._colnames)
         
         for rowNum in rows:
             
@@ -210,7 +210,7 @@ class MappingPipeline:
             signalRows = self.row_list.get(self.cl.mapscans[0], feed, window, pol)
             ext = signalRows['EXTENSION']
             rows = signalRows['ROW']
-            columns = tuple(self.infile[ext].colnames)
+            columns = tuple(self.infile[ext]._colnames)
             firstIntegration = Integration(self.infile[ext][columns][rows[0]])
             targetname = firstIntegration['OBJECT'].strip()
         except KeyError:
@@ -235,11 +235,14 @@ class MappingPipeline:
         dtype = self.infile[ext][0].dtype
         
         input_header = fitsio.read_header(self.infilename, ext)
-        self.outfile.create_table_hdu(dtype = dtype, header = input_header)
+        self.outfile.create_table_hdu(dtype=dtype, extname=input_header['EXTNAME'])
+        self.outfile[-1].write_keys(input_header)
+        self.outfile[-1]._update_info()
+        self.outfile.update_hdu_list()
 
         # copy primary header from input to output file
         primary_header = fitsio.read_header(self.infilename, 0)
-        self.outfile[0].write_keys(primary_header, clean=True)
+        self.outfile[0].write_keys(primary_header)
 
         self.outfile[0].write_key('PIPE_VER', PIPELINE_VERSION, comment="GBT Pipeline Version") 
 
@@ -273,7 +276,7 @@ class MappingPipeline:
         signalRows = self.row_list.get(self.cl.mapscans[0], feed, window, pol)
         ext = signalRows['EXTENSION']
         rows = signalRows['ROW']
-        columns = tuple(self.infile[ext].colnames)
+        columns = tuple(self.infile[ext]._colnames)
         firstIntegration = Integration(self.infile[ext][columns][rows[0]])
         
         # integration observed frequency
@@ -554,7 +557,7 @@ class MappingPipeline:
             rows = signalRows['ROW']
             ext = signalRows['EXTENSION']
             
-            columns = tuple(self.infile[ext].colnames)
+            columns = tuple(self.infile[ext]._colnames)
         
             if CREATE_PLOTS:
                 tas = []
