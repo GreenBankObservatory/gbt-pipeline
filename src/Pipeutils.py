@@ -95,8 +95,9 @@ class Pipeutils:
         Returns:
         wavelength in meters
     
-        >>> _hz2wavelength(23e9)
-        0.013034454695652174
+        >>> pu = Pipeutils()
+        >>> round(pu._hz2wavelength(23e9), 6)
+        0.013034
     
         """
         c = 299792458.  # speed of light in m/s
