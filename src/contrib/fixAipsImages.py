@@ -96,7 +96,7 @@ def fixAipsImages(fitsFiles, refFrame=None, restFreq=None):
                 refCode = None
                 if refFrame == "LSR": refCode = 1
                 elif refFrame == "BAR" or refFrame == "HEL": 
-                    refFrame = "BAR"
+                    refFrame = "HEL"
                     refCode = 2
                 elif refFrame == "TOP" or refFrame == "OBS": 
                     refCode = 3
