@@ -321,7 +321,7 @@ fittp.inname=AIPSCat()[mydisk][-1].name
 fittp.inclass=AIPSCat()[mydisk][-1].klass
 fittp.inseq=AIPSCat()[mydisk][-1].seq
 restFreqName = "_%.0f_MHz" % (restFreqHz * 1.E-6)
-outName = AIPSCat()[mydisk][-1].name + restFreqName
+outName = AIPSCat()[mydisk][-1].name.replace(" ","") + restFreqName
 outcube = outName+'_cube.fits'
 if os.path.exists(outcube):
     os.remove(outcube)
