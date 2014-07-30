@@ -78,7 +78,7 @@ reading of multiple tables, but that does not yet work.
 #define AZEL     2
 #define GALACTIC 3
 #define MAXIDLSTRING 1024
-#define SOFTVERSION "8.4"
+#define SOFTVERSION "8.5"
 
 /* externals */
 extern long gbtGoInit;
@@ -132,6 +132,7 @@ extern char * readIdlFits ( char * fileName, long iRow, long * nRows,
 extern char * dateObs2DMjd( char * dateObs, double * dMjd);
 extern char * openOutRevision(char * outName, FILE ** pFileName);
 extern char * stripExtension( char * fullFileName);
+extern char * stripPathName( char * fileName);
 extern long inIntList( long inInt, char * intList) ;
 extern double median4( double a, double b, double c, double d);
 extern char * idToScanIntegration( long id, long * scan, long * integration);
@@ -353,10 +354,16 @@ char * idlToSdfitsHelp()
 	   "                         values are merged with common coordiantes\n");
   fprintf( stderr, 
 	   "The output file has extension '.sdf' == Single Dish Fits\n");
+  fprintf( stderr,
+	   "NOTE: spectra with more than %1d channels can not be handled by idlToSdfits\n",MAXIDLPOINTS);
+  fprintf( stderr,
+	   "NOTE: only %1d spectra can be written in each call to idlToSdfits\n", MAXSCANS);
   fprintf( stderr, 
-	   "Version %s: Date: %s\n", SOFTVERSION, "January 14, 2013" );
+	   "Version %s: Date: %s\n", SOFTVERSION, "July 30, 2014" );
   fprintf( stderr, 
-	   "------------ Glen Langston == glangsto@nrao.edu\n\n");
+	   "----Original Code by Glen Langston\n\n");
+  fprintf( stderr, 
+	   "----For help and bug reporting visit the NRAO helpdesk at help.nrao.edu\n\n");
   return(NULL);
 } /* end of idlToSdfitsHelp() */
 
@@ -682,7 +689,7 @@ int main(int argc, char * argv[])
     channels[MAXIDLSTRING] = "", bandForNoise[512] = "", * pName = NULL, 
     projectName[MAXIDLSTRING] = "AGBT03B_019_01",
     directoryName[MAXIDLSTRING] = "./", summaryName[MAXIDLSTRING] = "",
-    summaryDir[MAXIDLSTRING] = "";
+    summaryDir[MAXIDLSTRING] = "", summaryTag[512]="";
   GBTIDL gbtIdl, sumX, sumY, firstIdl, lastIdl, tempIdl;
   double gain = .69, gainFactor = 1./.69, tSys = 0., tSysAve = 0,
     oMedian = 0, oAve = 0, oRms = 0, oMin = 0, oMax = 0, ave = 0, rms = 0,
@@ -919,8 +926,10 @@ int main(int argc, char * argv[])
   status = mkdir( summaryDir, S_IRWXU | S_IRWXG | S_IRWXO);
   /*  fprintf( stderr, "%s mkdir() Status = %d!\n", summaryDir, status); */
   strcat( summaryName, summaryDir);
-  strcat( summaryName, argv[argc-1]);
-  stripExtension( summaryName);
+  strcpy( summaryTag, argv[argc-1]);
+  stripPathName( summaryTag);
+  stripExtension( summaryTag);
+  strcat( summaryName, summaryTag);
 
   /* if more than one file argument */
   pData = fopen( fileName, "r");
@@ -1245,10 +1254,10 @@ int main(int argc, char * argv[])
       if (count < MAXSCANS-1)
 	count++;
       else {
-	if (verbosity > 1) {
-	  fprintf( stderr, "Max Scan Count %ld Exceeded\n", (long)MAXSCANS);
-	  fprintf( stderr, "Writing %ld Rows\n", count);
-	}
+	/* this is always important enough to print out */
+	/* this used to be limited to just verbosity > 1 case */
+	fprintf( stderr, "Max Spectrum Count of %ld Exceeded\n", (long)MAXSCANS);
+	fprintf( stderr, "Writing %ld Rows\n", count);
 	break;
       }	
 

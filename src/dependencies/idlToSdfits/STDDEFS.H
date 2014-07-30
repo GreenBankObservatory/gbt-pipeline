@@ -131,4 +131,4 @@ typedef unsigned short INSTR;		/* word-alligned instructions */
 #define __attribute__(x)
 #endif
 
-#endif INCstddefsh
+#endif /* INCstddefsh */

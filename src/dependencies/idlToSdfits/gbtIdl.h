@@ -65,7 +65,7 @@ gbt = {gbt_data,    $                 ;  # bytes -> total # bytes
 */
 #define MAXIDLNAME    32
 #define MAXIDLANOTATE 256
-#define MAXIDLPOINTS 16384
+#define MAXIDLPOINTS 32768
 
 typedef struct {                      /* definition of IDL Data */
   char source[MAXIDLNAME];                 

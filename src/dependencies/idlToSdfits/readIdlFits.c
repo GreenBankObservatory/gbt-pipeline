@@ -401,6 +401,11 @@ char * readIdlFits ( char * fileName, long iRow, long * nRows,
     }
   } /* end of all chars of TDIM3 */
 
+  if (naxes[0] > MAXIDLPOINTS) {
+    fprintf ( stderr, "Number of channels, %ld, exceeds the limit of %ld.\n", naxes[0], MAXIDLPOINTS);
+    return("Too many channels");
+  }
+
   if (debug)
     fprintf( stderr, "Spectrum has %ld channels\n", naxes[0]);
 
