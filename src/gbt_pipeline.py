@@ -22,7 +22,7 @@
 
 # $Id$
 
-PARALLEL = False  # useful to turn off when debugging
+PARALLEL = True  # useful to turn off when debugging
 
 import commandline
 from MappingPipeline import MappingPipeline
