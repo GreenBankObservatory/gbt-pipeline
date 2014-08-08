@@ -76,10 +76,10 @@ class Imaging:
             
             log.doMessage('INFO','Imaging window {win}'.format(win=win))    
             
-            imfiles = glob.glob('*' + scanrange + '*window' + win + '*' + '.fits')
+            imfiles = glob.glob('*' + scanrange + '*window' + win + '*feed*pol*' + '.fits')
             
             ff = fitsio.FITS(imfiles[0])
-            nchans = int([xxx['tdim'] for xxx in ff[1].info['colinfo'] if xxx['name']=='DATA'][0][0])
+            nchans = int([xxx['tdim'] for xxx in ff[1].get_info()['colinfo'] if xxx['name']=='DATA'][0][0])
             ff.close()
             if cl_params.channels:
                 channels = str(cl_params.channels)
