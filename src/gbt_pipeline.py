@@ -22,7 +22,7 @@
 
 # $Id$
 
-PARALLEL = True  # useful to turn off when debugging
+PARALLEL = False  # useful to turn off when debugging
 
 import commandline
 from MappingPipeline import MappingPipeline
@@ -150,7 +150,6 @@ def preview_zenith_tau(log, row_list, cl_params, feeds, windows, pols):
 
     # if using the weather database
     if not cl_params.zenithtau:
-
         foo = row_list.get(cl_params.mapscans[0], feeds[0], windows[0],
                            pols[0])
         ff = fitsio.FITS(cl_params.infilename)
@@ -165,7 +164,7 @@ def preview_zenith_tau(log, row_list, cl_params, feeds, windows, pols):
         pu = Pipeutils()
 
         mjd = pu.dateToMjd(dateobs)
-        zenithtau = weather.retrieve_zenith_opacity(mjd, obsfreq)
+        zenithtau = weather.retrieve_zenith_opacity(mjd, obsfreq, log)
         log.doMessage('INFO',
                       'Zenith opacity for map: {0:.3f}'.format(zenithtau))
 

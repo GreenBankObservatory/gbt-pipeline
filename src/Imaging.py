@@ -79,7 +79,7 @@ class Imaging:
             imfiles = glob.glob('*' + scanrange + '*window' + win + '*' + '.fits')
             
             ff = fitsio.FITS(imfiles[0])
-            nchans = int([xxx['tdim'] for xxx in ff[1]._info['colinfo'] if xxx['name']=='DATA'][0][0])
+            nchans = int([xxx['tdim'] for xxx in ff[1].info['colinfo'] if xxx['name']=='DATA'][0][0])
             ff.close()
             if cl_params.channels:
                 channels = str(cl_params.channels)

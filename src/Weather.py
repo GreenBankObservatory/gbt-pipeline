@@ -76,7 +76,7 @@ class Weather:
     
         return coeffs
 
-    def retrieve_zenith_opacity(self, integration_mjd_timestamp, freq_hz):
+    def retrieve_zenith_opacity(self, integration_mjd_timestamp, freq_hz, log=None):
 
         freq_ghz = freq_hz/1e9
         
@@ -106,8 +106,10 @@ class Weather:
         self.number_of_opacity_files = len(opacity_files)
         
         if 0 == self.number_of_opacity_files:
-            #doMessage(logger, msg.WARN, 'WARNING: No opacity coefficients file')
-            print 'WARNING: No opacity coefficients file'
+            if log:
+                log.doMessage('WARN', 'WARNING: No opacity coefficients file')
+            else:
+                print 'WARNING: No opacity coefficients file'
             return False
             
         # sort the list of files so they are in chronological order
@@ -137,8 +139,14 @@ class Weather:
 
         if not opacity_coefficients_filename:
             if tooearly:
-                #doMessage(logger, msg.ERR, 'ERROR: Date is too early for opacities.')
-                #doMessage(logger, msg.ERR, '  Try setting zenith tau at command line.')
+                if log:
+                    log.doMessage('ERR', 'ERROR: Date is too early for opacities.')
+                    log.doMessage('ERR', '  Try setting zenith tau at command line.')
+                    log.doMessage('ERR', integration_mjd_timestamp, '<', opacity_file_starttime)
+                else:
+                    print 'ERROR: Date is too early for opacities.'
+                    print '  Try setting zenith tau at command line.'
+                    print integration_mjd_timestamp, '<', opacity_file_starttime
                 sys.exit(9)
             else:
                 # if the mjd in the index file comes after the date string in all of the
@@ -150,11 +158,16 @@ class Weather:
         
         # opacities coefficients filename
         if opacity_coefficients_filename and os.path.exists(opacity_coefficients_filename):
-            #doMessage(logger, msg.DBG, 'Using coefficients from', opacity_coefficients_filename)
+            if log:
+                log.doMessage('DBG', 'Using coefficients from', opacity_coefficients_filename)
+            else:
+                print 'Using coefficients from', opacity_coefficients_filename
             self.opacity_coeffs = self._retrieve_opacity_coefficients(opacity_coefficients_filename)
         else:
-            #doMessage(logger, msg.WARN, 'WARNING: No opacity coefficients file')
-            print 'WARNING: No opacity coefficients file'
+            if log:
+                log.doMessage('WARN', 'WARNING: No opacity coefficients file')
+            else:
+                print 'WARNING: No opacity coefficients file'
             return False
 
         for coeffs_line in self.opacity_coeffs:

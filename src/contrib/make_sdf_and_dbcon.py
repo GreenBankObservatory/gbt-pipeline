@@ -334,7 +334,8 @@ def dbcon(sys):
         [os.unlink(xx) for xx in sdf_files]
         if os.path.isdir('summary'):
             [os.unlink('summary/'+xx) for xx in os.listdir('summary')]
-            os.rmdir('summary')
+            if not os.listdir('summary'): # rmdir if empty
+                os.rmdir('summary')
     
     
 if __name__ == '__main__':

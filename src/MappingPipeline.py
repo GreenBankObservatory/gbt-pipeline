@@ -157,7 +157,7 @@ class MappingPipeline:
         tambients = [] # used for tsky computation for ta* and beyond
         elevations = [] # used for tsky computation for ta* and beyond
         
-        columns = tuple(self.infile[ext]._colnames)
+        columns = tuple(self.infile[ext].colnames)
         
         for rowNum in rows:
             
@@ -210,7 +210,7 @@ class MappingPipeline:
             signalRows = self.row_list.get(self.cl.mapscans[0], feed, window, pol)
             ext = signalRows['EXTENSION']
             rows = signalRows['ROW']
-            columns = tuple(self.infile[ext]._colnames)
+            columns = tuple(self.infile[ext].colnames)
             firstIntegration = Integration(self.infile[ext][columns][rows[0]])
             targetname = firstIntegration['OBJECT'].strip()
         except KeyError:
@@ -276,7 +276,7 @@ class MappingPipeline:
         signalRows = self.row_list.get(self.cl.mapscans[0], feed, window, pol)
         ext = signalRows['EXTENSION']
         rows = signalRows['ROW']
-        columns = tuple(self.infile[ext]._colnames)
+        columns = tuple(self.infile[ext].colnames)
         firstIntegration = Integration(self.infile[ext][columns][rows[0]])
         
         # integration observed frequency
@@ -287,7 +287,7 @@ class MappingPipeline:
         return obsfreqHz
 
     def getReferenceTsky(self, feed, window, pol, crefTime1, refTambient1, refElevation1,
-                         crefTime2, refTambient2, refElevation2):
+                         crefTime2, refTambient2, refElevation2, log=None):
         
         multiple_reference_scans_for_tsky = self.multi_tskys(crefTime2, refTambient2, refElevation2)
         
@@ -295,7 +295,7 @@ class MappingPipeline:
         
         # tsky for reference 1
         if not self.OPACITY:
-            ref1_zenith_opacity = self.weather.retrieve_zenith_opacity(crefTime1, obsfreqHz)
+            ref1_zenith_opacity = self.weather.retrieve_zenith_opacity(crefTime1, obsfreqHz, log)
             if not ref1_zenith_opacity:
                 self.log.doMessage('ERR', 'Not able to retrieve reference 1 zenith opacity\n  Please supply a zenith opacity or calibrate to Ta.')
                 sys.exit(9)
@@ -312,7 +312,7 @@ class MappingPipeline:
 
             # tsky for reference 2
             if not self.OPACITY:
-                ref2_zenith_opacity = self.weather.retrieve_zenith_opacity(crefTime2, obsfreqHz)
+                ref2_zenith_opacity = self.weather.retrieve_zenith_opacity(crefTime2, obsfreqHz, log)
                 if not ref2_zenith_opacity:
                     self.log.doMessage('ERR', 'Not able to retrieve reference 2 zenith opacity for calibration to:', self.cl.units, '\n  Please supply a zenith opacity or calibrate to Ta.')
                     sys.exit(9)
@@ -337,7 +337,7 @@ class MappingPipeline:
             
         return rows2write
         
-    def calibrate_fs_sdfits_integrations(self, feed, window, pol, beam_scaling):
+    def calibrate_fs_sdfits_integrations(self, feed, window, pol, beam_scaling, log=None):
 
         dtype = self.get_dtype(feed, window, pol)
         if None == dtype:
@@ -461,7 +461,7 @@ class MappingPipeline:
                         obsfreqHz = self.getObsFreq(feed, window, pol)
                         
                         if not self.OPACITY:
-                            intOpacity = self.weather.retrieve_zenith_opacity(intTime, obsfreqHz)
+                            intOpacity = self.weather.retrieve_zenith_opacity(intTime, obsfreqHz, log)
                             if not intOpacity:
                                 self.log.doMessage('ERR', 'Not able to retrieve integration zenith opacity for calibration to:', self.cl.units, '\n  Please supply a zenith opacity or calibrate to Ta.')
                                 sys.exit(9)
@@ -533,7 +533,7 @@ class MappingPipeline:
     def calibrate_ps_sdfits_integrations(self, feed, window, pol,
                           avgCref1, avgTsys1, crefTime1, refTambient1, refElevation1, refExposure1,
                           avgCref2, avgTsys2, crefTime2, refTambient2, refElevation2, refExposure2,
-                          beam_scaling):
+                          beam_scaling, log=None):
         
         dtype = self.get_dtype(feed, window, pol)
         if None == dtype:
@@ -557,7 +557,7 @@ class MappingPipeline:
             rows = signalRows['ROW']
             ext = signalRows['EXTENSION']
             
-            columns = tuple(self.infile[ext]._colnames)
+            columns = tuple(self.infile[ext].colnames)
         
             if CREATE_PLOTS:
                 tas = []
@@ -674,7 +674,7 @@ class MappingPipeline:
                             #   the opacity needs to come from the command line or Ron's
                             #   model database.
                             if not self.OPACITY:
-                                intOpacity = self.weather.retrieve_zenith_opacity(intTime, obsfreqHz)
+                                intOpacity = self.weather.retrieve_zenith_opacity(intTime, obsfreqHz, log)
                                 if not intOpacity:
                                     self.log.doMessage('ERR', 'Not able to retrieve integration zenith opacity for calibration to:', self.cl.units, '\n  Please supply a zenith opacity or calibrate to Ta.')
                                     sys.exit(9)
