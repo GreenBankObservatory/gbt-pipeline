@@ -157,7 +157,7 @@ class MappingPipeline:
         tambients = [] # used for tsky computation for ta* and beyond
         elevations = [] # used for tsky computation for ta* and beyond
         
-        columns = tuple(self.infile[ext].colnames)
+        columns = tuple(self.infile[ext].get_colnames())
         
         for rowNum in rows:
             
@@ -210,7 +210,7 @@ class MappingPipeline:
             signalRows = self.row_list.get(self.cl.mapscans[0], feed, window, pol)
             ext = signalRows['EXTENSION']
             rows = signalRows['ROW']
-            columns = tuple(self.infile[ext].colnames)
+            columns = tuple(self.infile[ext].get_colnames())
             firstIntegration = Integration(self.infile[ext][columns][rows[0]])
             targetname = firstIntegration['OBJECT'].strip()
         except KeyError:
@@ -276,7 +276,7 @@ class MappingPipeline:
         signalRows = self.row_list.get(self.cl.mapscans[0], feed, window, pol)
         ext = signalRows['EXTENSION']
         rows = signalRows['ROW']
-        columns = tuple(self.infile[ext].colnames)
+        columns = tuple(self.infile[ext].get_colnames())
         firstIntegration = Integration(self.infile[ext][columns][rows[0]])
         
         # integration observed frequency
@@ -354,7 +354,7 @@ class MappingPipeline:
             rows = inputRows['ROW']
             ext = inputRows['EXTENSION']
             
-            columns = tuple(self.infile[ext].colnames)
+            columns = tuple(self.infile[ext].get_colnames())
             
             cal_switching, sigref = self.determineSetup(rows, ext)
             
@@ -557,7 +557,7 @@ class MappingPipeline:
             rows = signalRows['ROW']
             ext = signalRows['EXTENSION']
             
-            columns = tuple(self.infile[ext].colnames)
+            columns = tuple(self.infile[ext].get_colnames())
         
             if CREATE_PLOTS:
                 tas = []
