@@ -78,7 +78,7 @@ class SdFits:
         """
     
         map_scans = {}
-        observation = self.parseSdfitsIndex(indexfile)
+        observation, summary = self.parseSdfitsIndex(indexfile)
         feed = observation.feeds()[0]
         window = observation.windows()[0]
         pol = observation.pols()[0]
@@ -86,32 +86,37 @@ class SdFits:
         # print results
         if debug:
             print '------------------------- All scans'
-            for scanid in observation.scans():
+            for scanid in sorted(observation.scans()):
                 scanstruct = observation.get(scanid, feed, window, pol)
-                print 'scan', scanid, scanstruct['OBSID']
-    
-            print '------------------------- Relavant scans'
+                print('scan \'{0}\' obsid \'{1}\' procname \'{2}\' procscan \'{3}\''.format(scanid, 
+                                                                                            scanstruct['OBSID'],
+                                                                                            scanstruct['PROCNAME'],
+                                                                                            scanstruct['PROCSCAN']))
    
         for scanid in observation.scans():
             scanstruct = observation.get(scanid, feed, window, pol)
             obsid = scanstruct['OBSID'].upper()
+            procname = scanstruct['PROCNAME'].upper()
             procscan = scanstruct['PROCSCAN'].upper()
 
             # keyword check should depend on presence of PROCSCAN key, which is an
             # alternative to checking SDFITVER.
             # OBSID is the old way, PROCSCAN is the new way MR8Q312
-            # only do the following for an "OLD" SDFITS version
 
             # create a new list that only has 'MAP' and 'OFF' scans
             if not procscan and (obsid=='MAP' or obsid=='OFF'):
-                    map_scans[scanid] = obsid
-            elif procscan=='MAP' or procscan=='OFF':
-                    map_scans[scanid] = procscan
+                map_scans[scanid] = obsid
+            elif (procscan=='MAP' or
+                  procname=='TRACK' or
+                  (procname=='ONOFF' and procscan=='OFF') or
+                  (procname=='OFFON' and procscan=='OFF')):
+                map_scans[scanid] = procscan
      
         mapkeys = map_scans.keys()
         mapkeys.sort()
     
         if debug:
+            print '------------------------- Relavant scans'
             for scanid in mapkeys:
                 print 'scan', scanid, map_scans[scanid]
     
@@ -127,8 +132,8 @@ class SdFits:
         MapParams = namedtuple("MapParams", "refscan1 mapscans refscan2")
         for idx,scan in enumerate(mapkeys):
     
-            # look for the offs
-            if (map_scans[scan]).upper()=='OFF':
+            # look for the reference scans
+            if (map_scans[scan]).upper()=='OFF' or (map_scans[scan]).upper()=='ON':
                 # if there is no ref1 or this is another ref1
                 if not ref1 or (ref1 and bool(mapscans)==False):
                     ref1 = scan
@@ -169,7 +174,8 @@ class SdFits:
         try:
             ifile = open(infile)
         except IOError:
-            print "ERROR: Could not open file.  Please check and try again."
+            print("ERROR: Could not open file: {0}\n"
+                  "Please check and try again.".format(infile))
             raise
         
         observation = ObservationRows()
@@ -191,6 +197,8 @@ class SdFits:
        
         rr = SdFitsIndexRowReader(lookup_table)
 
+        summary = {'WINDOWS': set([]), 'FEEDS': set([])}
+
         for row in ifile:
         
             rr.setrow(row)
@@ -202,19 +210,25 @@ class SdFits:
             rowOfFitsFile = int(rr['ROW'])
             typeOfScan = rr['PROCEDURE']
             obsid = rr['OBSID']
+            procname = rr['PROCEDURE']
             procscan = rr['PROCSCAN']
+
+            summary['WINDOWS'].add(rr['RESTFREQ'])
+            summary['FEEDS'].add(rr['FDNUM'])
+
             
             # we can assume all integrations of a single scan are within the same
             #   FITS extension
             observation.addRow(scanid, feed, windowNum, pol,
-                               fitsExtension, rowOfFitsFile, typeOfScan, obsid, procscan)
+                               fitsExtension, rowOfFitsFile, typeOfScan, obsid,
+                               procname, procscan)
             
         try:
             ifile.close()
         except NameError:
             raise
         
-        return observation
+        return observation, summary
 
     def getReferenceIntegration(self, cal_on, cal_off):
         
@@ -234,15 +248,23 @@ class SdFits:
         
         return cref, tsys, exposure, timestamp, tambient, elevation
 
-    def nameIndexFile(self, fitsfile):
+    def nameIndexFile(self, pathname):
         # -------------------------------------------------  name index file
-        
-        if fitsfile.endswith('.fits'):
-            return os.path.splitext(fitsfile)[0]+'.index'
+        if not os.path.exists(pathname):
+            print ('ERROR: Path does not exist {0}.\n'
+                   '       Please check and try again'.format(pathname))
+            sys.exit(9)
+
+        if os.path.isdir(pathname):
+            bn = os.path.basename(pathname.rstrip('/'))
+            return '{0}/{1}.index'.format(pathname, bn)
+
+        elif os.path.isfile(pathname) and pathname.endswith('.fits'):
+            return os.path.splitext(pathname)[0]+'.index'
         
         else:
             #doMessage(logger,msg.ERR,'input file not recognized as a fits file.',\
             #  ' Please check the file extension and change to \'fits\' if necessary.')
-            print 'ERROR: Input file does not end with .fits:', fitsfile
+            print 'ERROR: Input file does not end with .fits:', pathname
             sys.exit(9)
 

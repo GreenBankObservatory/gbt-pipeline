@@ -62,18 +62,19 @@ class Logging:
         """
         message = ' '.join(map(str,(args)))
         if 'CRIT' == level:
-            self.logger.error('{t.bold}CRITICAL:{t.normal} {m}'.format(m = message, t = self.t))
+            self.logger.error('{t.bold}{t.red}CRITICAL:{t.normal} {m}'.format(m = message, t = self.t))
             sys.stdout.flush()
         elif 'ERR' == level:
-            self.logger.error('{t.bold}ERROR:{t.normal} {m}'.format(m = message, t = self.t))
+            self.logger.error('{t.bold}{t.red}ERROR:{t.normal} {m}'.format(m = message, t = self.t))
             sys.stdout.flush()
         elif 'WARN' == level:
-            self.logger.error('{t.bold}WARNING:{t.normal} {m}'.format(m = message, t = self.t))
+            self.logger.error('{t.bold}{t.yellow}WARNING:{t.normal} {m}'.format(m = message, t = self.t))
             sys.stdout.flush()
         elif 'INFO' == level:
             self.logger.info(message)
         elif 'DBG' == level:
-            self.logger.debug(message)
+            self.logger.debug('{t.bold}{t.blue}DEBUG:{t.normal} {m}'.format(m = message, t = self.t))
+            sys.stdout.flush()
         else:
             print 'ERROR: please check logging level.', level
         sys.stdout.flush()

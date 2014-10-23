@@ -45,9 +45,16 @@ class ObservationRows:
     def __init__(self):
         self.rows = OrderedDict()
         self.Key = namedtuple('key', 'scan, feed, window, polarization')
-        
+    
+    def __repr__(self):
+        return ('Scans: {0}\nFeeds: {1}\nWindows: {2}\nPols: {3}'.format(self.scans(),
+                                                                         self.feeds(),
+                                                                         self.windows(),
+                                                                         self.pols()))
+
     def addRow(self, scan, feed, window, polarization,
-               fitsExtension, rowOfFitsFile, typeOfScan, obsid, procscan):
+               fitsExtension, rowOfFitsFile, typeOfScan, obsid,
+               procname, procscan):
         """Add rows to the ObservationRows object.
 
            When rows are added to this object (addRow), the FITS extension,
@@ -64,7 +71,8 @@ class ObservationRows:
                               'ROW': [rowOfFitsFile],
                               'TYPE': typeOfScan,
                               'OBSID': obsid,
-                              'PROCSCAN': procscan }
+                              'PROCNAME': procname,
+                              'PROCSCAN': procscan}
             
     def get(self, scan, feed, window, polarization):
         """Retreive a list of rows for scan/feed/win/pol.

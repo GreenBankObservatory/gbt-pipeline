@@ -28,13 +28,14 @@ import sys
 import os
 import glob
 import subprocess
+from collections import namedtuple
 
 class Imaging:
 
     def __init__(self,):
         pass
 
-    def run(self, log, terminal, cl_params, pipes):
+    def run(self, log, terminal, cl_params, mapping_pipelines):
         
         log.doMessage('INFO', '\n{t.underline}Start imaging.{t.normal}'.format(t = terminal) )
         
@@ -48,7 +49,7 @@ class Imaging:
         tools_dir = '/'.join((pipe_dir, "tools"))
 
         dbcon_script = '/'.join((contrib_dir, "make_sdf_and_dbcon.py"))
-        map_script = '/'.join((contrib_dir, "mapDefault.py"))
+        map_script = '/'.join((contrib_dir, "create_AIPS_images.py"))
 
         doimage = '/'.join((tools_dir, "doImage"))
 
@@ -61,22 +62,35 @@ class Imaging:
 
             log.doMessage('ERR',"Imaging script(s) not found.  Stopping after calibration.")
             sys.exit()
-            
-        windows = set([])
-        feeds = set([])
-        for mp, window, feed, pol in pipes:
-            windows.add(str(window))
-            feeds.add(feed)
 
-        scanrange = str(cl_params.mapscans[0])+'_'+str(cl_params.mapscans[-1])
-            
-        for win in windows:
-        
+        maps = {}
+        MapStruct = namedtuple("MapStruct", "window, start, end")
+        for mp in mapping_pipelines:
+            maps[MapStruct(mp.window, mp.start, mp.end)] = set()
+        for mp in mapping_pipelines:
+            maps[MapStruct(mp.window, mp.start, mp.end)].add(mp.feed)
+
+        for thismap in maps:
+
             aipsinputs = []
-            
-            log.doMessage('INFO','Imaging window {win}'.format(win=win))    
-            
-            imfiles = glob.glob('*' + scanrange + '*window' + win + '*feed*pol*' + '.fits')
+
+            log.doMessage('INFO','Imaging window {win} '
+                          'for map scans {start}-{stop}'.format(win = thismap.window,
+                                                                start = thismap.start,
+                                                                stop = thismap.end))
+
+            scanrange = str(thismap.start) + '_' + str(thismap.end)
+
+            all_imfiles = glob.glob('*' + scanrange + '*window' +
+                                str(thismap.window) + '*feed*pol*' + '.fits')
+
+            # filter file list to only include those with a feed calibrated for use in this map
+            feeds = map(str, sorted(maps[thismap]))
+            imfiles = [] # list of image files filtered for feed
+            for feed in feeds:
+                for imfile in all_imfiles:
+                    if 'feed{0}_'.format(feed) in imfile:
+                        imfiles.append(imfile)
             
             ff = fitsio.FITS(imfiles[0])
             nchans = int([xxx['tdim'] for xxx in ff[1].get_info()['colinfo'] if xxx['name']=='DATA'][0][0])
@@ -87,37 +101,37 @@ class Imaging:
                 chan_min = int(nchans*.02) # start at 2% of nchan
                 chan_max = int(nchans*.98) # end at 98% of nchans
                 channels = str(chan_min) + ':' + str(chan_max)
-                
+
             aips_number = str(os.getuid())
             aipsinfiles = ' '.join(imfiles)
-            
+
             if cl_params.display_idlToSdfits:
                 display_idlToSdfits = '1'
             else:
                 display_idlToSdfits = '0'
-                
+
             if cl_params.idlToSdfits_rms_flag:
                 idlToSdfits_rms_flag = str(cl_params.idlToSdfits_rms_flag)
             else:
                 idlToSdfits_rms_flag = '0'
-            
+
             if cl_params.idlToSdfits_baseline_subtract:
                 idlToSdfits_baseline_subtract = str(cl_params.idlToSdfits_baseline_subtract)
             else:
                 idlToSdfits_baseline_subtract = '0'
-                
+
             if cl_params.keeptempfiles:
                 keeptempfiles = '1'
             else:
                 keeptempfiles = '0'
-            
+
             doimg_cmd = ' '.join((doimage,
-                dbcon_script, aips_number, ','.join(map(str,sorted(feeds))),
+                dbcon_script, aips_number, ','.join(feeds),
                 str(cl_params.average), channels, display_idlToSdfits,
                 idlToSdfits_rms_flag, str(cl_params.verbose),
                 idlToSdfits_baseline_subtract, keeptempfiles,
                 aipsinfiles))
-            
+
             log.doMessage('DBG', doimg_cmd)
 
             p = subprocess.Popen(doimg_cmd.split(), stdout = subprocess.PIPE,\
@@ -131,10 +145,11 @@ class Imaging:
             log.doMessage('DBG', aips_stdout)
             log.doMessage('DBG', aips_stderr)
             log.doMessage('INFO','... (step 1 of 2) done')
-            
+
             # define command to invoke mapping script
             # which in turn invokes AIPS via ParselTongue
-            doimg_cmd = ' '.join((doimage, map_script, aips_number))
+            doimg_cmd = ' '.join((doimage, map_script, aips_number,
+                                  '-u=_{0}_{1}'.format(str(thismap.start), str(thismap.end))))
             log.doMessage('DBG', doimg_cmd)
 
             p = subprocess.Popen(doimg_cmd.split(), stdout = subprocess.PIPE, stderr = subprocess.PIPE)
@@ -143,4 +158,4 @@ class Imaging:
             log.doMessage('DBG', aips_stdout)
             log.doMessage('DBG', aips_stderr)
             log.doMessage('INFO','... (step 2 of 2) done')
-     
+

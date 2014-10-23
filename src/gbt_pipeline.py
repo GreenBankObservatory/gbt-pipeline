@@ -40,7 +40,8 @@ import errno
 import multiprocessing
 import sys
 import glob
-
+import copy
+from collections import namedtuple
 
 def mkdir_p(path):
     """Create a directory if it does not exist
@@ -213,7 +214,7 @@ def calibrate_maps(log, cl_params, row_list, term):
             missingscan = True
     if missingscan:
         sys.exit()
-
+    
     # if feeds, pols and/or windows are not set at the command line then
     #  default to all that are found in the input file
     if not feeds:
@@ -256,7 +257,10 @@ def calibrate_maps(log, cl_params, row_list, term):
 
                 # add the MappingPipeline object to a list of all the
                 #  to be calibrated
-                calibrated_maps.append((mp, window, feed, pol))
+                CalibratedMap = namedtuple('CalibratedMap', 'mp_object, window, feed, pol, start, end')
+                calibrated_maps.append(CalibratedMap(mp, window, feed, pol,
+                                                     cl_params.mapscans[0],
+                                                     cl_params.mapscans[-1]))
 
         pids = []
         if maps_for_this_window:
@@ -339,6 +343,7 @@ def set_map_scans(cl_params, map_params):
     """Use the information found in find_maps to set refscans.
 
     """
+    cl_params.refscans = []
     if map_params.refscan1:
         cl_params.refscans.append(map_params.refscan1)
     if map_params.refscan2:
@@ -347,7 +352,7 @@ def set_map_scans(cl_params, map_params):
     return cl_params
 
 
-def calibrate_file(term, log, cl_params):
+def calibrate_file(term, log, command_options):
     """Calibrate a single SDFITS file
 
        Actual calibration is done in calibrate_win_feed_pol(),
@@ -360,23 +365,74 @@ def calibrate_file(term, log, cl_params):
     sdf = SdFits()
 
     # generate a name for the index file based on the name of the
-    #  raw SDFITS file.  The index file simple has a different extension
-    indexfile = sdf.nameIndexFile(cl_params.infilename)
+    #  raw SDFITS file.  The index file simply has a different extension
+    indexfile = sdf.nameIndexFile(command_options.infilename)
     try:
         # create a structure that lists the raw SDFITS rows for
         #  each scan/window/feed/polarization
-        row_list = sdf.parseSdfitsIndex(indexfile)
+        row_list, summary = sdf.parseSdfitsIndex(indexfile)
     except IOError:
         log.doMessage('ERR', 'Could not open index file', indexfile)
         sys.exit()
 
+    log.doMessage('INFO', 'Summary:')
+    log.doMessage('INFO', '    ', len(summary['WINDOWS']),'spectral windows')
+    freqs = map(float, summary['WINDOWS'])
+    freqs_ghz = []
+    for ff in freqs:
+        freqs_ghz.append("{0:.1f}".format(ff/1e9))
+    log.doMessage('INFO', '      Freqs. (GHz):', ' '.join(freqs_ghz))
+    log.doMessage('INFO', '    ', len(summary['FEEDS']),'feeds')
+
+    proceed_with_calibration = True
+
+    # check for presence of pol(s) in dataset before attempting calibration
+    if command_options.pol:
+        if  set(command_options.pol).isdisjoint(set(row_list.pols())):
+            log.doMessage('DBG', 'POL', command_options.pol, 'not in', os.path.basename(indexfile))
+            proceed_with_calibration = False
+        else:
+            requested_pols = command_options.pol
+            command_options.pol = list(set(command_options.pol).intersection(set(row_list.pols())))
+            pol_diff = set(requested_pols).difference(set(command_options.pol))
+            if pol_diff:
+                log.doMessage('DBG', 'POL', list(pol_diff), 'not in', os.path.basename(indexfile))            
+
+    # check for presence of feed(s) in dataset before attempting calibration
+    if command_options.feed:
+        if  set(command_options.feed).isdisjoint(set(row_list.feeds())):
+            log.doMessage('DBG', 'FEED', command_options.feed, 'not in', os.path.basename(indexfile))
+            proceed_with_calibration = False
+        else:
+            requested_feeds = command_options.feed
+            command_options.feed = list(set(command_options.feed).intersection(set(row_list.feeds())))
+            feed_diff = set(requested_feeds).difference(set(command_options.feed))
+            if feed_diff:
+                log.doMessage('DBG', 'FEED', list(feed_diff), 'not in', os.path.basename(indexfile))            
+
+    # check for presence of window(s) in dataset before attempting calibration
+    if command_options.window:
+        if  set(command_options.window).isdisjoint(set(row_list.windows())):
+            log.doMessage('DBG', 'WINDOW', command_options.window, 'not in', os.path.basename(indexfile))
+            proceed_with_calibration = False
+        else:
+            requested_windows = command_options.window
+            command_options.window = list(set(command_options.window).intersection(set(row_list.windows())))
+            window_diff = set(requested_windows).difference(set(command_options.window))
+            if window_diff:
+                log.doMessage('DBG', 'WINDOW', list(window_diff), 'not in', os.path.basename(indexfile))            
+
+    if proceed_with_calibration == False:
+        return None
+
+    calibrated_maps = []
     # if there are no mapscans set at the command line, the user
     #  probably wants the pipeline to find maps in the input file
-    if not cl_params.mapscans:
-        if cl_params.refscans:
+    if not command_options.mapscans:
+        if command_options.refscans:
             log.doMessage('WARN', 'Referene scan(s) given without map scans, '
                           'ignoring reference scan settings.')
-        cl_params.refscans = []
+        command_options.refscans = []
          # this is where we try to guess the mapping blocks in the
         #  input file.  A powition-switched mapping block is defined
         #  as a reference scan, followed by mapping scans, optionally
@@ -393,13 +449,13 @@ def calibrate_file(term, log, cl_params):
 
         # calibrate each map found in the input file
         for map_number, map_params in enumerate(maps):
-            cl_params = set_map_scans(cl_params, map_params)
-            log.doMessage('INFO', 'Processing map:', str(map_number+1), 'of',
+            cmd_options = set_map_scans(command_options, map_params)
+            log.doMessage('INFO', '\nProcessing map:', str(map_number+1), 'of',
                           len(maps))
-            calibrated_maps = calibrate_maps(log, cl_params, row_list, term)
+            calibrated_maps.append(calibrate_maps(log, cmd_options, row_list, term))
     else:
         # calibrate the map defined by the user
-        calibrated_maps = calibrate_maps(log, cl_params, row_list, term)
+        calibrated_maps.append(calibrate_maps(log, command_options, row_list, term))
 
     return calibrated_maps
 
@@ -439,19 +495,65 @@ def runPipeline():
         log.doMessage('INFO', 'Infile name is a directory')
         input_directory = cl_params.infilename
 
+        # Instantiate a SdFits object for I/O and interpreting the
+        #  contents of the index file
+        sdf = SdFits()
+
+        # generate a name for the index file based on the name of the
+        #  raw SDFITS file.  The index file simply has a different extension
+        directory_name = os.path.basename(cl_params.infilename.rstrip('/'))
+        indexfile = cl_params.infilename + '/' + directory_name + '.index'
+        try:
+            # create a structure that lists the raw SDFITS rows for
+            #  each scan/window/feed/polarization
+            row_list, summary = sdf.parseSdfitsIndex(indexfile)
+        except IOError:
+            log.doMessage('ERR', 'Could not open index file', indexfile)
+            sys.exit()
+
+        quitcal = False
+        if cl_params.window and set(cl_params.window).isdisjoint(set(row_list.windows())):
+            log.doMessage('ERR', 'no given WINDOW(S)', cl_params.window, 'in dataset')
+            quitcal = True
+        if cl_params.feed and set(cl_params.feed).isdisjoint(set(row_list.feeds())):
+            log.doMessage('ERR', 'no given FEED(S)', cl_params.feed, 'in dataset')
+            quitcal = True
+        if cl_params.pol and set(cl_params.pol).isdisjoint(set(row_list.pols())):
+            log.doMessage('ERR', 'no given POL(S)', cl_params.pol, 'in dataset')
+            quitcal = True
+        if cl_params.mapscans and set(cl_params.mapscans).isdisjoint(set(row_list.scans())):
+            log.doMessage('ERR', 'no given MAPSCAN(S)', cl_params.mapscans, 'in dataset')
+            quitcal = True
+        if cl_params.refscans and set(cl_params.refscans).isdisjoint(set(row_list.scans())):
+            log.doMessage('ERR', 'no given REFSCAN(S)', cl_params.refscans, 'in dataset')
+            quitcal = True
+
+        if quitcal:
+            sys.exit(12)
+    
         # calibrate one raw SDFITS file at a time
         for infilename in glob.glob(input_directory + '/' +
                                     os.path.basename(input_directory) +
                                     '*.fits'):
-            log.doMessage('INFO', '\nCalibrating', infilename.rstrip('.fits'))
+            log.doMessage('INFO', 'Attempting to calibrate', os.path.basename(infilename).rstrip('.fits'))
             # change the infilename in the params structure to the
             #  current infile in the directory for each iteration
             cl_params.infilename = infilename
-            calibrated_maps_this_file = calibrate_file(term, log, cl_params)
-            calibrated_maps.extend(calibrated_maps_this_file)
+
+            # copy the cl_params structure so we can modify it during calibration
+            # for each seperate file.
+            commandline_options = copy.deepcopy(cl_params)
+            calibrated_maps_this_file = calibrate_file(term, log, commandline_options)
+            if calibrated_maps_this_file:
+                calibrated_maps.extend(calibrated_maps_this_file)
     else:
-            calibrated_maps_this_file = calibrate_file(term, log, cl_params)
-            calibrated_maps.extend(calibrated_maps_this_file)
+        commandline_options = copy.deepcopy(cl_params)
+        calibrated_maps_this_file = calibrate_file(term, log, commandline_options)
+        calibrated_maps.extend(calibrated_maps_this_file)
+
+    if not calibrated_maps:
+        log.doMessage('ERR', 'No calibrated spectra.  Check inputs and try again')
+        sys.exit(-1)
 
     # if we are doing imaging
     if not cl_params.imagingoff:
@@ -459,7 +561,8 @@ def runPipeline():
         # instantiate an Imaging object
         imag = Imaging()
         # image all the calibrated maps
-        imag.run(log, term, cl_params, calibrated_maps)
+        for current_map in calibrated_maps:
+            imag.run(log, term, cl_params, current_map)
 
     sys.stdout.write('\n')
 

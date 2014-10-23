@@ -53,8 +53,6 @@ import math
 
 import pyfits
 
-#import fitsio
-
 def run_idlToSdfits(files, average, channels, display_idlToSdfits,
                idlToSdfits_rms_flag, verbose, idlToSdfits_baseline_subtract):
 
@@ -136,7 +134,7 @@ def dbcon(sys):
     for feed in feeds:
         files = []
         for xx in imfiles:
-            if 'feed{num}'.format(num=feed) in xx:
+            if 'feed{num}_'.format(num=feed) in xx:
                 files.append(xx)
         
         if not files:
