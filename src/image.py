@@ -58,8 +58,8 @@ from fixAipsImages import fixAipsImages
 argc = len(sys.argv)
 if argc < 2:
     print ''
-    print 'mapDefault: Compute default images from calibrated spectra'
-    print 'usage: doImage mapDefault.py <aipsNumber> [<nAverage>] [<mapRaDeg>] [<mapDecDeg>] [<imageXPixels>] [<imageYPixels>] [<refFreqMHz>]'
+    print 'image: Compute default images from calibrated spectra'
+    print 'usage: aipspy image.py <aipsNumber> [<nAverage>] [<mapRaDeg>] [<mapDecDeg>] [<imageXPixels>] [<imageYPixels>] [<refFreqMHz>]'
     print 'where <aipsNumber>     Your *PIPELINE* AIPS number (should always be the same)'
     print '     [<nAverage>]      Optional number of channels to average'
     print '     [<mapRaDeg>]      Optional map center RA (in Degrees)'

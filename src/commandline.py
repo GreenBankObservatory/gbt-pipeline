@@ -82,7 +82,7 @@ class CommandLine:
         data_selection.add_argument("-c", "--channels", dest="channels",
                                     default=False, type=str,
                                     help='channel selection, e.g. "100:200".  '
-                                    '(Passed directly to idlToSdfits)')
+                                    '(Passed directly to sdfits2aips)')
 
         control = self.parser.add_argument_group('Control')
         control.add_argument("--imaging-off", dest="imagingoff",
@@ -93,22 +93,22 @@ class CommandLine:
         control.add_argument("-a", "--average", dest="average", default=0,
                              type=int,
                              help='average the spectra over N channels '
-                             '(passed directly to idlToSdfits)')
-        control.add_argument("-n", "--rms-flag", dest="idlToSdfits_rms_flag",
+                             '(passed directly to sdfits2aips)')
+        control.add_argument("-n", "--rms-flag", dest="sdfits2aips_rms_flag",
                              default=False,
                              help="flag integrations with RMS noise > N "
-                             "kelvin (passed directly to idlToSdfits)",
+                             "kelvin (passed directly to sdfits2aips)",
                              metavar="N")
         control.add_argument("--median-baseline-subtract",
-                             dest="idlToSdfits_baseline_subtract",
+                             dest="sdfits2aips_baseline_subtract",
                              default=False, help="subtract median-filtered "
                              "baseline, with a median window half width of N "
-                             "channels (passed directly to idlToSdfits)",
+                             "channels (passed directly to sdfits2aips)",
                              metavar="N")
-        control.add_argument("--display-idlToSdfits-plots",
+        control.add_argument("--display-sdfits2aips-plots",
                              action='store_true',
-                             dest="display_idlToSdfits", default=False,
-                             help="display idlToSdfits plots of "
+                             dest="display_sdfits2aips", default=False,
+                             help="display sdfits2aips plots of "
                              "calibrated spectra")
 
         calibration = self.parser.add_argument_group('Calibration')

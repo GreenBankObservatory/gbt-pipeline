@@ -53,15 +53,15 @@ import math
 
 import pyfits
 
-def run_idlToSdfits(files, average, channels, display_idlToSdfits,
-               idlToSdfits_rms_flag, verbose, idlToSdfits_baseline_subtract):
+def run_sdfits2aips(files, average, channels, display_sdfits2aips,
+               sdfits2aips_rms_flag, verbose, sdfits2aips_baseline_subtract):
 
     
-    # set the idlToSdfits output file name
+    # set the sdfits2aips output file name
     for infile in files:
-        aipsinname = '_'.join(infile.split('_')[:-1])+'.sdf'
+        aipsinname = '_'.join(infile.split('_')[:-1])+'.aips'
     
-    # run idlToSdfits, which converts calibrated sdfits into a format
+    # run sdfits2aips, which converts calibrated sdfits into a format
     options = ''
     
     if int(average):
@@ -70,21 +70,21 @@ def run_idlToSdfits(files, average, channels, display_idlToSdfits,
     if bool(channels):
         options = options + ' -c ' + str(channels) + ' '
     
-    if not int(display_idlToSdfits):
+    if not int(display_sdfits2aips):
         options = options + ' -l '
     
-    if int(idlToSdfits_rms_flag):
-        options = options + ' -n ' + idlToSdfits_rms_flag + ' '
+    if int(sdfits2aips_rms_flag):
+        options = options + ' -n ' + sdfits2aips_rms_flag + ' '
         
     if int(verbose) > 4:
         options = options + ' -v 2 '
     else:
         options = options + ' -v 0 '
     
-    if int(idlToSdfits_baseline_subtract):
-        options = options + ' -w ' + idlToSdfits_baseline_subtract + ' '
+    if int(sdfits2aips_baseline_subtract):
+        options = options + ' -w ' + sdfits2aips_baseline_subtract + ' '
         
-    idlcmd = '/home/gbtpipeline/bin/idlToSdfits -o ' + aipsinname + options + ' '.join(files)
+    idlcmd = '/home/gbtpipeline/bin/sdfits2aips -o ' + aipsinname + options + ' '.join(files)
     
     print 'DBG',idlcmd
     os.system(idlcmd)
@@ -99,7 +99,7 @@ def run_idlToSdfits(files, average, channels, display_idlToSdfits,
         sdf[0].header.add_history(hist,after='VELREF')
         sdf.close()
     except:
-        print "Unable to note original SDFITS VELDEF value in sdf file(s).  Final frequency axis may be wrong."
+        print "Unable to note original SDFITS VELDEF value in aips file(s).  Final frequency axis may be wrong."
     
     return aipsinname
 
@@ -107,8 +107,8 @@ def dbcon(sys):
     argc = len(sys.argv)
     if argc < 3:
         print ''
-        print 'dbcon: Combine all observations into a single dish fits file'
-        print 'usage: doImage dbcon.py <aipsNumber> <feeds>'
+        print 'load: Combine all observations into a single dish fits file'
+        print 'usage: aipspy load.py <aipsNumber> <feeds>'
         print '                        <average> <channels> <display> <rmsflag> <verbose> <baseline-subtract>'
         print '                        <keeptempfiles> <spectra File 1> [<spectra File n>]'
         print 'where <aipsNumber>     Your *PIPELINE* AIPS number (should always be the same)'
@@ -120,17 +120,17 @@ def dbcon(sys):
     feeds = sys.argv[2].split(',')
     average = sys.argv[3]
     channels = sys.argv[4]
-    display_idlToSdfits = sys.argv[5]
-    idlToSdfits_rms_flag = sys.argv[6]
+    display_sdfits2aips = sys.argv[5]
+    sdfits2aips_rms_flag = sys.argv[6]
     verbose = sys.argv[7]
-    idlToSdfits_baseline_subtract = sys.argv[8]
+    sdfits2aips_baseline_subtract = sys.argv[8]
     keeptempfiles = sys.argv[9]
     imfiles = sys.argv[10:]
     
     if not imfiles:
         return
     
-    sdf_files = []
+    aips_files = []
     for feed in feeds:
         files = []
         for xx in imfiles:
@@ -140,9 +140,9 @@ def dbcon(sys):
         if not files:
             continue
             
-        sdf = run_idlToSdfits(files, average, channels, display_idlToSdfits,
-                   idlToSdfits_rms_flag, verbose, idlToSdfits_baseline_subtract)
-        sdf_files.append(sdf)
+        aipsfile = run_sdfits2aips(files, average, channels, display_sdfits2aips,
+                                   sdfits2aips_rms_flag, verbose, sdfits2aips_baseline_subtract)
+        aips_files.append(aipsfile)
         
     AIPS.userno=int(sys.argv[1])    # retrieve AIPS pipeline user number
     mydisk=2                        # choose a good default work disk
@@ -165,7 +165,7 @@ def dbcon(sys):
     #
     kount = 0                       # init count of similar input files
     
-    for thisFile in sdf_files:        # input all AIPS single dish FITS files
+    for thisFile in aips_files:        # input all AIPS single dish FITS files
         uvlod.datain='PWD:'+thisFile
         print uvlod.datain
         uvlod.outdisk=mydisk
@@ -299,7 +299,7 @@ def dbcon(sys):
     fittp.inname=AIPSCat()[mydisk][-1].name
     fittp.inclass=AIPSCat()[mydisk][-1].klass
     fittp.inseq=AIPSCat()[mydisk][-1].seq
-    outName = os.path.splitext(sdf_files[0])[0]
+    outName = os.path.splitext(aips_files[0])[0]
     # Trim out the source name
     iUnder = outName.find("_")
     if iUnder > 0:
@@ -329,7 +329,7 @@ def dbcon(sys):
     fittp.go()
 
     if keeptempfiles != '1':
-        [os.unlink(xx) for xx in sdf_files]
+        [os.unlink(xx) for xx in aips_files]
         if os.path.isdir('summary'):
             [os.unlink('summary/'+xx) for xx in os.listdir('summary')]
             if not os.listdir('summary'): # rmdir if empty

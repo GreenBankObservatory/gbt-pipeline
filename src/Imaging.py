@@ -41,24 +41,22 @@ class Imaging:
         
         # ------------------------------------------------- identify imaging scripts
         
-        # set the contrib and tools directory paths
-        # and locations of the needed scripts and tools
+        # set the tools directory path
+        # and location of the needed scripts and tools
         # if these are not found, turn imaging off
         pipe_dir = os.path.dirname(os.path.abspath(__file__))
-        contrib_dir = '/'.join((pipe_dir, "contrib"))
         tools_dir = '/'.join((pipe_dir, "tools"))
 
-        dbcon_script = '/'.join((contrib_dir, "make_sdf_and_dbcon.py"))
-        map_script = '/'.join((contrib_dir, "create_AIPS_images.py"))
+        load_script = '/convert_and_load.py'
+        map_script = '/image.py'
 
-        doimage = '/'.join((tools_dir, "doImage"))
+        aipspy = '/'.join((tools_dir, "aipspy"))
 
         # if the user opted to do imaging, then check for the presence
-        # of the necessary imaging scripts (dbcon.py, mapDefault.py,
-        # doImage).
+        # of the necessary imaging scripts (load.py, image.py, aipspy).
         if ((not os.path.isfile(map_script)) or
-            (not os.path.isfile(dbcon_script)) or
-            (not os.path.isfile(doimage))):
+            (not os.path.isfile(load_script)) or
+            (not os.path.isfile(aipspy))):
 
             log.doMessage('ERR',"Imaging script(s) not found.  Stopping after calibration.")
             sys.exit()
@@ -105,41 +103,41 @@ class Imaging:
             aips_number = str(os.getuid())
             aipsinfiles = ' '.join(imfiles)
 
-            if cl_params.display_idlToSdfits:
-                display_idlToSdfits = '1'
+            if cl_params.display_sdfits2aips:
+                display_sdfits2aips = '1'
             else:
-                display_idlToSdfits = '0'
+                display_sdfits2aips = '0'
 
-            if cl_params.idlToSdfits_rms_flag:
-                idlToSdfits_rms_flag = str(cl_params.idlToSdfits_rms_flag)
+            if cl_params.sdfits2aips_rms_flag:
+                sdfits2aips_rms_flag = str(cl_params.sdfits2aips_rms_flag)
             else:
-                idlToSdfits_rms_flag = '0'
+                sdfits2aips_rms_flag = '0'
 
-            if cl_params.idlToSdfits_baseline_subtract:
-                idlToSdfits_baseline_subtract = str(cl_params.idlToSdfits_baseline_subtract)
+            if cl_params.sdfits2aips_baseline_subtract:
+                sdfits2aips_baseline_subtract = str(cl_params.sdfits2aips_baseline_subtract)
             else:
-                idlToSdfits_baseline_subtract = '0'
+                sdfits2aips_baseline_subtract = '0'
 
             if cl_params.keeptempfiles:
                 keeptempfiles = '1'
             else:
                 keeptempfiles = '0'
 
-            doimg_cmd = ' '.join((doimage,
-                dbcon_script, aips_number, ','.join(feeds),
-                str(cl_params.average), channels, display_idlToSdfits,
-                idlToSdfits_rms_flag, str(cl_params.verbose),
-                idlToSdfits_baseline_subtract, keeptempfiles,
+            aips_cmd = ' '.join((aipspy,
+                load_script, aips_number, ','.join(feeds),
+                str(cl_params.average), channels, display_sdfits2aips,
+                sdfits2aips_rms_flag, str(cl_params.verbose),
+                sdfits2aips_baseline_subtract, keeptempfiles,
                 aipsinfiles))
 
-            log.doMessage('DBG', doimg_cmd)
+            log.doMessage('DBG', aips_cmd)
 
-            p = subprocess.Popen(doimg_cmd.split(), stdout = subprocess.PIPE,\
+            p = subprocess.Popen(aips_cmd.split(), stdout = subprocess.PIPE,\
                                 stderr = subprocess.PIPE)
             try:
                 aips_stdout, aips_stderr = p.communicate()
             except: 
-                log.doMessage('ERR', doimg_cmd,'failed.')
+                log.doMessage('ERR', aips_cmd,'failed.')
                 sys.exit()
 
             log.doMessage('DBG', aips_stdout)
@@ -148,11 +146,11 @@ class Imaging:
 
             # define command to invoke mapping script
             # which in turn invokes AIPS via ParselTongue
-            doimg_cmd = ' '.join((doimage, map_script, aips_number,
+            aips_cmd = ' '.join((aipspy, map_script, aips_number,
                                   '-u=_{0}_{1}'.format(str(thismap.start), str(thismap.end))))
-            log.doMessage('DBG', doimg_cmd)
+            log.doMessage('DBG', aips_cmd)
 
-            p = subprocess.Popen(doimg_cmd.split(), stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+            p = subprocess.Popen(aips_cmd.split(), stdout = subprocess.PIPE, stderr = subprocess.PIPE)
             aips_stdout, aips_stderr = p.communicate()
 
             log.doMessage('DBG', aips_stdout)
