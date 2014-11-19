@@ -23,27 +23,10 @@
 # $Id$
 
 # parsel-tongue script that performs only the default imaging
-#HISTORY
-#11FEB22 GIL decrease convolution function size
-#11JAN26 GIL make default line image flatter
-#10DEC23 GIL try to reduce default size so baselineing runs
-#10DEC18 GIL clean up more comments
-#10DEC02 GIL assume data are in the first slot
-#10DEC01 GIL make default image size smaller
-#10NOV30 GIL make generic version gaussian convolving function
-#10NOV29 GIL add TMC CP coordinates
-#10NOV12 GIL try to improve baseline for NH3
-#10OCT28 GIL Strip out sampler name for output
-#10OCT20 GIL default average is 3 channels, add comments
-#10OCT08 GIL comment out all source specific lines
-#10OCT07 GIL remove Line specific processing; add comments
-#10OCT05 GIL slight name and comment changes
-#10SEP29 GIL try on NH3 1-1
-#10SEP01 GIL initial version
 
 from AIPS import *
 from AIPS import AIPS
-from AIPSTask import AIPSTask, AIPSList
+from AIPSTask import AIPSTask
 from AIPSData import *
 from AIPSData import AIPSUVData, AIPSImage
 from Wizardry.AIPSData import AIPSUVData as WizAIPSUVData
@@ -52,359 +35,391 @@ from Wizardry.AIPSData import AIPSImage as WizAIPSImage
 import sys
 import os
 import math
+import argparse
+import time
 
 from fixAipsImages import fixAipsImages
+from aips_utils import Catalog
 
-argc = len(sys.argv)
-if argc < 2:
-    print ''
-    print 'image: Compute default images from calibrated spectra'
-    print 'usage: aipspy image.py <aipsNumber> [<nAverage>] [<mapRaDeg>] [<mapDecDeg>] [<imageXPixels>] [<imageYPixels>] [<refFreqMHz>]'
-    print 'where <aipsNumber>     Your *PIPELINE* AIPS number (should always be the same)'
-    print '     [<nAverage>]      Optional number of channels to average'
-    print '     [<mapRaDeg>]      Optional map center RA (in Degrees)'
-    print '     [<mapDecDeg>]     Optional map center Declination (in Degrees)'
-    print '     [<imageXPixels>]  Optional image X pixel size'
-    print '     [<imageYPixels>]  Optional image Y pixel size'
-    print '     [<refFregMHz>]    Optional rest frequency MHz'
-    print 'To enter later arguments, values for the previous must be provided' 
-    print ''
-    quit()
+DISK_ID = 2                        # choose a good default work disk
+BADDISK = 1                       # list a disk to avoid (0==no avoidance)
+cat = Catalog()
 
-AIPS.userno=int(sys.argv[1])    # retrieve AIPS pipeline user number
-# All other arguments arguments have defaults
-if argc > 2:
-    inNAve = int( sys.argv[2])
-else:
-    inNAve = 1                  # default is average 1 channel
-if argc > 3:
-    inRa = float( sys.argv[3])
-else:
-    inRa = 0
-if argc > 4:
-    inDec = float( sys.argv[4])
-else:
-    inDec = 0
-if argc > 5:
-    inImX = int( sys.argv[5])
-else:
-    inImX = 0
-if argc > 6:
-    inImY = int( sys.argv[6])
-else:
-    inImY = 0
-if argc > 7:
-    inRefFreqHz = float( sys.argv[7])*1.E6  # convert to Hz
-else:
-    inRefFreqHz = 0
-mydisk=2                        # choose a good default work disk
-baddisk=1                       # list a disk to avoid (0==no avoidance)
+def print_header(message):
+    print ""
+    print "-" * len(message)
+    print message
+    print "-" * len(message)
+    print ""
 
-sdgrd=AIPSTask('sdgrd')
-fittp=AIPSTask('fittp')
-imlod=AIPSTask('imlod')
-trans=AIPSTask('trans')
-imlin=AIPSTask('imlin')
-avspc=AIPSTask('avspc')
-subim=AIPSTask('subim')
-sqash=AIPSTask('sqash')
+def ra_deg2hms(degrees):
+    full_hours = degrees / 15
+    hours = math.floor(full_hours)
 
-# Extract the observations summary
-spectra = AIPSUVData(AIPSCat()[mydisk][0].name, AIPSCat()[mydisk][0].klass, mydisk, AIPSCat()[mydisk][0].seq)
+    full_minutes = (full_hours - hours) * 60
+    minutes = math.floor(full_minutes)
 
-# Read parameters passed inside the spectra data header
-nChan    = round(spectra.header.naxis[2])
-cellsize = round(spectra.header.cdelt[4] * 3600.)
-refChan  = spectra.header.crpix[2]
-imxSize  = (2*round(spectra.header.crpix[3]/1.95)) + 20
-imySize  = (2*round(spectra.header.crpix[4]/1.95)) + 20
-raDeg    = spectra.header.crval[3]
-decDeg   = spectra.header.crval[4]
-nuRest   = spectra.header.restfreq
-dNu      = spectra.header.cdelt[2]
-xType    = spectra.header.ctype[3]
-yType    = spectra.header.ctype[4]
-bunit    = spectra.header.bunit
+    seconds = round((full_minutes - minutes ) * 60)
+    return hours, minutes, seconds
 
-print 'Observing coordinates: ',xType, yType, ' Unit: ', bunit
-if inRefFreqHz != 0.:
-   restFreqHz = inRefFreqHz
-else:
-   restFreqHz = nuRest
+def dec_deg2hms(degrees):
+    hours = math.floor(degrees)
+    minutes = math.floor((degrees - hours) * 60)
+    seconds = round((((degrees - hours) * 60) - minutes) * 60)
+    return hours, minutes, seconds
 
-NH3_1_1=   23694.5060E6
-#special case of favorite rest frequency (override here).
-#restFreqHz = NH3_1_1
+def read_command_line(argv):
+    """Read options from the command line."""
+    # if no options are set, print help
+    if len(argv) == 1:
+        argv.append('-h')
 
-if inRa != 0:
-    raDeg=inRa
-if inDec != 0:
-    decDeg=inDec
-if inImX != 0:
-    imxSize = inImX
-if inImY != 0:
-    imySize = inImY
+    parser = argparse.ArgumentParser()
+    parser.add_argument('aipsid', type=int,
+                        help=("The AIPS catalog number to use.  This is typically "
+                              "your system id, which you can find by typing "
+                              "'id -u' at the command line."))
+    parser.add_argument('-a', '--average', type=int, default=1,
+                        help="Number of channels to average")
+    parser.add_argument('-c',  '--center', metavar=('RA','DEC'), type=float, nargs=2,
+                        help="Map center right ascension and declination (degrees)")
+    parser.add_argument('-s', '--size', metavar=('X','Y'), type=int, nargs=2,
+                        help="Image X,Y size (pixels)")
+    parser.add_argument('-r', '--restfreq', type=float, help="Rest frequency (MHz)")
+    parser.add_argument('--noave', action='store_true', help="Disable average map")
+    parser.add_argument('--noline', action='store_true', help="Disable line cube")
 
-print "Ra,Dec:", raDeg, decDeg, "Image:", imxSize, imySize, cellsize, 
-#print spectra.header
+    args = parser.parse_args()
 
-# set number of channels to average
-if inNAve > 0:
-    nAverage = inNAve
-else:
-    nAverage = 3
+    cat.config(args.aipsid, DISK_ID)
 
-if nAverage > 1:
-    print 'Averaging ',nAverage,' Spectral Channels'
-else:
-    print 'Not Averaging Spectral Channels'
-    nAverage = 1
-# now average channels to reduce the image plane data volumn
-avspc.indisk=mydisk
-avspc.outdisk=mydisk
-avspc.outclass=''
-avspc.inname=AIPSCat()[mydisk][0].name
-avspc.inclass=AIPSCat()[mydisk][0].klass
-avspc.inseq=AIPSCat()[mydisk][0].seq
-avspc.channel=nAverage
-avspc.ichansel[1][1] = 1
-avspc.ichansel[2][1] = nChan
-avspc.ichansel[3][1] = 1
-avspc.avoption='SUBS'
-avspc.go()
+    return args
 
-#now have fewer channels, with broader frequencies
-nChan = round(nChan/nAverage)
-dNu = nAverage*dNu
-refChan = refChan/nAverage
+def average_channels(binsize):
+    if binsize > 1:
+        print 'Averaging ', binsize, ' Spectral Channels'
+    else:
+        print 'Not Averaging Spectral Channels'
+        return
 
-# Now make an image using the last entry in the catalog
-sdgrd.indisk=mydisk
-sdgrd.outdisk=mydisk
-sdgrd.baddisk[1]=baddisk
-sdgrd.inname=AIPSCat()[mydisk][-1].name
-sdgrd.inclass=AIPSCat()[mydisk][-1].klass
-sdgrd.inseq=AIPSCat()[mydisk][-1].seq
-sdgrd.optype='-GLS'
-sdgrd.reweight[1] = 0
-# must break up RA into hours minutes seconds
-sdgrd.aparm[1]=math.floor(raDeg/15.)
-sdgrd.aparm[2]=math.floor(((raDeg/15.)-sdgrd.aparm[1])*60.)
-sdgrd.aparm[3]=round(((((raDeg/15.)-sdgrd.aparm[1])*60.)-sdgrd.aparm[2])*60.)
-#now break up degrees, but must preserve sign
-decSign = 1.
-if decDeg < 0.:
-    decSign = -1.
-    decDeg = -1. * decDeg
+    avspc = AIPSTask('avspc')
+    
+    last = cat.last_entry()
+    spectra = cat.get_uv(last)
+    nChan = round(spectra.header.naxis[2])
+    print spectra.header.naxis, nChan
 
-sdgrd.aparm[4]=math.floor(decDeg)
-sdgrd.aparm[5]=math.floor((decDeg-sdgrd.aparm[4])*60.)
-sdgrd.aparm[6]=round((((decDeg-sdgrd.aparm[4])*60.)-sdgrd.aparm[5])*60.)
-#now deal with degrees and/or minutes == 0
-if decSign < 0.:
-    sdgrd.aparm[4] = -1. * sdgrd.aparm[4]
-    if sdgrd.aparm[4] == 0:
-        sdgrd.aparm[5] = -1. * sdgrd.aparm[5]
-        if sdgrd.aparm[5] == 0:
-            sdgrd.aparm[6] = -1.* sdgrd.aparm[6]
-print raDeg, decDeg, '->',sdgrd.aparm[1:7]
-#transfer cellsize 
-sdgrd.cellsize[1] = cellsize
-sdgrd.cellsize[2] = cellsize
+    # now average channels to reduce the image plane data volumn
+    avspc.indisk = avspc.outdisk = DISK_ID
+    avspc.outclass = ''
+    avspc.inname = last.name
+    avspc.inclass = last.klass
+    avspc.inseq = last.seq
+    avspc.channel = binsize
+    avspc.ichansel[1][1] = 1
+    avspc.ichansel[2][1] = nChan
+    avspc.ichansel[3][1] = 1
+    avspc.avoption = 'SUBS'
+    avspc.go()
 
-#sdgrd.xtype=-16         # sync/bessel convolving type
-sdgrd.xtype=-12         # gaussian convolving type
-# sync/bessel function parameters
-if sdgrd.xtype == -16:
-    sdgrd.xparm[1] = 3*cellsize
-    sdgrd.xparm[2] = 2.5*cellsize
-    sdgrd.xparm[3] = 1.5*cellsize
-    sdgrd.xparm[4] = 2
-    sdgrd.reweight[2] = .01
-# gaussian parameters
-if sdgrd.xtype == -12:
-    sdgrd.xparm[1] = 5.0*cellsize
-    sdgrd.xparm[2] = 1.5*cellsize # Parameter sets Gaussian FWHM
-    sdgrd.xparm[3] = 2
-    sdgrd.xparm[4] = 0
-    sdgrd.reweight[2] = -1.E-6
-# always make a circuluar convolving function
-sdgrd.ytype=sdgrd.xtype
-#prevent error due to large image sizes; temporary
-if imxSize > 700:
-    imxSize = 150
-if imySize < 30:
-    imySize = 50
-#prevent error due to large image sizes; temporary
-if imySize > 700:
-    imySize = 150
+    # now have fewer channels, with broader frequencies
+    spectra.header.naxis[2] = round(nChan / binsize)  # write back to header
+    print spectra.header.naxis
+    print spectra.header.cdelt
+    dNu = spectra.header.cdelt[2]
+    dNu = binsize * dNu  # write back to header !!!
+    print spectra.header.cdelt, dNu, binsize
 
-#if needed, override size here
-#imxSize = 280
-#imySize = 350
-sdgrd.imsize[1] = imxSize
-sdgrd.imsize[2] = imySize
-## The above lines set the default image parameters
-## Below, override imaging center coordinate
-# RA
-#sdgrd.aparm[1] = 04    #hours
-#sdgrd.aparm[2] = 41    #minutes
-#sdgrd.aparm[3] = 15.0  #seconds
-# DEC
-#sdgrd.aparm[4] = 25    #degrees
-#sdgrd.aparm[5] = 50    #arcmins
-#sdgrd.aparm[6] = 00    #arcseconds
-sdgrd.go()
+    refChan  = spectra.header.crpix[2]
+    print refChan, spectra.header.crpix
+    refChan = refChan / binsize  # write back to header !!!
+    print refChan, spectra.header.crpix    
+    return
 
-from Wizardry.AIPSData import AIPSImage as WizAIPSImage
-image = WizAIPSImage(AIPSCat()[mydisk][-1].name, \
-                     AIPSCat()[mydisk][-1].klass, \
-                     mydisk, AIPSCat()[mydisk][-1].seq)
+def update_header(args):
+    sdgrd = AIPSTask('sdgrd')
 
-image.header.niter = 1          # Allow down stream IMSTATs to sum correctly
-#print image.header
-bmaj = image.header.bmaj
-#assume no smoothing in convolving function (sdgrd.xtype = -16)
-newBmaj = bmaj
-if sdgrd.xtype == -12:
-    convolveMaj = sdgrd.xparm[2]/3600. # convolving function FWHM in degrees
-#Convolved image resolution adds in quadrature
-    newBmaj = math.sqrt( (bmaj*bmaj) + (convolveMaj*convolveMaj))
-    print 'Gaussian Convolving function:'
-    print bmaj*3600., convolveMaj*3600., '->',newBmaj*3600.
-if sdgrd.xtype == -16:
-#Convolved image resolution adds in quadrature
+    first = cat.get_entry(0)
+    spectra = cat.get_uv(first)
+    
+    xType, yType  = spectra.header.ctype[3], spectra.header.ctype[4]
+    bunit         = spectra.header.bunit
+    print 'Observing coordinates: {0}, {1}   Unit {2}'.format(xType, yType, bunit)
+    
+    last = cat.last_entry()
+    image = cat.get_image(last)
+    
+    image.header.niter = 1          # Allow down stream IMSTATs to sum correctly
+    bmaj = image.header.bmaj
     newBmaj = bmaj
-    print 'Sync Bessel Convolving function FWHM :', newBmaj
-image.header.bmaj = newBmaj
-image.header.bmin = newBmaj
-image.update()                  # This step does not seem to work!
-                                # Work-around: write file, update header, read.
-## keep track of the latest cube squence for later processing
-outseq = AIPSCat()[mydisk][-1].seq
+    
+    if sdgrd.xtype == -12:
+        convolveMaj = sdgrd.xparm[2]/3600. # convolving function FWHM in degrees
+        #Convolved image resolution adds in quadrature
+        newBmaj = math.sqrt( (bmaj*bmaj) + (convolveMaj*convolveMaj))
+        print 'Gaussian Convolving function:'
+        print bmaj*3600., convolveMaj*3600., '->',newBmaj*3600.
+    
+    if sdgrd.xtype == -16:
+        #assume no smoothing in convolving function (sdgrd.xtype = -16)
+        #Convolved image resolution adds in quadrature
+        newBmaj = bmaj
+        print 'Sync Bessel Convolving function FWHM :', newBmaj
+    
+    image.header.bmaj = newBmaj
+    image.header.bmin = newBmaj
+    image.update()
+    
+    #transfer coordinate back after gridding
+    print 'Data Coordinate type   : ', xType, yType
+    xlen = len(xType)
+    if (xlen < 2): xType = xType + '-'
+    if (xlen < 3): xType = xType + '-'
+    if (xlen < 4): xType = xType + '-'
 
-gridType = image.header.ctype[0]
+    ylen = len(yType)
+    if (ylen < 2): yType = yType + '-'
+    if (ylen < 3): yType = yType + '-'
+    if (ylen < 4): yType = yType + '-'
+    
+    print 'Padded Coordinate type : ', xType, yType
+    gridType = image.header.ctype[0]
+    xType = xType + gridType[4:]
+    yType = yType + gridType[4:]
+    print 'Map Coordinate type    : ', xType, yType
 
-#transfer coordinate back after gridding
-print 'Data Coordinate type: ', xType, yType
-xlen = len(xType)
-if (xlen < 2):
-    xType = xType + '-'
-if (xlen < 3):
-    xType = xType + '-'
-if (xlen < 4):
-    xType = xType + '-'
-ylen = len(yType)
-if (ylen < 2):
-    yType = yType + '-'
-if (ylen < 3):
-    yType = yType + '-'
-if (ylen < 4):
-    yType = yType + '-'
-print 'Padded Coordinate type: ', xType, yType
-xType = xType + gridType[4:]
-yType = yType + gridType[4:]
-print 'Map Coordinate type: ', xType, yType
+    # Read parameters passed inside the spectra data header
+    if 'restfreq' in args and args.restfreq:
+        restFreqHz = args.restfreq * 1e6  # convert to Hz
+    else:
+        restFreqHz = spectra.header.restfreq
 
-image.header.restfreq=restFreqHz
-image.header.bunit='JY/BEAM'
-image.header.bmaj=newBmaj
-image.header.bmin=newBmaj
-image.header.ctype[0]=xType
-image.header.ctype[1]=yType
-image.header.niter=1
-image.header.update()
+    image.header.restfreq = restFreqHz
+    image.header.bunit = 'JY/BEAM'
+    image.header.bmaj = newBmaj
+    image.header.bmin = newBmaj
+    image.header.ctype[0] = xType
+    image.header.ctype[1] = yType
+    image.header.niter = 1
+    image.header.update()
+    
+    return last.seq, restFreqHz
+    
+def write_fits(outname):
+    fittp = AIPSTask('fittp')
 
-## Write the last Entry in the catalog to disk
-fittp.indisk=mydisk
-fittp.inname=AIPSCat()[mydisk][-1].name
-fittp.inclass=AIPSCat()[mydisk][-1].klass
-fittp.inseq=AIPSCat()[mydisk][-1].seq
-restFreqName = "_%.0f_MHz" % (restFreqHz * 1.E-6)
-outName = AIPSCat()[mydisk][-1].name.replace(" ","") + restFreqName
-outcube = outName+'_cube.fits'
-if os.path.exists(outcube):
-    os.remove(outcube)
-    print 'Removed existing file to make room for new one :',outcube
+    ## Write the last Entry in the catalog to disk
+    fittp.indisk = DISK_ID
+    last = cat.last_entry()
+    fittp.inname = last.name
+    fittp.inclass = last.klass
+    fittp.inseq = last.seq
+    if os.path.exists(outname):
+        os.remove(outname)
+        print 'Removed existing file to make room for new one :', outname
+    fittp.dataout = 'PWD:' + outname
+    fittp.go()
 
-fittp.dataout='PWD:'+outcube
-fittp.go()
+def make_average_map(restfreq):
+    print_header("Making average map")
+    sqash = AIPSTask('sqash')
 
-# squash the frequency axis to make a continuum image
-sqash.indisk=mydisk
-sqash.outdisk=mydisk
-sqash.inname=AIPSCat()[mydisk][-1].name
-sqash.inclass=AIPSCat()[mydisk][-1].klass
-sqash.inseq=AIPSCat()[mydisk][-1].seq
-sqash.bdrop=3 # squash frequency axis
-sqash.go()
+    # squash the frequency axis to make a continuum image
+    sqash.indisk = DISK_ID
+    sqash.outdisk = DISK_ID
+    last = cat.last_entry()
+    sqash.inname = last.name
+    sqash.inclass = last.klass
+    sqash.inseq = last.seq
+    sqash.bdrop = 3 # squash frequency axis
+    sqash.go()
+    
+    write_average_map(restfreq)
 
-print AIPSCat()
+def remove_continuum(outseq):
+    trans = AIPSTask('trans')
+    imlin = AIPSTask('imlin')
+    
+    last = cat.last_entry()
+    img = cat.get_image(last)
+    nChan = round(img.header.naxis[2])
 
-## and write the last thing now in the catalog to disk
-fittp.indisk=mydisk
-fittp.inname=AIPSCat()[mydisk][-1].name
-fittp.inclass=AIPSCat()[mydisk][-1].klass
-fittp.inseq=AIPSCat()[mydisk][-1].seq
-outcont = outName+'_cont.fits'
-if os.path.exists(outcont):
-    os.remove(outcont)
-    print 'Removed existing file to make room for new one :',outcont
-fittp.dataout='PWD:'+outcont
-fittp.go()
+    # transpose image in order to run IMLIN
+    trans.indisk = DISK_ID
+    trans.outdisk = DISK_ID
+    trans.baddisk[1] = BADDISK
+    trans.inname = last.name
+    trans.inclass = 'SDGRD'
+    trans.inseq = outseq
+    trans.transc = '312'
+    trans.outcl ='trans'
+    trans.go()
 
-#Run trans task on sdgrd file to prepare for the Moment map
-trans.indisk=mydisk
-trans.outdisk=mydisk
-trans.baddisk[1]=baddisk
-trans.inname=AIPSCat()[mydisk][-1].name
-trans.inclass='SDGRD'
-trans.inseq=outseq
-trans.transc= '312'
-trans.outcl='312'
-trans.go()
+    # Run imlin task on trans file
+    # remove a spectral baseline.  Output image is in Freq-RA-Dec order
+    # (Transcod 312)
+    imlin.indisk = DISK_ID
+    imlin.outdisk = DISK_ID
+    imlin.outcl = 'IMLIN'
+    last = cat.last_entry()
+    imlin.inname = last.name
+    imlin.inclass = last.klass
+    imlin.inseq = last.seq
+    imlin.nbox = 2
+    # use only the end channels for the default baseline fits
+    imlin.box[1][1] = round(nChan * 0.04)  # 4-12%
+    imlin.box[1][2] = round(nChan * 0.12)
+    imlin.box[1][3] = round(nChan * 0.81)  # 82-89%
+    imlin.box[1][4] = round(nChan * 0.89)
+    # beware using imlin.order=1; use imlin.order=0
+    imlin.order = 0  # polynomial order
+    print imlin.box
+    imlin.go()
 
-#Run imlin task on trans file
-#remove a spectral baseline.  Output image is in Freq-RA-Dec order
-#(Transcod 312)
-imlin.indisk=mydisk
-imlin.outdisk=mydisk
-imlin.outcl='IMLIN'
-imlin.inname=AIPSCat()[mydisk][-1].name
-imlin.inclass=AIPSCat()[mydisk][-1].klass
-imlin.inseq=AIPSCat()[mydisk][-1].seq
-imlin.nbox=2
-# use only the end channels for the default baseline fits
-imlin.box[1][1]=round(nChan*0.04)
-imlin.box[1][2]=round(nChan*0.12)
-imlin.box[1][3]=round(nChan*0.81)
-imlin.box[1][4]=round(nChan*0.89)
-imlin.order=0  # beware using imlin.order=1; use imlin.order=0
-print imlin.box
+    # Run transpose again task on sdgrd file produced by IMLIN
+    last = cat.last_entry()
+    trans.inname = last.name
+    trans.inclass = last.klass
+    trans.inseq = last.seq
+    trans.transc = '231'
+    trans.outdi = DISK_ID
+    trans.outcl = 'baseli'
+    trans.go()
 
-imlin.go()
+def write_line_cube(restfreq):
+    last = cat.last_entry()
+    source = last.name.replace(" ","")
+    freq = "_%.0f_MHz" % (restfreq * 1e-6)
+    write_fits(source + freq + "_line.fits")
 
-#Run trans task on sdgrd file 
-trans.inname=AIPSCat()[mydisk][-1].name
-trans.inclass=AIPSCat()[mydisk][-1].klass
-trans.inseq=AIPSCat()[mydisk][-1].seq
-trans.transc= '231'
-trans.outdi=mydisk
-trans.outcl='baseli'
-trans.go()
+def make_cube_minus_continuum(restfreq, seqno):
+    print_header("Making cube minus continuum")
 
-## and write the last thing now in the catalog to disk
-fittp.indisk=mydisk
-fittp.inname=AIPSCat()[mydisk][-1].name
-fittp.inclass=AIPSCat()[mydisk][-1].klass
-fittp.inseq=AIPSCat()[mydisk][-1].seq
-outline = outName+'_line.fits'
-if os.path.exists(outline):
-    os.remove(outline)
-    print 'Removed existing file to make room for new one :',outline
+    remove_continuum(seqno)
+    write_line_cube(restfreq)
+    
+def write_image_cube(restfreq):
+    last = cat.last_entry()
+    source = last.name.replace(" ","")
+    freq = "_%.0f_MHz" % (restfreq * 1e-6)
+    write_fits(source + freq + "_cube.fits")
+    
+def write_average_map(restfreq):
+    last = cat.last_entry()
+    source = last.name.replace(" ","")
+    freq = "_%.0f_MHz" % (restfreq * 1e-6)
+    write_fits(source + freq + "_cont.fits")
+    
+def make_cube(args):
+    
+    print_header("Making image cube")
+    
+    average_channels(args.average)
 
-fittp.dataout='PWD:'+outline
-fittp.go()
+    sdgrd = AIPSTask('sdgrd')
 
-# clean up output images: reset FREQ axis to appropriate reference frame
-fixAipsImages([outcube,outline,outcont])
+    # Now make an image using the last entry in the catalog
+    sdgrd.indisk     = DISK_ID
+    sdgrd.outdisk    = DISK_ID
+    sdgrd.baddisk[1] = BADDISK
+    last = cat.last_entry()
+    sdgrd.inname  = last.name
+    sdgrd.inclass = last.klass
+    sdgrd.inseq   = last.seq
+    sdgrd.optype  = '-GLS'
+    sdgrd.reweight[1] = 0
+
+    if 'center' in args and args.center:
+        raDeg, decDeg = args.center
+
+    spectra = cat.get_uv(last)
+    raDeg, decDeg = spectra.header.crval[3], spectra.header.crval[4]
+    
+    # must break up RA into hours minutes seconds
+    hh,mm,ss = ra_deg2hms(raDeg)
+    sdgrd.aparm[1] = hh 
+    sdgrd.aparm[2] = mm 
+    sdgrd.aparm[3] = ss 
+    
+    #now break up degrees, but must preserve sign
+    decSign = 1
+    if decDeg < 0:
+        decSign = -1
+        decDeg = -1 * decDeg
+
+    hh,mm,ss = dec_deg2hms(decDeg)
+    sdgrd.aparm[4] = hh
+    sdgrd.aparm[5] = mm
+    sdgrd.aparm[6] = ss
+
+    # deal with degrees and/or minutes == 0
+    if decSign < 0.:
+        sdgrd.aparm[4] = -1 * sdgrd.aparm[4]
+        if sdgrd.aparm[4] == 0:
+            sdgrd.aparm[5] = -1 * sdgrd.aparm[5]
+            if sdgrd.aparm[5] == 0:
+                sdgrd.aparm[6] = -1 * sdgrd.aparm[6]
+    
+    print raDeg, decDeg, '->',sdgrd.aparm[1:7]
+    
+    #transfer cellsize 
+    cellsize = round(spectra.header.cdelt[4] * 3600.)
+    sdgrd.cellsize[1] = sdgrd.cellsize[2] = cellsize
+
+    #sdgrd.xtype=-16         # sync/bessel convolving type
+    sdgrd.xtype = -12         # gaussian convolving type
+
+    # sync/bessel function parameters
+    if sdgrd.xtype == -16:
+        sdgrd.xparm[1] = 3.  * cellsize
+        sdgrd.xparm[2] = 2.5 * cellsize
+        sdgrd.xparm[3] = 1.5 * cellsize
+        sdgrd.xparm[4] = 2
+        sdgrd.reweight[2] = .01
+
+    # gaussian parameters
+    if sdgrd.xtype == -12:
+        sdgrd.xparm[1] = 5.  * cellsize
+        sdgrd.xparm[2] = 1.5 * cellsize # Parameter sets Gaussian FWHM
+        sdgrd.xparm[3] = 2
+        sdgrd.xparm[4] = 0
+        sdgrd.reweight[2] = -1.E-6
+
+    # always make a circuluar convolving function
+    sdgrd.ytype = sdgrd.xtype
+
+    if 'size' in args and args.size:
+        imxSize, imySize = args.size
+
+    imxSize  = (2 * round(spectra.header.crpix[3] / 1.95)) + 20
+    imySize  = (2 * round(spectra.header.crpix[4] / 1.95)) + 20
+
+    print "Ra, Dec          : {0}, {1}".format(raDeg, decDeg)
+    print "Image size (X,Y) : {0}, {1}".format(imxSize, imySize)
+    print "Cell size        : {0}".format(cellsize)
+    
+    sdgrd.imsize[1] = imxSize
+    sdgrd.imsize[2] = imySize
+    sdgrd.go()
+
+    seqno, restFreqHz = update_header(args)
+    write_image_cube(restFreqHz)
+    
+    return seqno, restFreqHz
+
+if __name__ == '__main__':
+    
+    args = read_command_line(sys.argv)
+    print args
+
+    seqno, restFreqHz = make_cube(args) # make the image cube
+
+    # make the moment 0 map
+    if not args.noave:
+        make_average_map(restFreqHz)
+
+    if not args.noave and not args.noline:
+        make_cube_minus_continuum(restFreqHz, seqno)
+
+    cat.show()
+

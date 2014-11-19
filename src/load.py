@@ -24,7 +24,7 @@ from AIPS import AIPS
 from AIPSTask import AIPSTask
 
 import sys
-import optparse
+import argparse
 
 from aips_utils import Catalog
 
@@ -32,35 +32,45 @@ DISK_ID = 2                        # choose a good default work disk
 BADDISK = 1                       # list a disk to avoid (0==no avoidance)
 cat = Catalog()   # initialize a catalog object
 
+def print_header(message):
+    print ""
+    print "-" * len(message)
+    print message
+    print "-" * len(message)
+    print ""
+
 def read_command_line(argv):
     """Read options from the command line."""
     # if no options are set, print help
     if len(argv) == 1:
         argv.append('-h')
 
-    parser = optparse.OptionParser(description = 'Run the AIPS dbcon task to load '
+    parser = argparse.ArgumentParser(description = 'Run the AIPS dbcon task to load '
                                    'calibrated spectra for imaging.')
-    parser.add_option('--empty-catalog', dest = 'empty_catalog', action = 'store_true',
+    parser.add_argument('aipsid', type=int,
+                        help=("The AIPS catalog number to use.  This is typically "
+                              "your system id, which you can find by typing "
+                              "'id -u' at the command line."))
+    parser.add_argument('--empty-catalog', dest = 'empty_catalog', action = 'store_true',
                       default = False, help = 'If set, will empty the AIPS catalog '
                       'without prompt before processing.  Otherwise, the user is '
                       'prompted to override the default False setting.')
-    (options, args) = parser.parse_args()
+    parser.add_argument('files', type=str, nargs='+',
+                        help="Names of AIPS files to load (space-separated)")
+    args = parser.parse_args()
 
-    AIPS.userno = int(args[0])
-    myfiles = args[1:]
-    if not myfiles:
-        print 'ERROR: No sdf files supplied.  Exiting.'
-        sys.exit()
-
-    cat.config(AIPS.userno, DISK_ID)  # configure the catalog object
+    cat.config(args.aipsid, DISK_ID)  # configure the catalog object
 
     # start with a clean slate by trying to empty the catalog
-    cat.empty(options.empty_catalog)
+    cat.empty(args.empty_catalog)
     
-    return myfiles
+    return args.files
 
 def load_into_aips(myfiles):
     """Load files into AIPS with UVLOD task."""
+
+    print_header("Loading data into AIPS")
+
     uvlod = AIPSTask('uvlod')
     uvlod.outdisk = DISK_ID            # write all input data to a select disk
     uvlod.userno = AIPS.userno
@@ -111,8 +121,8 @@ def run_dbcon(entryA, entryB):
     dbcon.reweight[1] = 0
     dbcon.reweight[2] = 0
     
-    print 'combining 1: ', dbcon.inname, dbcon.inclass, dbcon.inseq
-    print 'combining 2: ', dbcon.in2name, dbcon.in2class, dbcon.in2seq
+    print 'combining: ', dbcon.inname, dbcon.inclass, dbcon.inseq
+    print '     with: ', dbcon.in2name, dbcon.in2class, dbcon.in2seq
     
     dbcon.go()
 
@@ -129,6 +139,8 @@ def print_source_names():
 
 def combine_files():
     """A containing function that chooses when to run the AIPS DBCON task."""
+
+    print_header("Combining catalog DBCON files")
 
     n_files = len(cat)
     print_source_names()
@@ -149,6 +161,9 @@ def combine_files():
 
 def time_sort_data():
     """Time-sort data in AIPS with the UVSRT task."""
+
+    print_header("Time-sorting data")
+
     uvsrt = AIPSTask('uvsrt')
     uvsrt.userno = AIPS.userno
 
@@ -188,8 +203,10 @@ def print_summary():
 
 if __name__ == '__main__':
     
-    sdf_filenames = read_command_line(sys.argv)
-    load_into_aips(sdf_filenames)
+    aips_filenames = read_command_line(sys.argv)
+    load_into_aips(aips_filenames)
     combine_files()
     print_summary()
     time_sort_data()
+    
+    cat.show()

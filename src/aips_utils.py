@@ -20,6 +20,7 @@
 #       P. O. Box 2
 #       Green Bank, WV 24944-0002 USA
 
+import sys
 from AIPS import AIPS
 from AIPSData import AIPSUVData, AIPSCat
 from Wizardry.AIPSData import AIPSImage as WizAIPSImage
@@ -57,6 +58,9 @@ class Catalog(object):
         AIPS.userno = userno
         self.DISK_ID = disk_id
         
+    def show(self,):
+        print AIPSCat(self.DISK_ID)
+
     def last_entry(self,):
         """Return the most recent AIPS catalog entry"""
         return self.get_entry(-1)
@@ -83,8 +87,13 @@ class Catalog(object):
         """Remove an entry from the AIPS catalog using python index"""
 
         entry = self.get_entry(n)
-        uvdata = AIPSUVData(entry.name, entry.klass, self.DISK_ID, entry.seq)
-        uvdata.zap()
+        try:
+            data = self.get_uv(entry)
+            data.zap()
+        except:
+            data = self.get_image(entry)
+            data.zap()
+            
 
     def empty(self, do_empty):
         """Empty the AIPS catalog."""
@@ -97,7 +106,7 @@ class Catalog(object):
             elif choice.lower() == 'y':
                 AIPSCat().zap()                 # empty the catalog
             else:
-                empty_catalog(do_empty)  # if they didn't type 'y' or 'n', ask again.
+                empty(do_empty)  # if they didn't type 'y' or 'n', ask again.
         else:
             AIPSCat().zap()
  
