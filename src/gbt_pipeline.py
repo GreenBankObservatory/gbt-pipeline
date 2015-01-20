@@ -149,10 +149,23 @@ def calibrate_win_feed_pol(log, cl_params, window, feed, pol, pipe):
 
 def preview_zenith_tau(log, row_list, cl_params, feeds, windows, pols):
 
+    foo = None
+
     # if using the weather database
     if not cl_params.zenithtau:
-        foo = row_list.get(cl_params.mapscans[0], feeds[0], windows[0],
-                           pols[0])
+        for feed in feeds:
+            for window in windows:
+                for pol in pols:
+                    try:
+                        foo = row_list.get(cl_params.mapscans[0], feed, window, pol)
+                        break # if we found a row move on, otherwise try another feed/win/pol
+                    except KeyError:
+                        continue
+        if not foo:
+            log.doMessage('ERR', 'Could not find scan for zenith opacity preview')
+            return
+            
+            
         ff = fitsio.FITS(cl_params.infilename)
         extension = foo['EXTENSION']
         row = foo['ROW'][0]
