@@ -59,6 +59,12 @@ class Catalog(object):
         self.DISK_ID = disk_id
         
     def show(self,):
+        msg = "AIPS Catalog"
+        print ""
+        print "-" * len(msg)
+        print msg
+        print "-" * len(msg)
+        print ""
         print AIPSCat(self.DISK_ID)
 
     def last_entry(self,):

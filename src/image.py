@@ -120,6 +120,7 @@ def average_channels(binsize):
     avspc.ichansel[2][1] = nChan
     avspc.ichansel[3][1] = 1
     avspc.avoption = 'SUBS'
+    avspc.outcl = 'avg'
     avspc.go()
 
     # now have fewer channels, with broader frequencies

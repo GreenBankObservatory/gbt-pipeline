@@ -188,25 +188,32 @@ def time_sort_data():
 
 def print_summary():
     """Print a simple summary to the screen of image RA/DEC and size."""
+
+    print_header("Data summary")
+
     # Extract the observations summary
     last = cat.last_entry()
     spectra = cat.get_uv(last)
 
     # and read parameters passed inside the spectra data header
+    freq    = spectra.header.crval[2]
     raDeg    = spectra.header.crval[3]
     decDeg   = spectra.header.crval[4]
-    imxSize  = 2*round(spectra.header.crpix[3]/1.5 )
-    imySize  = 2*round(spectra.header.crpix[4]/1.5 )
+    imxSize  = 2 * round(spectra.header.crpix[3] / 1.5)
+    imySize  = 2 * round(spectra.header.crpix[4] / 1.5)
     cellsize = round(spectra.header.cdelt[4] * 3600.)
-    print "Ra, Dec: {0:.2f} {1:.2f}  Image: x {2} y {3} cell {4}".format(raDeg, decDeg, imxSize, imySize, cellsize)
 
+    print "Center Freq. (GHz)  : {0:.2f}".format(freq/1e9)
+    print "Ra, Dec             : {0:.2f}, {1:.2f}".format(raDeg, decDeg)
+    print "Image x,y           : {0}, {1}".format(imxSize, imySize)
+    print "Cell size (arcsec)  : {0}".format(cellsize)
 
 if __name__ == '__main__':
     
     aips_filenames = read_command_line(sys.argv)
     load_into_aips(aips_filenames)
     combine_files()
-    print_summary()
     time_sort_data()
+    print_summary()
     
     cat.show()
