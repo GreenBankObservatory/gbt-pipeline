@@ -213,7 +213,7 @@ class SdFits:
             procname = rr['PROCEDURE']
             procscan = rr['PROCSCAN']
 
-            summary['WINDOWS'].add(rr['RESTFREQ'])
+            summary['WINDOWS'].add((windowNum, float(rr['RESTFREQ'])/1e9))
             summary['FEEDS'].add(rr['FDNUM'])
 
             

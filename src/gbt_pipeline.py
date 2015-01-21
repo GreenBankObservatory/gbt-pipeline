@@ -389,13 +389,10 @@ def calibrate_file(term, log, command_options):
         sys.exit()
 
     log.doMessage('INFO', 'Summary:')
-    log.doMessage('INFO', '    ', len(summary['WINDOWS']),'spectral windows')
-    freqs = map(float, summary['WINDOWS'])
-    freqs_ghz = []
-    for ff in freqs:
-        freqs_ghz.append("{0:.1f}".format(ff/1e9))
-    log.doMessage('INFO', '      Freqs. (GHz):', ' '.join(freqs_ghz))
-    log.doMessage('INFO', '    ', len(summary['FEEDS']),'feeds')
+    log.doMessage('INFO', '    ', len(summary['WINDOWS']),'spectral window(s)')
+    for (win,freq) in sorted(summary['WINDOWS']):
+        log.doMessage('INFO', '       {win}: {freq:.4f} GHz'.format(win=win, freq=freq))
+    log.doMessage('INFO', '    ', len(summary['FEEDS']),'feed(s):', ', '.join(sorted(summary['FEEDS'])))
 
     proceed_with_calibration = True
 
