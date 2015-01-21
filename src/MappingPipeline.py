@@ -214,6 +214,7 @@ class MappingPipeline:
             firstIntegration = Integration(self.infile[ext][columns][rows[0]])
             targetname = firstIntegration['OBJECT'].strip()
         except KeyError:
+            print('WARNING: Can not find data for scan {scan} window {win} feed {feed} polarization {pol}'.format(scan=self.cl.mapscans[0], win=window, feed=feed, pol=pol))
             raise
         
         outfilename = targetname + '_scan_' + str(self.cl.mapscans[0]) + '_' + str(self.cl.mapscans[-1]) + '_window' + str(window) + '_feed' + str(feed) + '_pol' + str(pol) + '.fits'
@@ -374,29 +375,31 @@ class MappingPipeline:
                 
                 output_data = np.zeros(rows2write, dtype = dtype)
                 
-                sigrefState = [{'cal_on':None, 'cal_off':None, 'TP':None, 'rownum':None, 'extime':None},
-                               {'cal_on':None, 'cal_off':None, 'TP':None, 'rownum':None, 'extime':None}]
+                sigrefState = [{'cal_on':None, 'cal_off':None, 'TP':None, 'rownum':None},
+                               {'cal_on':None, 'cal_off':None, 'TP':None, 'rownum':None}]
                 
                 # now start at the beginning and calibrate all the integrations
                 for rowNum in chunk:
                     
                     row = Integration(self.infile[ext][columns][rowNum])
-                    
+
                     if row['SIG'] == 'T':
                         if row['CAL'] == 'T':
                             sigrefState[0]['cal_on'] = row
-                            
                         else:
                             sigrefState[0]['cal_off'] = row
+
                         sigrefState[0]['rownum'] = rowNum
+                        obsfreqHz = row['OBSFREQ']
+
                     else:
                         if row['CAL'] == 'T':
-                            sigrefState[1]['cal_on'] = row
-                            
+                            sigrefState[1]['cal_on'] = row                            
                         else:
                             sigrefState[1]['cal_off'] = row
+
                         sigrefState[1]['rownum'] = rowNum                            
-                    
+
                     # we need 4 states to calibrate FS integrations
                     if sigrefState[0]['cal_on'] and sigrefState[0]['cal_off'] and \
                        sigrefState[1]['cal_on'] and sigrefState[1]['cal_off']:
@@ -416,6 +419,7 @@ class MappingPipeline:
                             
                             # create an output row with 'nan' data and real metadata
                             output_data[outputidx] = row.data
+
                             #
                             # we can probably replace the following line with a more pythonic
                             #
@@ -457,8 +461,6 @@ class MappingPipeline:
                     ta, tsys, exposure = self.cal.ta_fs(sigrefState)
                     
                     if self.cl.units != 'ta':
-                        
-                        obsfreqHz = self.getObsFreq(feed, window, pol)
                         
                         if not self.OPACITY:
                             intOpacity = self.weather.retrieve_zenith_opacity(intTime, obsfreqHz, self.log)
@@ -510,6 +512,8 @@ class MappingPipeline:
                     row['TSYS'] = tsys
                     row['TUNIT7'] = self.cl.units.title()  # .title() makes first letter upper
                     row['EXPOSURE'] = exposure
+                    row['OBSFREQ'] = obsfreqHz
+                    row['CRVAL1'] = obsfreqHz
 
                     output_data[outputidx] = row.data
                     
@@ -520,7 +524,6 @@ class MappingPipeline:
                     # done looping over rows in a chunk
                 
                 # done looping over chunks
-                
                 self.outfile[-1].append(output_data)
                 self.outfile.update_hdu_list()
                         

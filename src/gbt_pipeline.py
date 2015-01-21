@@ -252,7 +252,6 @@ def calibrate_maps(log, cl_params, row_list, term):
         maps_for_this_window = []
         for feed in feeds:
             for pol in pols:
-
                 # create MappingPipeline object for this window/feed/pol
                 try:
                     mp = MappingPipeline(cl_params, row_list, feed, window,
@@ -388,7 +387,7 @@ def calibrate_file(term, log, command_options):
         log.doMessage('ERR', 'Could not open index file', indexfile)
         sys.exit()
 
-    log.doMessage('INFO', 'Summary:')
+    log.doMessage('INFO', 'Input file summary:')
     log.doMessage('INFO', '    ', len(summary['WINDOWS']),'spectral window(s)')
     for (win,freq) in sorted(summary['WINDOWS']):
         log.doMessage('INFO', '       {win}: {freq:.4f} GHz'.format(win=win, freq=freq))
