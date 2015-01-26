@@ -1,57 +1,49 @@
-GBT Mapping Pipeline Version 1.1
+GBT Mapping Pipeline Version 1.2
 
-These notes accompany the release of the GBT Mapping Pipeline on
-August 8, 2013. The previous version of the pipeline was 1.0. The most
-significant changes since the last release are described below.
+These notes accompany the release of the GBT Mapping Pipeline on January __, 2015. The previous version of the pipeline was 1.1. A summary of new features and bug fixes since the last release are described below.
 
-1) Fixed the output FITS pimary header so that output could be
-properly interpreted by GBTIDL. GBTIDL was re-applying the beam
-offsets, because the output of the pipeline did not include any
-"FITSVER" keyword in the header and GBTIDL uses that keyword to
-differentiate between old-style SDFITS files produced from GBT which
-do not have the beam offsets applied to the antenna pointing and the
-current style, which already incorporates the offsets.  If GBTIDL was
-used to further process pipeline calibrated spectra, the resulting
-output may have had the beam offsets applied twice.
+) A number of name changes have occurred with the aim of improving the user experience.  The script names and file extensions are meant to be more descriptive and intuitive.  The changes are:
 
-2) The map finding code uses the PROCSCAN keyword, when it is present
-(beginning with M&C release 13.4). Otherwise, it uses the OBSID
-keyword as it did previously.
+   doImage       -> aipspy
+   dbcon.py      -> load.py
+   mapDefault.py -> image.py
 
-3) Sort the list of feeds going into AIPS imaging.
-    
-The list of feeds going into AIPS had been unsorted, by default. For
-the KFPA, this allowed a feed other than 0 to sometimes be first in
-the list, giving wrong map center information to AIPS and creating a
-final map that was off center.
+In addition, the file extensions of calibrated spectra restructured for AIPS input have been changed from “.sdf” to “.aips.fits”.
 
-4) Fixed exposure time calculation. The previous release did not
-account for both cal states of the integration and resulted in a lower
-total exposure time.
+With this release the doImage, dbcon.py and mapDefault.py commands still work, but will generate a warning message about the new names.  With the next release, the old names will be deprecated.
+ 
+) Improved handing of a bad integration where the raw spectrum contains all zeros.  Previously the pipeline generated a cryptic error message.  Now the pipeline generates a descriptive warning and writes NaNs to the output spectrum for that integration.
 
-The expsoure time calculation used when computing antenna temperature
-(Ta) is:
+) Fixed the exposure time calculation for out of band frequency-switched integrations.  The previous code always summed the exposure times from the two FS switching states. With this update, if the frequency bands do not overlap at all, we only count the exposure time from the first state.
 
-        exposure_time_sig * exposure_time_ref * ref_smoothing_window
-t_exp = ------------------------------------------------------------
-        exposure_time_sig + exposure_time_ref * ref_smoothing_window
+) Updated an image header keyword to allow image cubes to be ready by the CASA viewer.  The pipeline tweaks the AIPS image cubes by adding a reference frame string to the end of the CTYPE3 value (which AIPS just writes as "FREQ) so that it matches the VELREF keyword also written by AIPS.  Previously the code was writing "FREQ-BAR" when it should have been writing "FREQ-HEL".  BAR and HEL are equivalent (and when the fixed "FREQ-HEL" is read 
+in to CASA it ends up being labeled as "BARY").
 
-5) Improved system temperature calculation. In previous releases, the
-Tsys was not properly weighted based on exposure time and system temp.
-It had been caculated using a simple weighted average of the signal
-and reference system temps, with weight = exposure / tsys^2.
+) Removed spaces from output file names.  This occurred when the target name included whitespace.  AIPS does not handle spaces in output file names well. This release should fix that problem.
 
-The new average applies the same weights but uses the formula:
-average_tsys = sqrt((tsys_sig^2 + tsys_ref^2)/2)
+) Updated the idlToSdfits channel limit from 16k to 32k to accommodate larger VEGAS spectra.
 
-6) Fixed the calibrated spectra output to record the proper units in
-the header so that the y-axis now has the proper units label when
-viewing spectra in GBTIDL.
+) Now logging errors when the zenith opacity is not available in the weather database.  Previously errors were not logged when the zenith opacity could not be found because the observation date was too early.
 
-7) Fixed label of frequency axis in final AIPS image cube.
+) Improved map finding code by adding Track procedure scans
+to be counted as reference scans
 
-8) Made pipeline AIPS environment independent of existing shell
-environment that might already be setup for AIPS and could cause
-conflicts.
+) Fixed window, feed and polarization filtering parameters for VEGAS data.
 
-9) Do spectrum averaging like GBTIDL regarding NaN values.
+) Added summary message showing number of windows and feeds.  We now list window numbers with frequencies and feed numbers contained in the data.
+
+) Added scan range to image product filenames
+
+) Added new utilities:
+
+show_catalog.py -- prints out the current AIPS catalog.
+zap_last.py -- removes the last AIPS catalog entry.
+
+) Now checking all feed, window and polarization combinations to show preview zenith opacity.
+
+This should avoid a crash when the first feed/win/pol attempt is not available.
+
+) Bug fixed for shift in frequency-switched calibration.
+
+Sometimes the pipeline would use the center frequency for the reference data instead of the signal, depending
+on the order it was written to the raw data file.  This update fixes that by only grabbing the center frequency from the input FS signal spectrum for each integration.
