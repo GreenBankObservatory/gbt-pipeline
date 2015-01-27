@@ -23,14 +23,22 @@
 from AIPS import AIPS
 from AIPSTask import AIPSTask
 
+import os
 import sys
 import argparse
 
-from aips_utils import Catalog
+if os.path.dirname(os.path.realpath(__file__)).endswith('contrib'):
+    # if we're in the contrib/ directory, that means we are running
+    # the old 'contrib/dbcon.py' command.  Prepend the src/ directory
+    # to the pythonpath to get the aips_utils module
+    srcdir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    sys.path.insert(0, srcdir)
+
+import aips_utils
 
 DISK_ID = 2                        # choose a good default work disk
 BADDISK = 1                       # list a disk to avoid (0==no avoidance)
-cat = Catalog()   # initialize a catalog object
+cat = aips_utils.Catalog()   # initialize a catalog object
 
 def print_header(message):
     print ""
@@ -78,6 +86,10 @@ def load_into_aips(myfiles):
     first_file = True   # to help determine center freq to use
 
     for this_file in myfiles:        # input all AIPS single dish FITS files
+        if not os.path.exists(this_file):
+            print 'WARNING: can not find file: {0}'.format(this_file)
+            continue
+
         print 'Adding {0} to AIPS.'.format(this_file)
         uvlod.datain = 'PWD:' + this_file
         uvlod.go()
@@ -209,11 +221,30 @@ def print_summary():
     print "Cell size (arcsec)  : {0}".format(cellsize)
 
 if __name__ == '__main__':
-    
     aips_filenames = read_command_line(sys.argv)
-    load_into_aips(aips_filenames)
-    combine_files()
-    time_sort_data()
-    print_summary()
+
+    for ff in aips_filenames:
+        if not os.path.exists(ff):
+            print 'ERROR: can not find file', ff
+
+    try:
+        load_into_aips(aips_filenames)
+    except ValueError, msg:
+        print 'ERROR: ', msg
+        print 'Please run this command on: ',
+        print 'arcturus.gb.nrao.edu'
+        print 'If you are on arcturus, please report this error.'
+        sys.exit(-1)
+    except RuntimeError, msg:
+        print 'ERROR: ', msg
+        print 'Check format of input files.'
+        sys.exit(-1)
     
+    # if any files were loaded into the catalog, do other steps
+    if len(cat) > 0:
+        combine_files()
+        time_sort_data()
+        print_summary()
+
     cat.show()
+    

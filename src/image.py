@@ -38,12 +38,19 @@ import math
 import argparse
 import time
 
+if os.path.dirname(os.path.realpath(__file__)).endswith('contrib'):
+    # if we're in the contrib/ directory, that means we are running
+    # the old 'contrib/mapDefault.py' command.  Prepend the src/ directory
+    # to the pythonpath to get the fixaAipsImages and aips_utils modules
+    srcdir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    sys.path.insert(0, srcdir)
+
 from fixAipsImages import fixAipsImages
-from aips_utils import Catalog
+import aips_utils
 
 DISK_ID = 2                        # choose a good default work disk
 BADDISK = 1                       # list a disk to avoid (0==no avoidance)
-cat = Catalog()
+cat = aips_utils.Catalog()
 
 def print_header(message):
     print ""
@@ -85,6 +92,9 @@ def read_command_line(argv):
                         help="Map center right ascension and declination (degrees)")
     parser.add_argument('-s', '--size', metavar=('X','Y'), type=int, nargs=2,
                         help="Image X,Y size (pixels)")
+    parser.add_argument('-u', '--unique-file-string', type=str, dest="uniqueid", default="",
+                        help="Unique identifier for outfile names "
+                        "(e.g. 125_130 to represent scans 125-130)")
     parser.add_argument('-r', '--restfreq', type=float, help="Rest frequency (MHz)")
     parser.add_argument('--noave', action='store_true', help="Disable average map")
     parser.add_argument('--noline', action='store_true', help="Disable line cube")
@@ -221,7 +231,7 @@ def write_fits(outname):
     fittp.dataout = 'PWD:' + outname
     fittp.go()
 
-def make_average_map(restfreq):
+def make_average_map(restfreq, uniqueid):
     print_header("Making average map")
     sqash = AIPSTask('sqash')
 
@@ -235,7 +245,8 @@ def make_average_map(restfreq):
     sqash.bdrop = 3 # squash frequency axis
     sqash.go()
     
-    write_average_map(restfreq)
+    outcont = write_average_map(restfreq, uniqueid)
+    return outcont
 
 def remove_continuum(outseq):
     trans = AIPSTask('trans')
@@ -287,29 +298,36 @@ def remove_continuum(outseq):
     trans.outcl = 'baseli'
     trans.go()
 
-def write_line_cube(restfreq):
+def write_line_cube(restfreq, uniqueid):
     last = cat.last_entry()
     source = last.name.replace(" ","")
     freq = "_%.0f_MHz" % (restfreq * 1e-6)
-    write_fits(source + freq + "_line.fits")
+    outfilename = source + uniqueid + freq + "_line.fits"
+    write_fits(outfilename)
+    return outfilename
 
-def make_cube_minus_continuum(restfreq, seqno):
+def make_cube_minus_continuum(restfreq, seqno, uniqueid):
     print_header("Making cube minus continuum")
 
     remove_continuum(seqno)
-    write_line_cube(restfreq)
+    outline = write_line_cube(restfreq, uniqueid)
+    return outline
     
-def write_image_cube(restfreq):
+def write_image_cube(restfreq, uniqueid):
     last = cat.last_entry()
     source = last.name.replace(" ","")
     freq = "_%.0f_MHz" % (restfreq * 1e-6)
-    write_fits(source + freq + "_cube.fits")
+    outfilename = source + uniqueid + freq + "_cube.fits"
+    write_fits(outfilename)
+    return outfilename
     
-def write_average_map(restfreq):
+def write_average_map(restfreq, uniqueid):
     last = cat.last_entry()
     source = last.name.replace(" ","")
     freq = "_%.0f_MHz" % (restfreq * 1e-6)
-    write_fits(source + freq + "_cont.fits")
+    outfilename = source + uniqueid + freq + "_cont.fits"
+    write_fits(outfilename)
+    return outfilename
     
 def make_cube(args):
     
@@ -404,23 +422,35 @@ def make_cube(args):
     sdgrd.go()
 
     seqno, restFreqHz = update_header(args)
-    write_image_cube(restFreqHz)
+    outcube = write_image_cube(restFreqHz, args.uniqueid)
     
-    return seqno, restFreqHz
+    return seqno, restFreqHz, outcube
 
 if __name__ == '__main__':
     
     args = read_command_line(sys.argv)
     print args
 
-    seqno, restFreqHz = make_cube(args) # make the image cube
+    outfiles = []
+    try:
+        seqno, restFreqHz, outcube = make_cube(args) # make the image cube
+        outfiles.append(outcube)
+    except ValueError, msg:
+        print 'ERROR: ', msg
+        print 'Please run this command on: ',
+        print 'arcturus.gb.nrao.edu'
+        print 'If you are on arcturus, please report this error.'
+        sys.exit(-1)
 
     # make the moment 0 map
     if not args.noave:
-        make_average_map(restFreqHz)
+        outcont = make_average_map(restFreqHz, args.uniqueid)
+        outfiles.append(outcont)
 
     if not args.noave and not args.noline:
-        make_cube_minus_continuum(restFreqHz, seqno)
+        outline = make_cube_minus_continuum(restFreqHz, seqno, args.uniqueid)
+        outfiles.append(outline)
 
     cat.show()
+    fixAipsImages(outfiles)
 

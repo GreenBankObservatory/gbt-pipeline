@@ -47,10 +47,15 @@ class Imaging:
         pipe_dir = os.path.dirname(os.path.abspath(__file__))
         tools_dir = '/'.join((pipe_dir, "tools"))
 
-        load_script = '/convert_and_load.py'
-        map_script = '/image.py'
+        load_script = '/'.join((pipe_dir, 'convert_and_load.py'))
+        map_script = '/'.join((pipe_dir, 'image.py'))
 
         aipspy = '/'.join((tools_dir, "aipspy"))
+
+        log.doMessage('DBG', "Pipeline directory", pipe_dir)
+        log.doMessage('DBG', "Load script", load_script)
+        log.doMessage('DBG', "Image script", map_script)
+        log.doMessage('DBG', "aipspy", aipspy)
 
         # if the user opted to do imaging, then check for the presence
         # of the necessary imaging scripts (load.py, image.py, aipspy).
@@ -103,32 +108,37 @@ class Imaging:
             aips_number = str(os.getuid())
             aipsinfiles = ' '.join(imfiles)
 
-            if cl_params.display_sdfits2aips:
-                display_sdfits2aips = '1'
+            if cl_params.display_idlToSdfits:
+                display_idlToSdfits = '1'
             else:
-                display_sdfits2aips = '0'
+                display_idlToSdfits = '0'
 
-            if cl_params.sdfits2aips_rms_flag:
-                sdfits2aips_rms_flag = str(cl_params.sdfits2aips_rms_flag)
+            if cl_params.idlToSdfits_rms_flag:
+                idlToSdfits_rms_flag = str(cl_params.idlToSdfits_rms_flag)
             else:
-                sdfits2aips_rms_flag = '0'
+                idlToSdfits_rms_flag = '0'
 
-            if cl_params.sdfits2aips_baseline_subtract:
-                sdfits2aips_baseline_subtract = str(cl_params.sdfits2aips_baseline_subtract)
+            if cl_params.idlToSdfits_baseline_subtract:
+                idlToSdfits_baseline_subtract = str(cl_params.idlToSdfits_baseline_subtract)
             else:
-                sdfits2aips_baseline_subtract = '0'
+                idlToSdfits_baseline_subtract = '0'
 
             if cl_params.keeptempfiles:
                 keeptempfiles = '1'
             else:
                 keeptempfiles = '0'
 
-            aips_cmd = ' '.join((aipspy,
-                load_script, aips_number, ','.join(feeds),
-                str(cl_params.average), channels, display_sdfits2aips,
-                sdfits2aips_rms_flag, str(cl_params.verbose),
-                sdfits2aips_baseline_subtract, keeptempfiles,
-                aipsinfiles))
+            aips_cmd = ' '.join((aipspy, load_script, 
+                                 aips_number,
+                                 "--feeds", (','.join(feeds)),
+                                 "--average", str(cl_params.average),
+                                 "--channels", channels,
+                                 "--display_idlToSdfits", display_idlToSdfits,
+                                 "--idlToSdfits_rms_flag", idlToSdfits_rms_flag,
+                                 "--verbose", str(cl_params.verbose),
+                                 "--idlToSdfits_baseline_subtract", idlToSdfits_baseline_subtract,
+                                 "--keeptempfiles", keeptempfiles,
+                                 aipsinfiles))
 
             log.doMessage('DBG', aips_cmd)
 

@@ -50,41 +50,42 @@ from Wizardry.AIPSData import AIPSImage as WizAIPSImage
 import sys
 import os
 import math
+import argparse
 
 import pyfits
 
-def run_sdfits2aips(files, average, channels, display_sdfits2aips,
-               sdfits2aips_rms_flag, verbose, sdfits2aips_baseline_subtract):
+def run_idlToSdfits(files, average, channels, display_idlToSdfits,
+               idlToSdfits_rms_flag, verbose, idlToSdfits_baseline_subtract):
 
     
-    # set the sdfits2aips output file name
+    # set the idlToSdfits output file name
     for infile in files:
-        aipsinname = '_'.join(infile.split('_')[:-1])+'.aips'
+        aipsinname = '_'.join(infile.split('_')[:-1])+'.aips.fits'
     
-    # run sdfits2aips, which converts calibrated sdfits into a format
+    # run idlToSdfits, which converts calibrated sdfits into a format
     options = ''
-    
+
     if int(average):
-        options = options + ' -a ' + str(average)
+        options = options + ' -a ' + average
     
     if bool(channels):
-        options = options + ' -c ' + str(channels) + ' '
+        options = options + ' -c ' + channels + ' '
     
-    if not int(display_sdfits2aips):
+    if not int(display_idlToSdfits):
         options = options + ' -l '
     
-    if int(sdfits2aips_rms_flag):
-        options = options + ' -n ' + sdfits2aips_rms_flag + ' '
+    if int(idlToSdfits_rms_flag):
+        options = options + ' -n ' + idlToSdfits_rms_flag + ' '
         
     if int(verbose) > 4:
         options = options + ' -v 2 '
     else:
         options = options + ' -v 0 '
     
-    if int(sdfits2aips_baseline_subtract):
-        options = options + ' -w ' + sdfits2aips_baseline_subtract + ' '
+    if int(idlToSdfits_baseline_subtract):
+        options = options + ' -w ' + idlToSdfits_baseline_subtract + ' '
         
-    idlcmd = '/home/gbtpipeline/bin/sdfits2aips -o ' + aipsinname + options + ' '.join(files)
+    idlcmd = '/home/gbtpipeline/bin/idlToSdfits -o ' + aipsinname + options + ' '.join(files)
     
     print 'DBG',idlcmd
     os.system(idlcmd)
@@ -103,48 +104,52 @@ def run_sdfits2aips(files, average, channels, display_sdfits2aips,
     
     return aipsinname
 
-def dbcon(sys):
-    argc = len(sys.argv)
-    if argc < 3:
-        print ''
-        print 'load: Combine all observations into a single dish fits file'
-        print 'usage: aipspy load.py <aipsNumber> <feeds>'
-        print '                        <average> <channels> <display> <rmsflag> <verbose> <baseline-subtract>'
-        print '                        <keeptempfiles> <spectra File 1> [<spectra File n>]'
-        print 'where <aipsNumber>     Your *PIPELINE* AIPS number (should always be the same)'
-        print '      <spectra File 1> One or more calibrated spectra files (*.fits)'
-        print '      Combined spectra are placed in catalog slot 1'
-        print ''
-        quit()
+def read_command_line(argv):
+    """Read options from the command line."""
+    # if no options are set, print help
+    if len(argv) == 1:
+        argv.append('-h')
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('aipsid', type=int,
+                        help=("The AIPS catalog number to use.  This is typically "
+                              "your system id, which you can find by typing "
+                              "'id -u' at the command line."))
+    parser.add_argument('--feeds', type=str)
+    parser.add_argument('--average', type=str, help="Number of channels to average")
+    parser.add_argument('--channels', type=str)
+    parser.add_argument('--display_idlToSdfits', type=str)
+    parser.add_argument('--idlToSdfits_rms_flag', type=str)
+    parser.add_argument('--verbose', type=str)
+    parser.add_argument('--idlToSdfits_baseline_subtract', type=str)
+    parser.add_argument('--keeptempfiles', type=str)
+    parser.add_argument('imfiles', type=str, nargs='+')
+
+    args = parser.parse_args()
+
+    return args
     
-    feeds = sys.argv[2].split(',')
-    average = sys.argv[3]
-    channels = sys.argv[4]
-    display_sdfits2aips = sys.argv[5]
-    sdfits2aips_rms_flag = sys.argv[6]
-    verbose = sys.argv[7]
-    sdfits2aips_baseline_subtract = sys.argv[8]
-    keeptempfiles = sys.argv[9]
-    imfiles = sys.argv[10:]
-    
-    if not imfiles:
+def dbcon(args):
+    if not args.imfiles:
         return
     
     aips_files = []
-    for feed in feeds:
+    for feed in args.feeds.split(','):
         files = []
-        for xx in imfiles:
+        for xx in args.imfiles:
             if 'feed{num}_'.format(num=feed) in xx:
                 files.append(xx)
         
         if not files:
             continue
             
-        aipsfile = run_sdfits2aips(files, average, channels, display_sdfits2aips,
-                                   sdfits2aips_rms_flag, verbose, sdfits2aips_baseline_subtract)
+        aipsfile = run_idlToSdfits(files, args.average, args.channels,
+                                   args.display_idlToSdfits,
+                                   args.idlToSdfits_rms_flag, args.verbose,
+                                   args.idlToSdfits_baseline_subtract)
         aips_files.append(aipsfile)
         
-    AIPS.userno=int(sys.argv[1])    # retrieve AIPS pipeline user number
+    AIPS.userno=args.aipsid         # retrieve AIPS pipeline user number
     mydisk=2                        # choose a good default work disk
     baddisk=1                       # list a disk to avoid (0==no avoidance)
     
@@ -293,42 +298,8 @@ def dbcon(sys):
     
     # now clean up the last of the input files
     spectra.zap()
-    
-    ## and write the last thing now in the catalog to disk
-    fittp.indisk=mydisk
-    fittp.inname=AIPSCat()[mydisk][-1].name
-    fittp.inclass=AIPSCat()[mydisk][-1].klass
-    fittp.inseq=AIPSCat()[mydisk][-1].seq
-    outName = os.path.splitext(aips_files[0])[0]
-    # Trim out the source name
-    iUnder = outName.find("_")
-    if iUnder > 0:
-        outName = outName[iUnder+1:]
-    # Trim out the beam number
-    iUnder = outName.find("_")
-    if iUnder > 0:
-        outName = outName[iUnder+1:]
-    # Trim out the first scan number
-    iUnder = outName.find("_")
-    if iUnder > 0:
-        outName = outName[iUnder+1:]
-    # Trim out the sampler number
-    iUnder = outName.rfind("_")
-    if iUnder > 0:
-        outName = outName[0:iUnder]
-    #Now prepend the objects
-    lObjectName = len(objectName)
-    if lObjectName > 40:
-        objectName = objectName[:40]
-    outimage = objectName+'_'+outName+'_dbcon.fits'
-    if os.path.exists(outimage):
-        os.remove(outimage)
-        print 'Removed existing file to make room for new one :',outimage
-    
-    fittp.dataout='PWD:'+outimage
-    fittp.go()
 
-    if keeptempfiles != '1':
+    if args.keeptempfiles != '1':
         [os.unlink(xx) for xx in aips_files]
         if os.path.isdir('summary'):
             [os.unlink('summary/'+xx) for xx in os.listdir('summary')]
@@ -338,4 +309,6 @@ def dbcon(sys):
     
 if __name__ == '__main__':
 
-    dbcon(sys)
+    args = read_command_line(sys.argv)
+    print args
+    dbcon(args)
