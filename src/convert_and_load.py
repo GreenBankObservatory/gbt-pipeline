@@ -170,11 +170,22 @@ def dbcon(args):
     #
     kount = 0                       # init count of similar input files
     
+    tmpfn = 'tmpUvlodFile.fits'
     for thisFile in aips_files:        # input all AIPS single dish FITS files
-        uvlod.datain='PWD:'+thisFile
+
+        if not os.path.exists(thisFile):
+            print 'WARNING: can not find file: {0}'.format(thisFile)
+            continue
+
+        # AIPS has problems with long filenames so we create a symlink to a short filename
+        print 'Adding {0} to AIPS.'.format(thisFile)
+        os.symlink(thisFile, tmpfn)
+        uvlod.datain = 'PWD:' + tmpfn
         print uvlod.datain
         uvlod.outdisk=mydisk
         uvlod.go()
+        os.unlink(tmpfn) # remove the temporary symlink
+
         spectra = AIPSUVData(AIPSCat()[mydisk][-1].name, AIPSCat()[mydisk][-1].klass, mydisk, AIPSCat()[mydisk][-1].seq)
         nuRef    = spectra.header.crval[2]
         if kount == 0:
@@ -311,4 +322,8 @@ if __name__ == '__main__':
 
     args = read_command_line(sys.argv)
     print args
-    dbcon(args)
+    try:
+        dbcon(args)
+    except ValueError, msg:
+        print 'ERROR: ', msg
+        sys.exit(-1)

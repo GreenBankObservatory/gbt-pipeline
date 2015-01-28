@@ -1,0 +1,22 @@
+#!/bin/bash
+
+fullpath=`readlink -f $0`
+pathdir=`dirname $fullpath`
+
+echo "WARNING:   doImage is being renamed to aipspy"
+echo
+echo "           The following scripts and tools are "
+echo "           being updated to what are hopefully "
+echo "           more descriptive names."
+echo
+echo "           idlToSdfits -> sdfits2aips"
+echo "           doImage -> aipspy"
+echo "           dbcon.py -> load.py"
+echo "           mapDefault.py -> image.py"
+echo  
+echo "           Beginning with the next release, only "
+echo "           the new names will be available."
+echo 
+echo "Invoking:  ${pathdir}/aipspy"
+
+${pathdir}/aipspy $*

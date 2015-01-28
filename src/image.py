@@ -441,6 +441,10 @@ if __name__ == '__main__':
         print 'arcturus.gb.nrao.edu'
         print 'If you are on arcturus, please report this error.'
         sys.exit(-1)
+    except:
+        print('ERROR: There was a problem making the image cube.  Please '
+              'see the log files for details')
+        sys.exit(-3)
 
     # make the moment 0 map
     if not args.noave:

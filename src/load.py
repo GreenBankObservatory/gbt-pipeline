@@ -85,14 +85,19 @@ def load_into_aips(myfiles):
 
     first_file = True   # to help determine center freq to use
 
+    tmpfn = 'tmpUvlodFile.fits'
     for this_file in myfiles:        # input all AIPS single dish FITS files
         if not os.path.exists(this_file):
             print 'WARNING: can not find file: {0}'.format(this_file)
             continue
 
         print 'Adding {0} to AIPS.'.format(this_file)
-        uvlod.datain = 'PWD:' + this_file
+
+        # AIPS has problems with long filenames so we create a symlink to a short filename
+        os.symlink(this_file, tmpfn)
+        uvlod.datain = 'PWD:' + tmpfn
         uvlod.go()
+        os.unlink(tmpfn) # remove the temporary symlink
     
         # get the center frequency of the sdf file that was just loaded
         last = cat.last_entry()
