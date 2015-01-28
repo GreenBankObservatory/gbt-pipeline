@@ -29,10 +29,20 @@ import os
 import glob
 import subprocess
 from collections import namedtuple
+import socket
 
 class Imaging:
 
     def __init__(self,):
+        if 'arcturus' != socket.gethostname():
+            print 
+            print 'For imaging, please run this command on machine name: ',
+            print 'arcturus.gb.nrao.edu'
+            print 'If you are on arcturus, please report this error.'
+            print 
+            print 'If you only want to calibrate your data, but not image'
+            print '  use the parameter --imaging-off'
+            sys.exit(-1)
         pass
 
     def run(self, log, terminal, cl_params, mapping_pipelines):
@@ -141,9 +151,9 @@ class Imaging:
                                  aipsinfiles))
 
             log.doMessage('DBG', aips_cmd)
-
+            
             p = subprocess.Popen(aips_cmd.split(), stdout = subprocess.PIPE,\
-                                stderr = subprocess.PIPE)
+                                 stderr = subprocess.PIPE)
             try:
                 aips_stdout, aips_stderr = p.communicate()
             except: 

@@ -489,6 +489,11 @@ def runPipeline():
     # print a command summary to log file/terminal
     command_summary(cl_params, term, log)
 
+    if not cl_params.imagingoff:
+
+        # instantiate an Imaging object
+        imag = Imaging()
+
     log.doMessage('INFO', '{t.underline}Start '
                   'calibration.{t.normal}'.format(t=term))
 
@@ -567,8 +572,6 @@ def runPipeline():
     # if we are doing imaging
     if not cl_params.imagingoff:
 
-        # instantiate an Imaging object
-        imag = Imaging()
         # image all the calibrated maps
         for current_map in calibrated_maps:
             imag.run(log, term, cl_params, current_map)
