@@ -39,6 +39,7 @@ import aips_utils
 DISK_ID = 2                        # choose a good default work disk
 BADDISK = 1                       # list a disk to avoid (0==no avoidance)
 cat = aips_utils.Catalog()   # initialize a catalog object
+tmpfn = 'tmpUvlodFile.fits'
 
 def print_header(message):
     print ""
@@ -77,6 +78,10 @@ def read_command_line(argv):
 def load_into_aips(myfiles):
     """Load files into AIPS with UVLOD task."""
 
+    # mandl = AIPSTask('mandl')
+    # mandl.outdisk = DISK_ID
+    # mandl.go()
+
     print_header("Loading data into AIPS")
 
     uvlod = AIPSTask('uvlod')
@@ -85,7 +90,6 @@ def load_into_aips(myfiles):
 
     first_file = True   # to help determine center freq to use
 
-    tmpfn = 'tmpUvlodFile.fits'
     for this_file in myfiles:        # input all AIPS single dish FITS files
         if not os.path.exists(this_file):
             print 'WARNING: can not find file: {0}'.format(this_file)
@@ -94,6 +98,9 @@ def load_into_aips(myfiles):
         print 'Adding {0} to AIPS.'.format(this_file)
 
         # AIPS has problems with long filenames so we create a symlink to a short filename
+        if os.path.exists(tmpfn):
+            os.unlink(tmpfn)
+
         os.symlink(this_file, tmpfn)
         uvlod.datain = 'PWD:' + tmpfn
         uvlod.go()
@@ -168,9 +175,8 @@ def combine_files():
         run_dbcon(0, 1)
 
         # and keep adding in one if there are more
-        for ii in range(n_files-1, 1, -1):
+        for ii in range(2, n_files):
             run_dbcon(-1, ii)
-            cat.zap_entry(-2)   # zap previous dbcon to save space 
 
         # remove uv files
         for ii in range(n_files):
@@ -201,7 +207,10 @@ def time_sort_data():
     # will write to entry 1 because input sdf/uv files were removed
     uvsrt.go()
 
-    cat.zap_entry(-1)  # remove the DBCON entry
+    nfiles = len(cat)
+
+    for dbcon_entry in range(nfiles-1):
+        cat.zap_entry(-1)  # remove the DBCON entries
 
 def print_summary():
     """Print a simple summary to the screen of image RA/DEC and size."""
@@ -243,6 +252,8 @@ if __name__ == '__main__':
     except RuntimeError, msg:
         print 'ERROR: ', msg
         print 'Check format of input files.'
+        if os.path.exists(tmpfn):
+            os.unlink(tmpfn)
         sys.exit(-1)
     
     # if any files were loaded into the catalog, do other steps

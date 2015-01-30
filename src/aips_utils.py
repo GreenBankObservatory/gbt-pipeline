@@ -112,7 +112,7 @@ class Catalog(object):
             elif choice.lower() == 'y':
                 AIPSCat().zap()                 # empty the catalog
             else:
-                empty(do_empty)  # if they didn't type 'y' or 'n', ask again.
+                self.empty(do_empty)  # if they didn't type 'y' or 'n', ask again.
         else:
             AIPSCat().zap()
  
