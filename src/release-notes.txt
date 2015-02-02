@@ -1,6 +1,6 @@
 GBT Mapping Pipeline Version 1.2
 
-These notes accompany the release of the GBT Mapping Pipeline on January __, 2015. The previous version of the pipeline was 1.1. A summary of new features and bug fixes since the last release are described below.
+These notes accompany the release of the GBT Mapping Pipeline on January __, 2015.  A summary of new features and bug fixes since the last release are described below.
 
 ) A number of name changes have occurred with the aim of improving the user experience.  The script names and file extensions are meant to be more descriptive and intuitive.  The changes are:
 
@@ -16,8 +16,7 @@ With this release the doImage, dbcon.py and mapDefault.py commands still work, b
 
 ) Fixed the exposure time calculation for out of band frequency-switched integrations.  The previous code always summed the exposure times from the two FS switching states. With this update, if the frequency bands do not overlap at all, we only count the exposure time from the first state.
 
-) Updated an image header keyword to allow image cubes to be ready by the CASA viewer.  The pipeline tweaks the AIPS image cubes by adding a reference frame string to the end of the CTYPE3 value (which AIPS just writes as "FREQ) so that it matches the VELREF keyword also written by AIPS.  Previously the code was writing "FREQ-BAR" when it should have been writing "FREQ-HEL".  BAR and HEL are equivalent (and when the fixed "FREQ-HEL" is read 
-in to CASA it ends up being labeled as "BARY").
+) Updated an image header keyword to allow image cubes to be read by the CASA viewer.  The pipeline tweaks the AIPS image cubes by adding a reference frame string to the end of the CTYPE3 value (which AIPS just writes as "FREQ) so that it matches the VELREF keyword also written by AIPS.  Previously the code was writing "FREQ-BAR" when it should have been writing "FREQ-HEL".  BAR and HEL are equivalent (and when the fixed "FREQ-HEL" is read in to CASA it ends up being labeled as "BARY").
 
 ) Removed spaces from output file names.  This occurred when the target name included whitespace.  AIPS does not handle spaces in output file names well. This release should fix that problem.
 
@@ -25,14 +24,13 @@ in to CASA it ends up being labeled as "BARY").
 
 ) Now logging errors when the zenith opacity is not available in the weather database.  Previously errors were not logged when the zenith opacity could not be found because the observation date was too early.
 
-) Improved map finding code by adding Track procedure scans
-to be counted as reference scans
+) Improved map finding code by adding Track procedure scans to be counted as reference scans
+
+) Improved output names of images to include scan ranges.
 
 ) Fixed window, feed and polarization filtering parameters for VEGAS data.
 
 ) Added summary message showing number of windows and feeds.  We now list window numbers with frequencies and feed numbers contained in the data.
-
-) Added scan range to image product filenames
 
 ) Added new utilities:
 
