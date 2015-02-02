@@ -23,7 +23,7 @@ if __name__ == '__main__':
         print 'dbcon: Combine all observations into a single dish fits file'
         print 'usage: doImage dbcon <aipsNumber> <spectra File 1> [<spectra File n>]'
         print 'where <aipsNumber>     Your *PIPELINE* AIPS number (should always be the same)'
-        print '      <spectra File 1> One or more calibrated spectra files (*.sdf)'
+        print '      <spectra File 1> One or more calibrated spectra files (*.aips.fits)'
         print '      Combined spectra are placed in catalog slot 1'
         print ''
         sys.exit()

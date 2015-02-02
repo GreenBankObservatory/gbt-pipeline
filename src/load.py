@@ -65,7 +65,7 @@ def read_command_line(argv):
                       'without prompt before processing.  Otherwise, the user is '
                       'prompted to override the default False setting.')
     parser.add_argument('files', type=str, nargs='+',
-                        help="Names of AIPS files to load (space-separated)")
+                        help="Names of files (*.aips.fits) to load into AIPS (space-separated)")
     args = parser.parse_args()
 
     cat.config(args.aipsid, DISK_ID)  # configure the catalog object
