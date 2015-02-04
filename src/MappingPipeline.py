@@ -176,7 +176,7 @@ class MappingPipeline:
                    0 == cal_off.data['DATA'].ptp() or \
                    0 == cal_on.data['DATA'].ptp():
                     self.log.doMessage('DBG', 'Bad integration. '
-                                       'Skipping row', rowNum, 'in reference scan')
+                                       'Skipping row', rowNum, 'from input data.')
                     continue
             
                 cref, tsys, exposure, timestamp, tambient, elevation = self.sdf.getReferenceIntegration(cal_on, cal_off)
