@@ -169,6 +169,16 @@ class MappingPipeline:
                 cal_off = row
             
             if cal_off and cal_on:
+
+                # look for "bad" spectra: all NaNs or all zeros
+                if np.all(np.isnan(cal_off.data['DATA'])) or \
+                   np.all(np.isnan(cal_on.data['DATA'])) or \
+                   0 == cal_off.data['DATA'].ptp() or \
+                   0 == cal_on.data['DATA'].ptp():
+                    self.log.doMessage('DBG', 'Bad integration. '
+                                       'Skipping row', rowNum, 'from input data.')
+                    continue
+            
                 cref, tsys, exposure, timestamp, tambient, elevation = self.sdf.getReferenceIntegration(cal_on, cal_off)
                 
                 # used these, so clear for the next iteration

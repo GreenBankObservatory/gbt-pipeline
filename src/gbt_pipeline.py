@@ -96,7 +96,7 @@ def calibrate_win_feed_pol(log, cl_params, window, feed, pol, pipe):
         try:
             pipe.row_list.get(cl_params.refscans[0], feed, window, pol)
         except:
-            log.doMessage('ERR', 'missing 2nd reference scan #',
+            log.doMessage('ERR', 'missing reference scan #',
                           cl_params.refscans[0], 'for feed', feed,
                           'window', window, 'polarization', pol)
             return
@@ -398,38 +398,38 @@ def calibrate_file(term, log, command_options):
     # check for presence of pol(s) in dataset before attempting calibration
     if command_options.pol:
         if  set(command_options.pol).isdisjoint(set(row_list.pols())):
-            log.doMessage('DBG', 'POL', command_options.pol, 'not in', os.path.basename(indexfile))
+            log.doMessage('WARN', 'POL', command_options.pol, 'not in', os.path.basename(indexfile))
             proceed_with_calibration = False
         else:
             requested_pols = command_options.pol
             command_options.pol = list(set(command_options.pol).intersection(set(row_list.pols())))
             pol_diff = set(requested_pols).difference(set(command_options.pol))
             if pol_diff:
-                log.doMessage('DBG', 'POL', list(pol_diff), 'not in', os.path.basename(indexfile))            
+                log.doMessage('WARN', 'POL', list(pol_diff), 'not in', os.path.basename(indexfile))            
 
     # check for presence of feed(s) in dataset before attempting calibration
     if command_options.feed:
         if  set(command_options.feed).isdisjoint(set(row_list.feeds())):
-            log.doMessage('DBG', 'FEED', command_options.feed, 'not in', os.path.basename(indexfile))
+            log.doMessage('WARN', 'FEED', command_options.feed, 'not in', os.path.basename(indexfile))
             proceed_with_calibration = False
         else:
             requested_feeds = command_options.feed
             command_options.feed = list(set(command_options.feed).intersection(set(row_list.feeds())))
             feed_diff = set(requested_feeds).difference(set(command_options.feed))
             if feed_diff:
-                log.doMessage('DBG', 'FEED', list(feed_diff), 'not in', os.path.basename(indexfile))            
+                log.doMessage('WARN', 'FEED', list(feed_diff), 'not in', os.path.basename(indexfile))            
 
     # check for presence of window(s) in dataset before attempting calibration
     if command_options.window:
         if  set(command_options.window).isdisjoint(set(row_list.windows())):
-            log.doMessage('DBG', 'WINDOW', command_options.window, 'not in', os.path.basename(indexfile))
+            log.doMessage('WARN', 'WINDOW', command_options.window, 'not in', os.path.basename(indexfile))
             proceed_with_calibration = False
         else:
             requested_windows = command_options.window
             command_options.window = list(set(command_options.window).intersection(set(row_list.windows())))
             window_diff = set(requested_windows).difference(set(command_options.window))
             if window_diff:
-                log.doMessage('DBG', 'WINDOW', list(window_diff), 'not in', os.path.basename(indexfile))            
+                log.doMessage('WARN', 'WINDOW', list(window_diff), 'not in', os.path.basename(indexfile))            
 
     if proceed_with_calibration == False:
         return None
@@ -563,7 +563,8 @@ def runPipeline():
     else:
         commandline_options = copy.deepcopy(cl_params)
         calibrated_maps_this_file = calibrate_file(term, log, commandline_options)
-        calibrated_maps.extend(calibrated_maps_this_file)
+        if calibrated_maps_this_file:
+            calibrated_maps.extend(calibrated_maps_this_file)
 
     if not calibrated_maps:
         log.doMessage('ERR', 'No calibrated spectra.  Check inputs and try again')
