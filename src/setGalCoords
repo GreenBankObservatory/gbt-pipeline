@@ -1,0 +1,3 @@
+#!/bin/bash
+source /home/sparrow/release/sparrow.bash
+python -u setGalCoords.py $*
