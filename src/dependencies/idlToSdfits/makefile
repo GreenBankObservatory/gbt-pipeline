@@ -69,18 +69,6 @@
 
 .KEEP_STATE:
 
-# 
-# include all cfitsio stuff
-#
-
-prefix		= /users/glangsto/cfitsio
-exec_prefix	= ${prefix}
-DESTDIR		= /users/glangsto/cfitsio
-CFITSIO_PREFIX	= $(prefix)
-CFITSIO_LIB	= $(DESTDIR)$(exec_prefix)/lib
-CFITSIO_INCLUDE	= $(DESTDIR)$(prefix)/include
-INSTALL_DIRS	= $(DESTDIR)${prefix} ${CFITSIO_LIB} ${CFITSIO_LIB}/pkgconfig ${CFITSIO_INCLUDE}
-
 
 SHELL =		/bin/sh
 RANLIB =	ranlib
@@ -109,41 +97,15 @@ CORE_OBJECTS = 	${CORE_SOURCES:.c=.o}
 
 FITSIO_SRC =	f77_wrap1.c f77_wrap2.c f77_wrap3.c f77_wrap4.c
 
-CFLAGS= -O -Wall -g -I/opt/local/X11R6/include -I./xlib -I$(
-#CFAST= -O3 -Wall -g -I/opt/local/X11R6/include -I./xlib -I/home/gbt1/fitsio
-CFAST= -O -Wall -g -I/opt/local/X11R6/include -I./xlib -I/home/gbt1/fitsio
+CFLAGS= -O -Wall -g -I/opt/local/X11R6/include -I./xlib -I$/usr/include/cfitsio
+CFAST= -O -Wall -g -I/opt/local/X11R6/include -I./xlib -I/usr/include/cfitsio
 TARGET_ARCH=
 CC=gcc
 LINK.c= $(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) -static
 #COMPILE.c= $(CC) $(CFLAGS) $(CPPFLAGS) -c
 COMPILE.c= $(CC) $(CFAST) $(CPPFLAGS) -c
-#SPICELIB = /home/ovlbi/ovlbi/naif/toolkit/lib/spicelib.a
-SPICELIB = /users/glangsto/naif/toolkit/lib/spicelib.a
-#FITSLIB = /home/gbt1/fitsio/i386-linux/libcfitsio.a 
-FITSLIB = /home/gbt1/cfitsio-2.440b/libcfitsio.a 
 
 COMPILE.f= g77 -O -Wall -c
-
-SPICELIB_Linux = /home/ovlbi/naif-linux/cspice/lib/cspice.a
-SPICELIB_SunOS = /home/ovlbi/naif/toolkit/lib/spicelib.a
-#FITSIO_Linux = /home/gbt1/fitsio/i386-linux/libcfitsio.a
-FITSIO_Linux = /home/gbt1/cfitsio/libcfitsio.so
-FITSIO_SunOS = /home/gbt1/fitsio/libcfitsio.a
-XLIB_Linux = -L/usr/X11R6/lib -L/lib -lnsl -lm -lg2c -lXt
-XLIB_SunOS = -L/usr/X11/lib -lnsl -lm -lg2c -lXt -lsocket -lX11
-
-#try to link in the correct libraries with the operating system
-OSTYPE=$(shell /bin/uname)
-#OSTYPE should be either SunOS or Linux
-ifeq ($(OSTYPE),SunOS)
-  FITSIO = $(FITSIO_SunOS)
-  SPICELIB = $(SPICELIB_SunOS)
-  XLIB = $(XLIB_SunOS)
-else
-  FITSIO = $(FITSIO_Linux)
-  SPICELIB = $(SPICELIB_Linux)
-  XLIB = $(XLIB_Linux)
-endif
 
 # function to find source code and place it in the current directory
 .DEFAULT: 
@@ -161,7 +123,7 @@ all: idlToSdfits
 
 #MATH functions
 MATHFUNC = vanvleck.o fourier.o median4.o \
-adjust3Level.o linearFit.o smoothVector.o findScanInfo.o \
+adjust3Level.o vanvleck.o linearFit.o smoothVector.o findScanInfo.o \
 medianFilter.o medianVectors.o medianVector.o median5.o median3.o
 
 FITGAUSS = mrqmin.o mrqcof.o fgauss.o gaussj.o covsrt.o nrutil.o \
