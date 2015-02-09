@@ -1,5 +1,0 @@
-#!/bin/bash
-
-source /home/gbt7/pipeline/spectral-env/bin/activate
-PYTHONSTARTUP= PYTHONPATH= LD_LIBRARY_PATH=/opt/local/lib python /home/gbtpipeline/integration/spectralpipe/show_reduced.py $*
-deactivate
