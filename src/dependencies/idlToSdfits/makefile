@@ -97,8 +97,8 @@ CORE_OBJECTS = 	${CORE_SOURCES:.c=.o}
 
 FITSIO_SRC =	f77_wrap1.c f77_wrap2.c f77_wrap3.c f77_wrap4.c
 
-CFLAGS= -O -Wall -g -I/opt/local/X11R6/include -I./xlib -I$/usr/include/cfitsio
-CFAST= -O -Wall -g -I/opt/local/X11R6/include -I./xlib -I/usr/include/cfitsio
+CFLAGS= -O -Wall -g -I/opt/local/X11R6/include -I./xlib -I$/home/gbtpipeline/include
+CFAST= -O -Wall -g -I/opt/local/X11R6/include -I./xlib -I/home/gbtpipeline/include
 TARGET_ARCH=
 CC=gcc
 LINK.c= $(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) -static
@@ -158,9 +158,7 @@ IDLHEADERS = STDDEFS.H MATHCNST.H KEYWORD.H vlb.h nrutil.h ABPTRB.H $(GBTH)
 
 idlToSdfits: $(IDLHEADERS) $(IDLTOSDFITS) $(VLBASTRINGS) $(MATHFUNC) \
 $(FITGAUSS) $(VELOCITY) 
-	gcc -g -lm $(IDLTOSDFITS) $(VLBASTRINGS) -lcfitsio -L$(DESTDIR) \
-$(MATHFUNC) $(FITGAUSS) $(VELOCITY) \
--o idlToSdfits
+	gcc -g $(IDLTOSDFITS) $(VLBASTRINGS) -L$(DESTDIR) $(MATHFUNC) $(FITGAUSS) $(VELOCITY) -L/home/gbtpipeline/lib/ -lcfitsio -lm -o idlToSdfits
 
 
 clean:
