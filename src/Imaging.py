@@ -96,6 +96,10 @@ class Imaging:
 
             all_imfiles = glob.glob('*' + scanrange + '*window' +
                                 str(thismap.window) + '*feed*pol*' + '.fits')
+            if not all_imfiles:
+                # no files found
+                log.doMessage('ERR', 'No calibrated files found.')
+                continue
 
             # filter file list to only include those with a feed calibrated for use in this map
             feeds = map(str, sorted(maps[thismap]))

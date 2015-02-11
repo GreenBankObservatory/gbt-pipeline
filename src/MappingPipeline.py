@@ -66,6 +66,7 @@ class MappingPipeline:
             sys.exit()
             
         self.outfile = None
+        self.outfilename = None
 
         self.row_list = row_list
         self.CLOBBER = cl_params.clobber
@@ -227,11 +228,11 @@ class MappingPipeline:
             print('WARNING: Can not find data for scan {scan} window {win} feed {feed} polarization {pol}'.format(scan=self.cl.mapscans[0], win=window, feed=feed, pol=pol))
             raise
         
-        outfilename = targetname + '_scan_' + str(self.cl.mapscans[0]) + '_' + str(self.cl.mapscans[-1]) + '_window' + str(window) + '_feed' + str(feed) + '_pol' + str(pol) + '.fits'
+        self.outfilename = targetname + '_scan_' + str(self.cl.mapscans[0]) + '_' + str(self.cl.mapscans[-1]) + '_window' + str(window) + '_feed' + str(feed) + '_pol' + str(pol) + '.fits'
 
-        self.log = Logging(self.cl, outfilename.rstrip('.fits'))
+        self.log = Logging(self.cl, self.outfilename.rstrip('.fits'))
 
-        if False == self.CLOBBER and os.path.exists(outfilename):
+        if False == self.CLOBBER and os.path.exists(self.outfilename):
             self.log.doMessage('WARN', ' Will not overwrite existing pipeline output.\nConsider using \'--clobber\' option to overwrite.')
             sys.exit()
         
@@ -240,7 +241,7 @@ class MappingPipeline:
         from cStringIO import StringIO
         sys.stdout = StringIO()
         # redirect stdout to not get clobber file warnings
-        self.outfile = fitsio.FITS(outfilename, 'rw', clobber = True)
+        self.outfile = fitsio.FITS(self.outfilename, 'rw', clobber = True)
         sys.stdout = old_stdout
 
         dtype = self.infile[ext][0].dtype
@@ -371,6 +372,10 @@ class MappingPipeline:
             
             if not cal_switching or not sigref:
                 self.log.doMessage('ERR', 'Expected frequency-switched scan', scan, 'does not have 2 signal states and 2 noise diode (cal) states')
+                self.outfile.close()
+                # if this is the first scan, remove the output file because the table will be empty
+                if scan == self.cl.mapscans[0]:
+                    os.unlink(self.outfilename)
                 sys.exit()
             
             # break the input rows into chunks as buffers to write out
