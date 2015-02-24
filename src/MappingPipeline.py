@@ -307,6 +307,7 @@ class MappingPipeline:
         
         # tsky for reference 1
         if not self.OPACITY:
+            self.log.doMessage('DBG', 'Getting opacity for reference Tsky: 1st reference')
             ref1_zenith_opacity = self.weather.retrieve_zenith_opacity(crefTime1, obsfreqHz, self.log)
             if not ref1_zenith_opacity:
                 self.log.doMessage('ERR', 'Not able to retrieve reference 1 zenith opacity\n  Please supply a zenith opacity or calibrate to Ta.')
@@ -324,6 +325,7 @@ class MappingPipeline:
 
             # tsky for reference 2
             if not self.OPACITY:
+                self.log.doMessage('DBG', 'Getting opacity for reference Tsky: 2nd reference')
                 ref2_zenith_opacity = self.weather.retrieve_zenith_opacity(crefTime2, obsfreqHz, self.log)
                 if not ref2_zenith_opacity:
                     self.log.doMessage('ERR', 'Not able to retrieve reference 2 zenith opacity for calibration to:', self.cl.units, '\n  Please supply a zenith opacity or calibrate to Ta.')
@@ -486,10 +488,7 @@ class MappingPipeline:
                             intOpacity = self.OPACITY
                             
                         opacity_el = self.cal.elevation_adjusted_opacity(intOpacity, elevation)
-                            
-                        # get tsky for the current integration
-                        #tambient_current = sigrefState[0]['cal_off']['TAMBIENT']
-                    
+                                                
                     beam_scale = self.get_beam_scale(receiver, beam_scaling, feed, pol)
                     
                     if self.cl.units=='ta*' or self.cl.units=='tmb' or self.cl.units=='jy':
@@ -559,7 +558,7 @@ class MappingPipeline:
         else:
             self.log.doMessage('DBG', 'calibrating feed', feed, 'window', window, 'polarization', pol)
 
-        if self.cl.units != 'ta':
+        if self.cl.units != 'ta' and self.cl.tsky:
             tsky1, tsky2 = self.getReferenceTsky(feed, window, pol, crefTime1, refTambient1, refElevation1,
                             crefTime2, refTambient2, refElevation2)
         
@@ -678,15 +677,16 @@ class MappingPipeline:
                             
                             obsfreqHz = self.getObsFreq(feed, window, pol)
                             
-                            if tsky1 and tsky2:
-                                # get interpolated reference tsky value
-                                tsky_ref =  self.cal.interpolate_by_time(tsky1, tsky2,
-                                                crefTime1, crefTime2, intTime)
-                            elif tsky1 and not tsky2:
-                                tsky_ref =  tsky1
-                            else:
-                                self.log.doMessage('ERR', 'no reference tsky value')
-                                sys.exit()
+                            if self.cl.tsky:
+                                if tsky1 and tsky2:
+                                    # get interpolated reference tsky value
+                                    tsky_ref =  self.cal.interpolate_by_time(tsky1, tsky2,
+                                                    crefTime1, crefTime2, intTime)
+                                elif tsky1 and not tsky2:
+                                    tsky_ref =  tsky1
+                                else:
+                                    self.log.doMessage('ERR', 'no reference tsky value')
+                                    sys.exit()
 
                             # ASSUMES a given opacity
                             #   the opacity needs to come from the command line or Ron's
@@ -698,19 +698,24 @@ class MappingPipeline:
                                     sys.exit(9)
                                 else:
                                     if 0 == outputidx:
-                                        self.log.doMessage('DBG', 'Zenith opacity, win {win} feed {feed} pol {pol} scan {scan}:'.format(win=window, scan=scan, feed=feed, pol=pol), intOpacity)
+                                        self.log.doMessage('DBG', ('Zenith opacity, win {win} feed {feed} pol {pol} '
+                                                                   'scan {scan} freq {freq} time {time}:'.format(win=window, scan=scan, freq=obsfreqHz,
+                                                                                                                 feed=feed, pol=pol, time=intTime)), intOpacity)
                             else:
                                 intOpacity = self.OPACITY
                                 
                             opacity_el = self.cal.elevation_adjusted_opacity(intOpacity, elevation)
                                 
-                            # get tsky for the current integration
-                            tambient_current = cal_off['TAMBIENT']
-                            tsky_current = self.cal.tsky(tambient_current, obsfreqHz, opacity_el)
+                            tsrc = ta
+
+                            if self.cl.tsky:
+                                # get tsky for the current integration
+                                tambient_current = cal_off['TAMBIENT']
+                                tsky_current = self.cal.tsky(tambient_current, obsfreqHz, opacity_el)
                            
-                            tsky_correction = self.cal.tsky_correction(tsky_current, tsky_ref, self.SPILLOVER)
-                                
-                            tsrc = ta-tsky_correction
+                                tsky_correction = self.cal.tsky_correction(tsky_current, tsky_ref, self.SPILLOVER)
+
+                                tsrc -= tsky_correction
         
                             if CREATE_PLOTS:
                                 tsrcs.append(tsrc)
