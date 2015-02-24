@@ -40,12 +40,12 @@ class Calibration(object):
 
     """
 
-    def __init__(self):
+    def __init__(self, smoothing_window_size=3):
 
         # set calibration constants
         self.BB = .0132  # Ruze equation parameter
         self.UNDER_2GHZ_TAU_0 = 0.008
-        self.SMOOTHING_WINDOW = 3
+        self.SMOOTHING_WINDOW = smoothing_window_size
         self.pu = Pipeutils()
 
     # ------------- Unit methods: do not depend on any other pipeline methods
@@ -68,9 +68,9 @@ class Calibration(object):
         EtaA model is from memo by Jim Condon, provided by Ron Maddalena
 
         >>> cal = Calibration()
-        >>> round(cal.aperture_efficiency(.71, 23e9), 6)
+        >>> print '{0:.6f}'.format(cal.aperture_efficiency(.71, 23e9))
         0.647483
-        >>> round(cal.aperture_efficiency(.91, 23e9), 6)
+        >>> print '{0:.6f}'.format(cal.aperture_efficiency(.91, 23e9))
         0.829872
 
         """
@@ -88,70 +88,45 @@ class Calibration(object):
 
         return self.aperture_efficiency(reference_eta_b, freq_hz)
 
-    def elevation_adjusted_opacity(self, zenith_opacity, elevation):
+    def elevation_adjusted_opacity(self, zenith_opacity, elev):
         """Compute elevation-corrected opacities.
 
         Keywords:
 
         zenith_opacity -- opacity based only on time
-        elevation -- (float) elevation angle of integration or scan
+        elev -- (float) elevation angle of integration or scan
 
-        """
-        number_of_atmospheres = self._natm(elevation)
+        We need to estimate the number of atmospheres along the
+        line of site at an input elevation
 
-        corrected_opacity = zenith_opacity * number_of_atmospheres
-
-        return corrected_opacity
-
-    def _natm(self, el_deg):
-        """Compute number of atmospheres at elevation (deg)
-
-        Keyword arguments:
-        el_deg -- input elevation in degrees
-
-        Returns:
-        n_atmos -- output number of atmospheres
-
-        Estimate the number of atmospheres along the line of site
-        at an input elevation
-
-        This comes from a model reported by Ron Maddale
+        This comes from a model reported by Ron Maddalena:
 
         1) A = 1/sin(elev) is a good approximation down to about 15 deg but
         starts to get pretty poor below that.  Here's a quick-to-calculate,
         better approximation that I determined from multiple years worth of
         weather data and which is good down to elev = 1 deg:
 
-        if (elev LT 39):
         A = -0.023437  + 1.0140 / math.sin( (math.pi/180.)*(elev + 5.1774 /
             (elev + 3.3543) ) )
-        else:
-        A = math.sin(math.pi*elev/180.)
 
-        natm model is provided by Ron Maddalena
+        >>> cal = Calibration()
+        >>> print ['{0:.6f}'.format(cal.elevation_adjusted_opacity(1, el)) for el in range(90)]
+        ['37.621216', '26.523488', '19.566942', '15.217485', '12.341207', '10.331365', '8.861127', '7.745094', '6.872195', '6.172545', '5.600276', '5.124171', '4.722318', '4.378917', '4.082311', '3.823718', '3.596410', '3.395144', '3.215779', '3.055004', '2.910137', '2.778989', '2.659751', '2.550918', '2.451229', '2.359617', '2.275175', '2.197126', '2.124803', '2.057628', '1.995099', '1.936775', '1.882273', '1.831253', '1.783416', '1.738495', '1.696253', '1.656478', '1.618982', '1.583595', '1.550162', '1.518545', '1.488619', '1.460271', '1.433397', '1.407903', '1.383703', '1.360719', '1.338878', '1.318115', '1.298369', '1.279585', '1.261710', '1.244698', '1.228504', '1.213089', '1.198415', '1.184446', '1.171152', '1.158501', '1.146467', '1.135024', '1.124146', '1.113814', '1.104005', '1.094700', '1.085882', '1.077533', '1.069639', '1.062184', '1.055156', '1.048543', '1.042331', '1.036512', '1.031074', '1.026009', '1.021309', '1.016966', '1.012972', '1.009322', '1.006009', '1.003029', '1.000376', '0.998047', '0.996038', '0.994346', '0.992968', '0.991902', '0.991147', '0.990701']
 
         """
 
-        degree = math.pi/180.
+        deg2rad = (math.pi/180) # factor to convert degrees to radians
+        num_atmospheres = -0.023437 + 1.0140 / math.sin( deg2rad * (elev + 5.1774 / (elev + 3.3543) ) )
+        corrected_opacity = zenith_opacity * num_atmospheres
 
-        if (el_deg < 39.):
-            first_term = -0.023437
-            denominator = math.sin(degree*(el_deg + 5.1774/(el_deg + 3.3543)))
-            second_term = 1.0140 / denominator
-            n_atmos = first_term + second_term
-        else:
-            n_atmos = math.sin(degree*el_deg)
-
-        #print('Model Number of Atmospheres:', n_atmos,
-        #      ' at elevation ', el_deg)
-        return n_atmos
+        return corrected_opacity
 
     def _tatm(self, freq_hz, tmp_c):
         """Estimates the atmospheric effective temperature
 
         Keyword arguments:
         freq_hz -- input frequency in Hz
-        where: tmp_c     - input ground temperature in Celsius
+        where: tmp_c -- input ground temperature in Celsius
 
         Returns:
         air_temp_k -- output Air Temperature in Kelvin
@@ -159,19 +134,7 @@ class Calibration(object):
         Based on local ground temperature measurements.  These estimates
         come from a model reported by Ron Maddalena
 
-        1) A = 1/sin(elev) is a good approximation down to about 15 deg but
-        starts to get pretty poor below that.  Here's a quick-to-calculate,
-        better approximation that I determined from multiple years worth of
-        weather data and which is good down to elev = 1 deg:
-
-            if (elev LT 39) then begin
-                A = -0.023437  + 1.0140 / sin( (!pi/180.)
-                     * (elev + 5.1774 / (elev + 3.3543) ) )
-            else begin
-                A = sin(!pi*elev/180.)
-            endif
-
-        2) Using Tatm = 270 is too rough an approximation since Tatm can vary
+        Using Tatm = 270 is too rough an approximation since Tatm can vary
         from 244 to 290, depending upon the weather conditions and observing
         frequency.  One can derive an approximation for the default Tatm that
         is accurate to about 3.5 K from the equation:
@@ -200,35 +163,31 @@ class Calibration(object):
         tatm model is provided by Ron Maddalena
 
         >>> cal = Calibration()
-        >>> round(cal._tatm(23e9, 40), 6)
+        >>> print '{0:.6f}'.format(cal._tatm(23e9, 40))
         298.885174
-        >>> round(cal._tatm(23e9, 30), 6)
+        >>> print '{0:.6f}'.format(cal._tatm(23e9, 30))
         289.780603
-        >>> round(cal._tatm(1.42e9, 30), 6)
+        >>> print '{0:.6f}'.format(cal._tatm(1.42e9, 30))
         271.978666
 
         """
 
         # where TMPC = ground-level air temperature in C and Freq is in GHz.
         # The A and B coefficients are:
-        aaa = [259.69185966, -1.66599001, 0.226962192,
-               -0.0100909636,  0.00018402955, -0.00000119516]
-        bbb = [0.42557717,    0.033932476, 0.0002579834,
-               -0.00006539032, 0.00000157104, -0.00000001182]
+        aaa = [259.69185966, -1.66599001, 0.226962192, -0.0100909636,  0.00018402955, -0.00000119516]
+        bbb = [0.42557717, 0.033932476, 0.0002579834, -0.00006539032, 0.00000157104, -0.00000001182]
         freq_ghz = float(freq_hz)/1e9
-        freq = float(freq_ghz)
-        freq2 = freq*freq
-        freq3 = freq2*freq
-        freq4 = freq3*freq
-        freq5 = freq4*freq
 
-        air_temp_k = (aaa[0] + aaa[1]*freq + aaa[2]*freq2 + aaa[3]*freq3
-                      + aaa[4]*freq4 + aaa[5]*freq5)
-        air_temp_k = (air_temp_k +
-                      (bbb[0] + bbb[1]*freq + bbb[2]*freq2
-                       + bbb[3]*freq3 + bbb[4]*freq4 + bbb[5]*freq5)
-                      * float(tmp_c))
+        air_temp_k_A = air_temp_k_B = 0
+        for idx, term in enumerate(zip(aaa,bbb)):
+            if idx > 0:
+                air_temp_k_A = air_temp_k_A + term[0] * (freq_ghz**idx)
+                air_temp_k_B = air_temp_k_B + term[1] * (freq_ghz**idx)
+            else:
+                air_temp_k_A = term[0]
+                air_temp_k_B = term[1]
 
+        air_temp_k = air_temp_k_A + (air_temp_k_B * float(tmp_c))
         return air_temp_k
 
     def zenith_opacity(self, coeffs, freq_ghz):
@@ -349,7 +308,7 @@ class Calibration(object):
 
     def ta_star(self, antenna_temp, beam_scaling, opacity, spillover):
         # opacity is corrected for elevation
-        return antenna_temp*((beam_scaling*(math.e**opacity))/spillover)
+        return beam_scaling * antenna_temp * math.e**opacity * 1/spillover
 
     def jansky(self, ta_star, aperture_efficiency):
         return ta_star/(2.85*aperture_efficiency)
@@ -422,3 +381,8 @@ class Calibration(object):
         tsky = airTemp * (1-math.e**(-tau))
 
         return tsky
+
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
+    
