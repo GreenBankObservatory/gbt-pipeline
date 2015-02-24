@@ -34,12 +34,84 @@ class Weather:
         
         self.cal = Calibration()
         self.last_integration_mjd_timestamp = None
-        self.last_requested_freq_hz = None
-        self.last_zenith_opacity = None
-        self.number_of_opacity_files = None
+        self.last_requested_freq_ghz = None
+        self.zenith_opacity = None
         self.opacity_coeffs = None
         self.L_BAND_ZENITH_TAU = .008
+        self.frequency_range = None
+        self.time_range = None
+        self.db_time_range = None
+        self.log = None
         
+    def _opacity_database(self, timestamp):
+        # retrieve a list of opacity coefficients files, based on a given directory
+        # and filename structure
+        opacity_coefficients_filename = False
+        opacity_files = glob.glob(\
+          '/home/gbtpipeline/weather/CoeffsOpacityFreqList_avrg_*.txt')
+        
+        if 0 == len(opacity_files):
+            if self.log:
+                self.log.doMessage('WARN', 'WARNING: No opacity coefficients file')
+            else:
+                print 'WARNING: No opacity coefficients file'
+            return False
+            
+        # sort the list of files so they are in chronological order
+        opacity_files.sort()
+        
+        # check the date of each opacity coefficients file
+        for idx, opacity_candidate_file in enumerate(opacity_files):
+            dates = opacity_candidate_file.split('_')[-2:]
+            opacity_file_timestamp = []
+            for date in dates:
+                opacity_file_timestamp.append(int(date.split('.')[0]))
+            opacity_file_starttime = opacity_file_timestamp[0]
+            opacity_file_stoptime = opacity_file_timestamp[1]
+
+            # when timestamp is older than available ranges
+            if idx == 0 and timestamp < opacity_file_starttime:
+                if self.log:
+                    self.log.doMessage('ERR', 'ERROR: Date is too early for opacities.')
+                    self.log.doMessage('ERR', '  Try setting zenith tau at command line.')
+                    self.log.doMessage('ERR', timestamp, '<', opacity_file_starttime)
+                else:
+                    print 'ERROR: Date is too early for opacities.'
+                    print '  Try setting zenith tau at command line.'
+                    print timestamp, '<', opacity_file_starttime
+                sys.exit(9)
+                break
+        
+            if  (opacity_file_starttime <= timestamp < opacity_file_stoptime):
+                opacity_coefficients_filename = opacity_candidate_file
+                opacity_db_range = (opacity_file_starttime, opacity_file_stoptime)
+                break
+
+        # uses most recent info
+        if not opacity_coefficients_filename:
+            # if the mjd in the index file comes after the date string in all of the
+            # opacity coefficients files, then we can assume the current opacity
+            # coefficients file will apply.  a date string is only added to the opacity
+            # coefficients file when it is no longer the most current.
+            opacity_coefficients_filename = \
+              '/home/gbtpipeline/weather/CoeffsOpacityFreqList_avrg.txt'
+            opacity_db_range = 'LATEST'
+        
+        # opacities coefficients filename
+        if opacity_coefficients_filename and os.path.exists(opacity_coefficients_filename):
+            if self.log:
+                self.log.doMessage('DBG', 'Using coefficients from', opacity_coefficients_filename)
+            else:
+                print 'Using coefficients from', opacity_coefficients_filename
+            coeffs = self._retrieve_opacity_coefficients(opacity_coefficients_filename)
+            return coeffs, opacity_db_range
+        else:
+            if self.log:
+                self.log.doMessage('WARN', 'WARNING: No opacity coefficients file')
+            else:
+                print 'WARNING: No opacity coefficients file'
+            return False
+
     def _retrieve_opacity_coefficients(self, opacity_coefficients_filename):
         """Return opacities (taus) derived from a list of coeffients
         
@@ -78,117 +150,85 @@ class Weather:
 
     def retrieve_zenith_opacity(self, integration_mjd_timestamp, freq_hz, log=None):
 
+        self.log = log
+
         freq_ghz = freq_hz/1e9
         
         # if less than 2 GHz, opacity coefficients are not available
         if freq_ghz < 2:
             return self.L_BAND_ZENITH_TAU
 
-        # if the frequency is the same as the last requested and
-        #  this time is within the same record (1 hr window) of the last
-        #  recorded opacity coefficients, then just reuse the last
-        #  zenith opacity value requested
+        # if the frequency is in the same range and
+        # the time is within the same record (1 hr window) of the last
+        # recorded opacity coefficients, then just reuse the last
+        # zenith opacity value requested
+        if (self.frequency_range and (self.frequency_range[0] <= freq_ghz <= self.frequency_range[1]) and 
+            self.time_range and (self.time_range[0] <= integration_mjd_timestamp <= self.time_range[1])):
+            return self.zenith_opacity
 
-        if self.last_requested_freq_hz and self.last_requested_freq_hz == freq_hz and \
-                integration_mjd_timestamp >= self.last_integration_mjd_timestamp and \
-                integration_mjd_timestamp < self.last_integration_mjd_timestamp + .04167:
-            
-            return self.last_zenith_opacity
-        
         self.last_integration_mjd_timestamp = integration_mjd_timestamp
-        self.last_requested_freq_hz = freq_hz
-                
-        # retrieve a list of opacity coefficients files, based on a given directory
-        # and filename structure
-        opacity_coefficients_filename = False
-        opacity_files = glob.glob(\
-          '/users/rmaddale/Weather/ArchiveCoeffs/CoeffsOpacityFreqList_avrg_*.txt')
-        self.number_of_opacity_files = len(opacity_files)
-        
-        if 0 == self.number_of_opacity_files:
-            if log:
-                log.doMessage('WARN', 'WARNING: No opacity coefficients file')
-            else:
-                print 'WARNING: No opacity coefficients file'
-            return False
-            
-        # sort the list of files so they are in chronological order
-        opacity_files.sort()
-        
-        # the following will become True if integration_mjd_timestamp is older than available ranges
-        # provided in the opacity coefficients files
-        tooearly = False
-        # check the date of each opacity coefficients file
-        for idx, opacity_candidate_file in enumerate(opacity_files):
-            dates = opacity_candidate_file.split('_')[-2:]
-            opacity_file_timestamp = []
-            for date in dates:
-                opacity_file_timestamp.append(int(date.split('.')[0]))
-            opacity_file_starttime = opacity_file_timestamp[0]
-            opacity_file_stoptime = opacity_file_timestamp[1]
+        self.last_requested_freq_ghz = freq_ghz
+    
+        # if we don't have a db time range OR
+        # we do have a time range AND
+        #   the range is 'LATEST' AND
+        #      timestamp is not w/in the same hour as the last set of coeffs, OR
+        #   the range has values AND
+        #      our new timestamp is not in the range
+        # THEN
+        # get another set of coefficients from a different file
+        if ((not self.db_time_range)
+            or
+            (self.db_time_range == 'LATEST' and
+             not (self.time_range[0] <= integration_mjd_timestamp < self.time_range[1]))
+            or
+            (self.db_time_range and 
+             not (self.db_time_range[0] <= integration_mjd_timestamp < self.db_time_range[1]))):
 
-            # set tooearly = True when integration_mjd_timestamp is older than available ranges
-            if idx == 0 and integration_mjd_timestamp < opacity_file_starttime:
-                tooearly = True
-                break
-        
-            if integration_mjd_timestamp >= opacity_file_starttime \
-            and integration_mjd_timestamp < opacity_file_stoptime:
-                opacity_coefficients_filename = opacity_candidate_file
-                break
+            log.doMessage('DBG', '-----------------------------------------------------')
+            log.doMessage('DBG', 'Time or Frequency out of range. Determine new opacity')
+            log.doMessage('DBG', '-----------------------------------------------------')
+            log.doMessage('DBG', 'opacity', self.zenith_opacity)
+            log.doMessage('DBG', 'timestamp', integration_mjd_timestamp, 'prev.', self.last_integration_mjd_timestamp)
+            log.doMessage('DBG', 'freq', freq_ghz, 'prev.', self.last_requested_freq_ghz)
+            log.doMessage('DBG', 'freq range', self.frequency_range)
+            if bool(self.frequency_range):
+                log.doMessage('DBG', '   freq in range == ', bool(self.frequency_range[0] <= freq_ghz <= self.frequency_range[1]))
+            log.doMessage('DBG', 'time range', self.time_range)
+            if bool(self.time_range):
+                log.doMessage('DBG', '   time in range ==', bool(self.time_range and (self.time_range[0] <= integration_mjd_timestamp <= self.time_range[1])))
+            log.doMessage('DBG', 'DB time range', self.db_time_range)
+            if bool(self.db_time_range):
+                log.doMessage('DBG', '   time in DB range ==', bool(self.db_time_range and (self.db_time_range[0] <= integration_mjd_timestamp <= self.db_time_range[1])))
 
-        if not opacity_coefficients_filename:
-            if tooearly:
-                if log:
-                    log.doMessage('ERR', 'ERROR: Date is too early for opacities.')
-                    log.doMessage('ERR', '  Try setting zenith tau at command line.')
-                    log.doMessage('ERR', integration_mjd_timestamp, '<', opacity_file_starttime)
-                else:
-                    print 'ERROR: Date is too early for opacities.'
-                    print '  Try setting zenith tau at command line.'
-                    print integration_mjd_timestamp, '<', opacity_file_starttime
-                sys.exit(9)
-            else:
-                # if the mjd in the index file comes after the date string in all of the
-                # opacity coefficients files, then we can assume the current opacity
-                # coefficients file will apply.  a date string is only added to the opacity
-                # coefficients file when it is no longer the most current.
-                opacity_coefficients_filename = \
-                  '/users/rmaddale/Weather/ArchiveCoeffs/CoeffsOpacityFreqList_avrg.txt'
-        
-        # opacities coefficients filename
-        if opacity_coefficients_filename and os.path.exists(opacity_coefficients_filename):
-            if log:
-                log.doMessage('DBG', 'Using coefficients from', opacity_coefficients_filename)
-            else:
-                print 'Using coefficients from', opacity_coefficients_filename
-            self.opacity_coeffs = self._retrieve_opacity_coefficients(opacity_coefficients_filename)
-        else:
-            if log:
-                log.doMessage('WARN', 'WARNING: No opacity coefficients file')
-            else:
-                print 'WARNING: No opacity coefficients file'
-            return False
+            self.opacity_coeffs, self.db_time_range = self._opacity_database(integration_mjd_timestamp)
+            log.doMessage('DBG', 'DB time range:', self.db_time_range)
 
         for coeffs_line in self.opacity_coeffs:
+            if (2 <= freq_ghz <= 22):
+                self.frequency_range = (2,22)
+                coefficients_index = 1
+
+            elif (22 < freq_ghz <= 50):
+                self.frequency_range = (22,50)
+                coefficients_index = 2
+
+            elif (50 < freq_ghz <= 116):
+                self.frequency_range = (50,116)
+                coefficients_index = 3
+
 
             if integration_mjd_timestamp >= coeffs_line[0]:
                 prev_time = coeffs_line[0]
-                if (freq_ghz >= 2 and freq_ghz <= 22):
-                    prev_coeffs = coeffs_line[1]
-                elif (freq_ghz > 22 and freq_ghz <= 50):
-                    prev_coeffs = coeffs_line[2]
-                elif (freq_ghz > 50 and freq_ghz <= 116):
-                    prev_coeffs = coeffs_line[3]
+                prev_coeffs = coeffs_line[coefficients_index]
+
             elif integration_mjd_timestamp < coeffs_line[0]:
                 next_time = coeffs_line[0]
-                if (freq_ghz >= 2 and freq_ghz <= 22):
-                    next_coeffs = coeffs_line[1]
-                elif (freq_ghz > 22 and freq_ghz <= 50):
-                    next_coeffs = coeffs_line[2]
-                elif (freq_ghz > 50 and freq_ghz <= 116):
-                    next_coeffs = coeffs_line[3]
+                next_coeffs = coeffs_line[coefficients_index]
                 break
+
+        self.time_range = (prev_time, next_time)
+        log.doMessage('DBG', 'Coefficient entry time range:', self.time_range)
 
         time_corrected_coeffs = []
         for coeff in zip(prev_coeffs, next_coeffs):
@@ -197,7 +237,7 @@ class Weather:
                                                      integration_mjd_timestamp)
             time_corrected_coeffs.append(new_coeff)
         
-        zenith_opacity = self.cal.zenith_opacity(time_corrected_coeffs, freq_ghz)
-        self.last_zenith_opacity = zenith_opacity
+        self.zenith_opacity = self.cal.zenith_opacity(time_corrected_coeffs, freq_ghz)
+        log.doMessage('DBG', 'Zenith opacity:', self.zenith_opacity)
         
-        return zenith_opacity
+        return self.zenith_opacity
