@@ -83,7 +83,7 @@ class Imaging:
             maps[MapStruct(mp.window, mp.start, mp.end)] = set()
         for mp in mapping_pipelines:
             maps[MapStruct(mp.window, mp.start, mp.end)].add(mp.feed)
-        print 'maps', maps
+        log.doMessage('DBG', 'maps', maps)
 
         for thismap in maps:
 
