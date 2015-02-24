@@ -78,10 +78,12 @@ class Imaging:
 
         maps = {}
         MapStruct = namedtuple("MapStruct", "window, start, end")
+
         for mp in mapping_pipelines:
             maps[MapStruct(mp.window, mp.start, mp.end)] = set()
         for mp in mapping_pipelines:
             maps[MapStruct(mp.window, mp.start, mp.end)].add(mp.feed)
+        print 'maps', maps
 
         for thismap in maps:
 
@@ -94,20 +96,16 @@ class Imaging:
 
             scanrange = str(thismap.start) + '_' + str(thismap.end)
 
-            all_imfiles = glob.glob('*' + scanrange + '*window' +
-                                str(thismap.window) + '*feed*pol*' + '.fits')
-            if not all_imfiles:
+            imfiles = glob.glob('*' + scanrange + '*window' +
+                                str(thismap.window) + '*pol*' + '.fits')
+
+            if not imfiles:
                 # no files found
                 log.doMessage('ERR', 'No calibrated files found.')
                 continue
 
             # filter file list to only include those with a feed calibrated for use in this map
             feeds = map(str, sorted(maps[thismap]))
-            imfiles = [] # list of image files filtered for feed
-            for feed in feeds:
-                for imfile in all_imfiles:
-                    if 'feed{0}_'.format(feed) in imfile:
-                        imfiles.append(imfile)
             
             ff = fitsio.FITS(imfiles[0])
             nchans = int([xxx['tdim'] for xxx in ff[1].get_info()['colinfo'] if xxx['name']=='DATA'][0][0])
