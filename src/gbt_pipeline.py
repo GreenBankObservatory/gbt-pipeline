@@ -105,6 +105,7 @@ def calibrate_win_feed_pol(log, cl_params, window, feed, pol, pipe):
         #   this involves averaging the reference integrations and computing
         #   a weighted average of the Tsys, timestamp, ambient temperature,
         #   and elevation.
+        log.doMessage('DBG', 'Calibrating reference scan:', cl_params.refscans[0])
         (refSpectrum1, refTsys1, refTimestamp1,
          refTambient1, refElevation1, refExposure1) = \
             pipe.getReference(cl_params.refscans[0], feed, window, pol)
@@ -126,6 +127,7 @@ def calibrate_win_feed_pol(log, cl_params, window, feed, pol, pipe):
             #  this involves averaging the reference integrations and computing
             #  a weighted average of the Tsys, timestamp, ambient temperature,
             #  and elevation.
+            log.doMessage('DBG', 'Calibrating reference scan:', cl_params.refscans[1])
             (refSpectrum2, refTsys2, refTimestamp2,
              refTambient2, refElevation2,
              refExposure2) = pipe.getReference(cl_params.refscans[1],
@@ -180,7 +182,7 @@ def preview_zenith_tau(log, row_list, cl_params, feeds, windows, pols):
         mjd = pu.dateToMjd(dateobs)
         zenithtau = weather.retrieve_zenith_opacity(mjd, obsfreq, log)
         log.doMessage('INFO',
-                      'Zenith opacity for map: {0:.3f}'.format(zenithtau))
+                      'Approximate zenith opacity for map: {0:.3f}'.format(zenithtau))
 
     # else if set at the command line
     else:
@@ -241,6 +243,7 @@ def calibrate_maps(log, cl_params, row_list, term):
     #  for the map.  The zenith tau used for calibration is determined
     #  not just once for the whole map, but for every scan.
     if cl_params.units != 'ta':
+        log.doMessage('DBG', 'Estimating zenith opacity')
         preview_zenith_tau(log, row_list, cl_params, feeds, windows, pols)
 
     # calibrated_maps will contain a list of tuples of
@@ -574,8 +577,10 @@ def runPipeline():
     if not cl_params.imagingoff:
 
         # image all the calibrated maps
-        for current_map in calibrated_maps:
-            imag.run(log, term, cl_params, current_map)
+        import itertools
+        calibrated_maps = list(itertools.chain(*calibrated_maps))
+
+        imag.run(log, term, cl_params, calibrated_maps)
 
     sys.stdout.write('\n')
 
