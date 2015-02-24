@@ -135,16 +135,16 @@ def average_channels(binsize):
 
     # now have fewer channels, with broader frequencies
     spectra.header.naxis[2] = round(nChan / binsize)  # write back to header
-    print spectra.header.naxis
-    print spectra.header.cdelt
+    print 'naxis', spectra.header.naxis
+    print 'cdelt',spectra.header.cdelt
     dNu = spectra.header.cdelt[2]
     dNu = binsize * dNu  # write back to header !!!
-    print spectra.header.cdelt, dNu, binsize
+    print 'cdelt', spectra.header.cdelt, 'dNu', dNu, 'binsize', binsize
 
     refChan  = spectra.header.crpix[2]
-    print refChan, spectra.header.crpix
+    print 'refChan', refChan, 'crpix', spectra.header.crpix
     refChan = refChan / binsize  # write back to header !!!
-    print refChan, spectra.header.crpix    
+    print 'refChan', refChan, 'crpix', spectra.header.crpix
     return
 
 def update_header(args):
@@ -251,16 +251,16 @@ def make_average_map(restfreq, uniqueid):
 def remove_continuum(outseq):
     trans = AIPSTask('trans')
     imlin = AIPSTask('imlin')
-    
-    last = cat.last_entry()
-    img = cat.get_image(last)
+
+    entry = cat.get_entry(1)    # get SDGRD entry
+    img = cat.get_image(entry)
     nChan = round(img.header.naxis[2])
 
     # transpose image in order to run IMLIN
     trans.indisk = DISK_ID
     trans.outdisk = DISK_ID
     trans.baddisk[1] = BADDISK
-    trans.inname = last.name
+    trans.inname = entry.name
     trans.inclass = 'SDGRD'
     trans.inseq = outseq
     trans.transc = '312'
@@ -283,9 +283,9 @@ def remove_continuum(outseq):
     imlin.box[1][2] = round(nChan * 0.12)
     imlin.box[1][3] = round(nChan * 0.81)  # 82-89%
     imlin.box[1][4] = round(nChan * 0.89)
-    # beware using imlin.order=1; use imlin.order=0
+
     imlin.order = 0  # polynomial order
-    print imlin.box
+    print 'IMLIN box', imlin.box
     imlin.go()
 
     # Run transpose again task on sdgrd file produced by IMLIN
