@@ -212,6 +212,7 @@ class SdFits:
             obsid = rr['OBSID']
             procname = rr['PROCEDURE']
             procscan = rr['PROCSCAN']
+            nchans = rr['NUMCHN']
 
             summary['WINDOWS'].add((windowNum, float(rr['RESTFREQ'])/1e9))
             summary['FEEDS'].add(rr['FDNUM'])
@@ -221,7 +222,7 @@ class SdFits:
             #   FITS extension
             observation.addRow(scanid, feed, windowNum, pol,
                                fitsExtension, rowOfFitsFile, typeOfScan, obsid,
-                               procname, procscan)
+                               procname, procscan, nchans)
             
         try:
             ifile.close()

@@ -76,13 +76,17 @@ class Imaging:
             log.doMessage('ERR',"Imaging script(s) not found.  Stopping after calibration.")
             sys.exit()
 
+        MapStruct = namedtuple("MapStruct", "nchans, window, start, end")
+
         maps = {}
-        MapStruct = namedtuple("MapStruct", "window, start, end")
+        for mp in mapping_pipelines:
+            nchans = int(mp.mp_object.row_list.get(mp.start, mp.feed, mp.window, mp.pol)['NCHANS'])
+            maps[MapStruct(nchans, mp.window, mp.start, mp.end)] = set()
 
         for mp in mapping_pipelines:
-            maps[MapStruct(mp.window, mp.start, mp.end)] = set()
-        for mp in mapping_pipelines:
-            maps[MapStruct(mp.window, mp.start, mp.end)].add(mp.feed)
+            nchans = int(mp.mp_object.row_list.get(mp.start, mp.feed, mp.window, mp.pol)['NCHANS'])
+            maps[MapStruct(nchans, mp.window, mp.start, mp.end)].add(mp.feed)
+
         log.doMessage('DBG', 'maps', maps)
 
         for thismap in maps:
@@ -93,6 +97,17 @@ class Imaging:
                           'for map scans {start}-{stop}'.format(win = thismap.window,
                                                                 start = thismap.start,
                                                                 stop = thismap.end))
+
+            
+            # skip pipeline runs from imaging that have >32k channels b/c they will fail
+            #   with idlToSdfits, 2**15 ~ 32k
+            if thismap.nchans > 2**15:
+                log.doMessage('WARN', 'Found spectra with > 32k channels.  Skipping.')
+                log.doMessage('WARN', 'This can not be imaged because of a limitation in '
+                              'the idlToSdfits data format converter.  Please '
+                              'see the Pipeline User\'s Guide for a workaround using '
+                              'the \'sdextract\' tool.')
+                continue
 
             scanrange = str(thismap.start) + '_' + str(thismap.end)
 

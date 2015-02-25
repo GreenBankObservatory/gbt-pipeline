@@ -54,7 +54,7 @@ class ObservationRows:
 
     def addRow(self, scan, feed, window, polarization,
                fitsExtension, rowOfFitsFile, typeOfScan, obsid,
-               procname, procscan):
+               procname, procscan, nchans):
         """Add rows to the ObservationRows object.
 
            When rows are added to this object (addRow), the FITS extension,
@@ -72,7 +72,8 @@ class ObservationRows:
                               'TYPE': typeOfScan,
                               'OBSID': obsid,
                               'PROCNAME': procname,
-                              'PROCSCAN': procscan}
+                              'PROCSCAN': procscan,
+                              'NCHANS': nchans}
             
     def get(self, scan, feed, window, polarization):
         """Retreive a list of rows for scan/feed/win/pol.
