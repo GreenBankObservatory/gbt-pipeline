@@ -40,7 +40,7 @@ class Calibration(object):
 
     """
 
-    def __init__(self, smoothing_window_size=3):
+    def __init__(self, smoothing_window_size=0):
 
         # set calibration constants
         self.BB = .0132  # Ruze equation parameter
@@ -229,12 +229,17 @@ class Calibration(object):
         return np.float(tcal*(cal_off/(cal_on-cal_off))+tcal/2)
 
     def antenna_temp(self, tsys, sig, ref, t_sig, t_ref):
-        ref_smoothed = smoothing.boxcar(ref, self.SMOOTHING_WINDOW)
-        ref_smoothed = self.pu.masked_array(ref_smoothed)
 
-        spectrum = tsys * ((sig-ref_smoothed)/ref_smoothed)
-        exposure_time = (t_sig * t_ref * self.SMOOTHING_WINDOW
-                         / (t_sig + t_ref*self.SMOOTHING_WINDOW))
+        if self.SMOOTHING_WINDOW > 1:
+            ref = smoothing.boxcar(ref, self.SMOOTHING_WINDOW)
+            window_size = self.SMOOTHING_WINDOW
+        else:
+            window_size = 1
+
+        ref = self.pu.masked_array(ref)
+            
+        spectrum = tsys * ((sig-ref)/ref)
+        exposure_time = (t_sig * t_ref * window_size / (t_sig + t_ref*window_size))
         return spectrum, exposure_time
 
     def _ta_fs_one_state(self, sigref_state, sigid, refid):

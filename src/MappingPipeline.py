@@ -50,7 +50,7 @@ class MappingPipeline:
         self.log = None
             
         self.pu = Pipeutils()
-        self.cal = Calibration()
+        self.cal = Calibration(cl_params.smoothing_kernel)
         self.weather = Weather()
         self.sdf = SdFits()
 

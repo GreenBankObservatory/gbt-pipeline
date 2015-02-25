@@ -145,6 +145,11 @@ class CommandLine:
                                  help='zenith opacity value (tau_z).  '
                                  'Default: determined from GB weather '
                                  'prediction tools.')
+        calibration.add_argument("--smoothing-kernel-size", dest="smoothing_kernel",
+                                 type=int, default=3,
+                                 help='boxcar kernel size for '
+                                 'reference spectrum smoothing.'
+                                 'A value <= 1 means no smoothing.  Default: 3')
 
         output = self.parser.add_argument_group('Output')
         output.add_argument("-v", "--verbose", dest="verbose", default=4,
