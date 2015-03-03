@@ -137,9 +137,10 @@ class CommandLine:
                                  '(eta_B)  Default: .91')
         calibration.add_argument("--beam-scaling", dest="beamscaling",
                                  default=1,
-                                 help='comma-separated beam scaling factors '
-                                 'for each feed and polarization in the '
-                                 'order 0L,0R,1L,1R,etc.')
+                                 help='comma-separated scaling factor '
+                                 'applied to each feed and polarization in the '
+                                 'order 0L,0R,1L,1R,etc.  At the moment KFPA-only.'
+                                 '14 values required as input.')
         calibration.add_argument("-t", "--zenith-opacity", dest="zenithtau",
                                  type=float, default=None,
                                  help='zenith opacity value (tau_z).  '
@@ -161,8 +162,8 @@ class CommandLine:
                             help="Overwrites existing output files if set.")
         output.add_argument("--keep-temporary-files", action='store_true',
                             dest='keeptempfiles', default=False,
-                            help='If set, do not remove intermediate imaging '
-                            'files.')
+                            help='If set, do not remove intermediate aips.fits '
+                            'imaging files and summary directory.')
 
     def _parse_range(self, rangelist):
         """Given a range string, produce a list of integers
