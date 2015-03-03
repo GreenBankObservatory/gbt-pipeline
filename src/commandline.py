@@ -118,7 +118,7 @@ class CommandLine:
                                  type=str.lower)
         calibration.add_argument("--no-sky-brightness-correction", action='store_false',
                                  dest="tsky", default=True,
-                                 help="Disable adjustmentfor sky brightness.")
+                                 help="Disable adjustment for sky brightness.")
         calibration.add_argument("--spillover-factor", dest="spillover",
                                  default=.99, type=float,
                                  help="rear spillover factor (eta_l). "
