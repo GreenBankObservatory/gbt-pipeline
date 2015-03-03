@@ -139,8 +139,9 @@ class CommandLine:
                                  default=1,
                                  help='comma-separated scaling factor '
                                  'applied to each feed and polarization in the '
-                                 'order 0L,0R,1L,1R,etc.  At the moment KFPA-only.'
-                                 '14 values required as input.')
+                                 'order 0L,0R,1L,1R,etc.  This option only applies '
+                                 'to KFPA.  All 14 beam scale values required as '
+                                 'input.')
         calibration.add_argument("-t", "--zenith-opacity", dest="zenithtau",
                                  type=float, default=None,
                                  help='zenith opacity value (tau_z).  '
@@ -149,7 +150,7 @@ class CommandLine:
         calibration.add_argument("--smoothing-kernel-size", dest="smoothing_kernel",
                                  type=int, default=3,
                                  help='boxcar kernel size for '
-                                 'reference spectrum smoothing.'
+                                 'reference spectrum smoothing. '
                                  'A value <= 1 means no smoothing.  Default: 3')
 
         output = self.parser.add_argument_group('Output')
