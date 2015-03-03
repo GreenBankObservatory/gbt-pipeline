@@ -91,7 +91,7 @@ class MappingPipeline:
 
         if beam_scaling == 1:
             return beam_scaling
-
+        
         if receiver == 'RcvrArray18_26':
 
             if len(beam_scaling) != 14:
@@ -109,6 +109,7 @@ class MappingPipeline:
         else:
             self.log.doMessage('ERR', 'Beam scaling factors not known for '
                                'receiver:', receiver)
+            os.unlink(self.outfilename)
             sys.exit(9)
     
     def determineSetup(self, sdfits_row_structure, ext):
@@ -140,7 +141,7 @@ class MappingPipeline:
         return cal_switching, sigref
     
     def getReference(self, scan, feed, window, pol, beam_scaling):
-        
+
         referenceRows = self.row_list.get(scan, feed, window, pol)
 
         if not referenceRows:
@@ -180,7 +181,8 @@ class MappingPipeline:
                                        'Skipping row', rowNum, 'from input data.')
                     continue
             
-                receiver = cal_off.data['FRONTEND'][0].strip()
+                receiver = cal_off['FRONTEND'].strip()
+
                 beam_scale = self.get_beam_scale(receiver, beam_scaling, feed, pol)
                 cref, tsys, exposure, timestamp, tambient, elevation = self.sdf.getReferenceIntegration(cal_on, cal_off, beam_scale)
                 
@@ -475,11 +477,11 @@ class MappingPipeline:
                     #  should be same for all states
                     intTime = self.pu.dateToMjd( sigrefState[0]['cal_off']['DATE-OBS'] )
                     elevation = sigrefState[0]['cal_off']['ELEVATIO']
-                    receiver = sigrefState[0]['cal_off']['FRONTEND'][0].strip()
-                    
+                    receiver = sigrefState[0]['cal_off']['FRONTEND'].strip()
+
                     beam_scale = self.get_beam_scale(receiver, beam_scaling, feed, pol)
                     ta, tsys, exposure = self.cal.ta_fs(sigrefState, beam_scale)
-                    
+
                     if self.cl.units != 'ta':
                         
                         if not self.OPACITY:
@@ -639,7 +641,7 @@ class MappingPipeline:
                         
                         intTime = self.pu.dateToMjd( cal_off['DATE-OBS'] ) # integration timestamp
                         elevation = cal_off['ELEVATIO'] # integration elevation
-                        receiver = cal_off['FRONTEND']
+                        receiver = cal_off['FRONTEND'].strip()
                         
                         if avgCref2!=None and crefTime2!=None:
                             crefInterp = \
