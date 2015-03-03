@@ -108,7 +108,7 @@ def calibrate_win_feed_pol(log, cl_params, window, feed, pol, pipe):
         log.doMessage('DBG', 'Calibrating reference scan:', cl_params.refscans[0])
         (refSpectrum1, refTsys1, refTimestamp1,
          refTambient1, refElevation1, refExposure1) = \
-            pipe.getReference(cl_params.refscans[0], feed, window, pol)
+            pipe.getReference(cl_params.refscans[0], feed, window, pol, cl_params.beamscaling)
 
         # check to see if there are any rows for the second reference scan
         #  note: the row_list.get() call below is normally used to return
@@ -131,7 +131,7 @@ def calibrate_win_feed_pol(log, cl_params, window, feed, pol, pipe):
             (refSpectrum2, refTsys2, refTimestamp2,
              refTambient2, refElevation2,
              refExposure2) = pipe.getReference(cl_params.refscans[1],
-                                               feed, window, pol)
+                                               feed, window, pol, cl_params.beamscaling)
 
     # calibrate the signal (map) scans
     #   for position-switched calibration, the reference scans will be used.
@@ -154,7 +154,7 @@ def preview_zenith_tau(log, row_list, cl_params, feeds, windows, pols):
     foo = None
 
     # if using the weather database
-    if not cl_params.zenithtau:
+    if None == cl_params.zenithtau:
         for feed in feeds:
             for window in windows:
                 for pol in pols:

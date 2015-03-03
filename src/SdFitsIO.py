@@ -231,14 +231,14 @@ class SdFits:
         
         return observation, summary
 
-    def getReferenceIntegration(self, cal_on, cal_off):
+    def getReferenceIntegration(self, cal_on, cal_off, scale):
         
         cal = Calibration()
         cal_ondata = cal_on['DATA']
         cal_offdata = cal_off['DATA']
         cref, exposure = cal.total_power(cal_ondata, cal_offdata, cal_on['EXPOSURE'], cal_off['EXPOSURE'])
 
-        tcal = cal_off['TCAL']
+        tcal = cal_off['TCAL'] * scale
         tsys = cal.tsys( tcal, cal_ondata, cal_offdata )
         
         dateobs = cal_off['DATE-OBS']

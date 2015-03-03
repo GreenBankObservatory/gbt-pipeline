@@ -242,7 +242,7 @@ class Calibration(object):
         exposure_time = (t_sig * t_ref * window_size / (t_sig + t_ref*window_size))
         return spectrum, exposure_time
 
-    def _ta_fs_one_state(self, sigref_state, sigid, refid):
+    def _ta_fs_one_state(self, sigref_state, sigid, refid, scale):
 
         sig = sigref_state[sigid]['TP']
 
@@ -250,7 +250,7 @@ class Calibration(object):
         ref_cal_on = sigref_state[refid]['cal_on']
         ref_cal_off = sigref_state[refid]['cal_off']
 
-        tcal = ref_cal_off['TCAL']
+        tcal = ref_cal_off['TCAL'] * scale
 
         tsys = self.tsys(tcal,  ref_cal_on['DATA'],  ref_cal_off['DATA'])
 
@@ -261,10 +261,10 @@ class Calibration(object):
 
         return antenna_temp, tsys, exposure
 
-    def ta_fs(self, sigref_state):
+    def ta_fs(self, sigref_state, scale):
 
-        ta0, tsys0, exposure0 = self._ta_fs_one_state(sigref_state, 0, 1)
-        ta1, tsys1, exposure1 = self._ta_fs_one_state(sigref_state, 1, 0)
+        ta0, tsys0, exposure0 = self._ta_fs_one_state(sigref_state, 0, 1, scale)
+        ta1, tsys1, exposure1 = self._ta_fs_one_state(sigref_state, 1, 0, scale)
 
         # shift in frequency
         sig_centerfreq = sigref_state[0]['cal_off']['OBSFREQ']
@@ -311,9 +311,9 @@ class Calibration(object):
 
         return ta, tsys, exposure_sum
 
-    def ta_star(self, antenna_temp, beam_scaling, opacity, spillover):
+    def ta_star(self, antenna_temp, opacity, spillover):
         # opacity is corrected for elevation
-        return beam_scaling * antenna_temp * math.e**opacity * 1/spillover
+        return antenna_temp * math.e**opacity * 1/spillover
 
     def jansky(self, ta_star, aperture_efficiency):
         return ta_star/(2.85*aperture_efficiency)

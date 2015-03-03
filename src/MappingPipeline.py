@@ -37,7 +37,7 @@ import os
 import sys
 
 CREATE_PLOTS = False
-PIPELINE_VERSION = '1.2-integration'  # to record in output primary header
+PIPELINE_VERSION = '1.2'  # to record in output primary header
 
 if CREATE_PLOTS:
     import pylab
@@ -91,7 +91,7 @@ class MappingPipeline:
 
         if beam_scaling == 1:
             return beam_scaling
-            
+
         if receiver == 'RcvrArray18_26':
 
             if len(beam_scaling) != 14:
@@ -107,8 +107,8 @@ class MappingPipeline:
                 return beam_scaling[feed][pol]
         
         else:
-            self.log.doMessage('ERR', 'Beam scaling factors not known for'
-                'receiver:', receiver)
+            self.log.doMessage('ERR', 'Beam scaling factors not known for '
+                               'receiver:', receiver)
             sys.exit(9)
     
     def determineSetup(self, sdfits_row_structure, ext):
@@ -139,7 +139,7 @@ class MappingPipeline:
 
         return cal_switching, sigref
     
-    def getReference(self, scan, feed, window, pol):
+    def getReference(self, scan, feed, window, pol, beam_scaling):
         
         referenceRows = self.row_list.get(scan, feed, window, pol)
 
@@ -180,7 +180,9 @@ class MappingPipeline:
                                        'Skipping row', rowNum, 'from input data.')
                     continue
             
-                cref, tsys, exposure, timestamp, tambient, elevation = self.sdf.getReferenceIntegration(cal_on, cal_off)
+                receiver = cal_off.data['FRONTEND'][0].strip()
+                beam_scale = self.get_beam_scale(receiver, beam_scaling, feed, pol)
+                cref, tsys, exposure, timestamp, tambient, elevation = self.sdf.getReferenceIntegration(cal_on, cal_off, beam_scale)
                 
                 # used these, so clear for the next iteration
                 cal_off = None
@@ -473,9 +475,10 @@ class MappingPipeline:
                     #  should be same for all states
                     intTime = self.pu.dateToMjd( sigrefState[0]['cal_off']['DATE-OBS'] )
                     elevation = sigrefState[0]['cal_off']['ELEVATIO']
-                    receiver = sigrefState[0]['cal_off']['FRONTEND'] 
+                    receiver = sigrefState[0]['cal_off']['FRONTEND'][0].strip()
                     
-                    ta, tsys, exposure = self.cal.ta_fs(sigrefState)
+                    beam_scale = self.get_beam_scale(receiver, beam_scaling, feed, pol)
+                    ta, tsys, exposure = self.cal.ta_fs(sigrefState, beam_scale)
                     
                     if self.cl.units != 'ta':
                         
@@ -489,10 +492,8 @@ class MappingPipeline:
                             
                         opacity_el = self.cal.elevation_adjusted_opacity(intOpacity, elevation)
                                                 
-                    beam_scale = self.get_beam_scale(receiver, beam_scaling, feed, pol)
-                    
                     if self.cl.units=='ta*' or self.cl.units=='tmb' or self.cl.units=='jy':
-                        tastar = self.cal.ta_star(ta, beam_scale, opacity = opacity_el, spillover = self.SPILLOVER)
+                        tastar = self.cal.ta_star(ta, opacity = opacity_el, spillover = self.SPILLOVER)
                         
                         
                     if self.cl.units=='tmb':
@@ -549,8 +550,7 @@ class MappingPipeline:
         
     def calibrate_ps_sdfits_integrations(self, feed, window, pol,
                           avgCref1, avgTsys1, crefTime1, refTambient1, refElevation1, refExposure1,
-                          avgCref2, avgTsys2, crefTime2, refTambient2, refElevation2, refExposure2,
-                          beam_scaling):
+                          avgCref2, avgTsys2, crefTime2, refTambient2, refElevation2, refExposure2):
         
         dtype = self.get_dtype(feed, window, pol)
         if None == dtype:
@@ -726,9 +726,7 @@ class MappingPipeline:
                             #   model database.  Gain coefficients can optionally come
                             #   from the command line.
 
-                            beam_scale = self.get_beam_scale(receiver, beam_scaling, feed, pol)
-                            
-                            tastar = self.cal.ta_star(tsrc, beam_scale, opacity = opacity_el, spillover = self.SPILLOVER)
+                            tastar = self.cal.ta_star(tsrc, opacity = opacity_el, spillover = self.SPILLOVER)
                             
                             if CREATE_PLOTS:
                                 tastars.append(tastar)
@@ -842,11 +840,9 @@ class MappingPipeline:
         if avgCref1 != None:
             self.calibrate_ps_sdfits_integrations(feed, window, pol,
                           avgCref1, avgTsys1, crefTime1, refTambient1, refElevation1, refExposure1,
-                          avgCref2, avgTsys2, crefTime2, refTambient2, refElevation2, refExposure2,
-                          beam_scaling)
+                          avgCref2, avgTsys2, crefTime2, refTambient2, refElevation2, refExposure2)
         else:
-            self.calibrate_fs_sdfits_integrations(feed, window, pol,
-                          beam_scaling)
+            self.calibrate_fs_sdfits_integrations(feed, window, pol, beam_scaling)
             
     def __del__(self):
         pass
