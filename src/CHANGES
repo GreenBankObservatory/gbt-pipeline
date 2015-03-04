@@ -1,3 +1,19 @@
+commit 8c937450a5701807dc6026f5e62373f068bbcec1
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Wed Mar 4 10:55:56 2015 -0500
+
+    Updated User's Guide TOC to correct page numbers.
+
+commit 6418a32450b2907b37571f3c1f5d57c1bc9a5b35
+Author: Joe Masters <jmasters@nrao.edu>
+Date:   Wed Mar 4 10:30:30 2015 -0500
+
+    Updated CHANGES since last release.
+    
+    There are some spectral pipe commits at the beginning of this
+    history.  Instead of going through the changes 1 by 1, I decided
+    to leave them in the history.
+
 commit 3bcb28431ab5f3422edc3cc308e1f03fc35c85e5
 Author: Joe Masters <jmasters@nrao.edu>
 Date:   Wed Mar 4 10:22:27 2015 -0500
