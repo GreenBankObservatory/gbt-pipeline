@@ -1,55 +1,139 @@
 GBT Mapping Pipeline Version 1.2
 
-These notes accompany the release of the GBT Mapping Pipeline on January __, 2015.  A summary of new features and bug fixes since the last release are described below.
+These notes accompany the release of the GBT Mapping Pipeline.  A
+summary of new features and bug fixes since the last release are
+described below.
 
-) A number of name changes have occurred with the aim of improving the user experience.  The script names and file extensions are meant to be more descriptive and intuitive.  The changes are:
+) A number of name changes have occurred with the aim of improving the
+user experience.  The script names and file extensions are meant to be
+more descriptive and intuitive.  The changes are:
 
    doImage       -> aipspy
    dbcon.py      -> load.py
    mapDefault.py -> image.py
 
-In addition, the file extensions of calibrated spectra restructured for AIPS input have been changed from “.sdf” to “.aips.fits”.
+In addition, the file extensions of calibrated spectra restructured
+for AIPS input have been changed from “.sdf” to “.aips.fits”.
 
-With this release the doImage, dbcon.py and mapDefault.py commands still work, but will generate a warning message about the new names.  With the next release, the old names will be deprecated.
+With this release the doImage, dbcon.py and mapDefault.py commands
+still work, but will generate a warning message about the new names.
+With the next release, the old names will be deprecated.
  
-) Improved handing of a bad integration where the raw spectrum contains all zeros.  Previously the pipeline generated a cryptic error message.  Now the pipeline generates a descriptive warning and writes NaNs to the output spectrum for that integration.
+) Improved handing of a bad integration where the raw spectrum
+contains all zeros.  Previously the pipeline generated a cryptic error
+message.  Now the pipeline generates a descriptive warning and writes
+NaNs to the output spectrum for that integration.
 
-) Fixed the exposure time calculation for out of band frequency-switched integrations.  The previous code always summed the exposure times from the two FS switching states. With this update, if the frequency bands do not overlap at all, we only count the exposure time from the first state.
+) Fixed the exposure time calculation for out of band
+frequency-switched integrations.  The previous code always summed the
+exposure times from the two FS switching states. With this update, if
+the frequency bands do not overlap at all, we only count the exposure
+time from the first state.
 
-) Updated an image header keyword to allow image cubes to be read by the CASA viewer.  The pipeline tweaks the AIPS image cubes by adding a reference frame string to the end of the CTYPE3 value (which AIPS just writes as "FREQ) so that it matches the VELREF keyword also written by AIPS.  Previously the code was writing "FREQ-BAR" when it should have been writing "FREQ-HEL".  BAR and HEL are equivalent (and when the fixed "FREQ-HEL" is read in to CASA it ends up being labeled as "BARY").
+) Updated an image header keyword to allow image cubes to be read by
+the CASA viewer.  The pipeline tweaks the AIPS image cubes by adding a
+reference frame string to the end of the CTYPE3 value (which AIPS just
+writes as "FREQ) so that it matches the VELREF keyword also written by
+AIPS.  Previously the code was writing "FREQ-BAR" when it should have
+been writing "FREQ-HEL".  BAR and HEL are equivalent (and when the
+fixed "FREQ-HEL" is read in to CASA it ends up being labeled as
+"BARY").
 
-) Removed spaces from output file names.  This occurred when the target name included whitespace.  AIPS does not handle spaces in output file names well. This release should fix that problem.
+) Removed spaces from output file names.  This occurred when the
+target name included whitespace.  AIPS does not handle spaces in
+output file names well. This release should fix that problem.
 
-) Updated the idlToSdfits channel limit from 16k to 32k to accommodate larger VEGAS spectra.
+) Updated the idlToSdfits channel limit from 16k to 32k to accommodate
+larger VEGAS spectra.
 
-) Now logging errors when the zenith opacity is not available in the weather database.  Previously errors were not logged when the zenith opacity could not be found because the observation date was too early.
+) Now logging errors when the zenith opacity is not available in the
+weather database.  Previously errors were not logged when the zenith
+opacity could not be found because the observation date was too early.
 
-) Improved map finding code by adding Track procedure scans to be counted as reference scans
+) Improved map finding code by adding Track procedure scans to be
+counted as reference scans
 
 ) Improved output names of images to include scan ranges.
 
-) Fixed window, feed and polarization filtering parameters for VEGAS data.
+) Fixed window, feed and polarization filtering parameters for VEGAS
+data.
 
-) Added summary message showing number of windows and feeds.  We now list window numbers with frequencies and feed numbers contained in the data.
+) Added summary message showing number of windows and feeds.  We now
+list window numbers with frequencies and feed numbers contained in the
+data.
 
 ) Added new utilities:
 
 show_catalog.py -- prints out the current AIPS catalog.
 zap_last.py -- removes the last AIPS catalog entry.
 
-) Now checking all feed, window and polarization combinations to show preview zenith opacity.
+) Now checking all feed, window and polarization combinations to show
+preview zenith opacity.
 
-This should avoid a crash when the first feed/win/pol attempt is not available.
+This should avoid a crash when the first feed/win/pol attempt is not
+available.
 
 ) Bug fixed for shift in frequency-switched calibration.
 
-Sometimes the pipeline would use the center frequency for the reference data instead of the signal, depending
-on the order it was written to the raw data file.  This update fixes that by only grabbing the center frequency from the input FS signal spectrum for each integration.
+Sometimes the pipeline would use the center frequency for the
+reference data instead of the signal, depending on the order it was
+written to the raw data file.  This update fixes that by only grabbing
+the center frequency from the input FS signal spectrum for each
+integration.
 
-) Stopped writing out dbcon.fits.  This is an unnecessary intermediate file for imaging.
+) Stopped writing out dbcon.fits.  This is an unnecessary intermediate
+file for imaging.
 
 ) Fixed a bug where AIPS fails on a long input file names.
 
-) Added an early warning when imaging on a machine other than arcturus.
+) Added an early warning when imaging on a machine other than
+arcturus.
 
-This prevents the mysterious no output scenario when running the  pipeline with imaging on a machine other than arcturus with a different AIPS setup.  Before you would have to look into the log file and hopefully see a useful AIPS error.
+This prevents the mysterious no output scenario when running the
+pipeline with imaging on a machine other than arcturus with a
+different AIPS setup.  Before you would have to look into the log file
+and hopefully see a useful AIPS error.
+
+) Added scripts to fix image headers for when observing in galactic
+coordinates
+
+AIPS only produces images where the header is written with equatorial
+coordinates.  If the original data was in galactic coordinates, the
+header needs to be updated to be viewed properly in tools like the
+casaviewer.  These scripts modify the CTYPE1 and CTYPE2 keywords to
+have the correct galactic values.  The image itself is already correct
+and unaffected by these updates.
+
+) Added sdextract script as workaround for >32k chan data.
+
+The idlSdfits format converter code can not handle data with more than
+32k channels.  This sdextract script is a short term workaround that
+allows the user to extract sub-spectra and/or smooth the calibrated
+spectra and produce smaller input spectra for idlToSdfits.
+
+) Make sky brightness correction (tsky) optional.
+
+There is a new command line parameter --no-sky-brightness-correction
+that allows the user to disable the sky brightness correction.
+
+) Fixed a bug when computing the number of atmospheres for elevation
+correction to zenith opacity.
+
+This caused the corrected zenith opacity model to be a little off at
+elevations >= 40 degrees.
+
+) Added option to set smoothing kernel size at command line.
+
+The pipeline still defaults to a boxcar reference spectrum smoothing
+of 3 channels, but the user now has the option to override this
+setting.  The option is called:
+
+--smoothing-kernel-size
+
+Any value <= 1 results in no smoothing.
+
+)  Move beam scale out of ta* and apply to Tcals.
+
+The beam scale factors are now multiplied by Tcal values from the
+input file, before the calculation of Tsys.  Input Tcals are still
+written to the output calibrated spectra tables.
