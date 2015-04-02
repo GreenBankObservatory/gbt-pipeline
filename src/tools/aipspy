@@ -12,7 +12,7 @@ AIPS_ROOT=/home/aips
 . $AIPS_ROOT/LOGIN.SH
 
 # $CDOLD # use OLD version
-# $CDNEW # use NEW version
+$CDNEW # use NEW version
 # $CDTST # use TST version
 
 PYTHONPATH=${INSTALL_DIR}/obit/Obit/python/ LD_LIBRARY_PATH=/opt/local/lib:${INSTALL_DIR}/obit/Obit ${INSTALL_DIR}/bin/ParselTongue  $*
