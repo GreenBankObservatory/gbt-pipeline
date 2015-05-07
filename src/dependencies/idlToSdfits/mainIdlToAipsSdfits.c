@@ -1062,7 +1062,7 @@ int main(int argc, char * argv[])
 	for (i = 0; i < nChan; i++)          /* now copy back from temp */
 	  gbtIdl.data[i] = tempIdl.data[i];
 	gbtIdl.data_points = nChan;
-	gbtIdl.ref_ch = gbtIdl.ref_ch/((double)nAve);
+	gbtIdl.ref_ch = (gbtIdl.ref_ch-0.5)/((double)nAve) + 0.5;
 	gbtIdl.delta_x = gbtIdl.delta_x * (double)nAve;
       } /* end if averaging channels */
 
