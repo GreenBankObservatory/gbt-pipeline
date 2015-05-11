@@ -118,7 +118,8 @@ extern void printerror( int status);
 extern char * idToScanIntegration( long id, long * scan, long * integration);
 
 /* internals */
-#define SOFTVERSION    "4.0"
+/* This should match the SOFTVERSION in mainIdlToSdfits.c */
+#define SOFTVERSION    "8.6"
 #define MAXNAMELENGTH  512
 #define MAXFITSLINE     80
 #define MAXPOLS          4
@@ -526,7 +527,7 @@ char * initIdlSdfits( fitsfile *fptr,
   fits_write_key_lng( fptr, "CRPIX6", imsize2,
 		     "Desired Image Y Size (pixels)", &status);
   fits_write_history( fptr, pIdl->history, &status);     
-  sprintf( comment, "writeSdfits %s      / Glen Langston, NRAO GB", 
+  sprintf( comment, "idlToSdfits v%s      / idlToSdfits version number", 
 	   SOFTVERSION);
   fits_write_history( fptr, comment, &status);     
 

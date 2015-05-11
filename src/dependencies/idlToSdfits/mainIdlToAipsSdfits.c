@@ -78,7 +78,10 @@ reading of multiple tables, but that does not yet work.
 #define AZEL     2
 #define GALACTIC 3
 #define MAXIDLSTRING 1024
-#define SOFTVERSION "8.5"
+/* this version is used in the help */
+/* Make sure this is the same value as the separate  SOFTVERSION */
+/* in writeSdfits.c written to the HISTORY */
+#define SOFTVERSION "8.6"
 
 /* externals */
 extern long gbtGoInit;
@@ -359,7 +362,7 @@ char * idlToSdfitsHelp()
   fprintf( stderr,
 	   "NOTE: only %1d spectra can be written in each call to idlToSdfits\n", MAXSCANS);
   fprintf( stderr, 
-	   "Version %s: Date: %s\n", SOFTVERSION, "July 30, 2014" );
+	   "Version %s: Date: %s\n", SOFTVERSION, "May 11, 2015" );
   fprintf( stderr, 
 	   "----Original Code by Glen Langston\n\n");
   fprintf( stderr, 
