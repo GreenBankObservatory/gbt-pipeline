@@ -1,3 +1,10 @@
+"""Internal script to call idlToSdfits and load data into AIPS.
+
+This function is called internally by the pipeline and should not be
+called by a user from the command line.
+    
+"""
+
 # Copyright (C) 2007 Associated Universities, Inc. Washington DC, USA.
 # 
 # This program is free software; you can redistribute it and/or modify
@@ -41,21 +48,20 @@
 
 from AIPS import *
 from AIPS import AIPS
-from AIPSTask import AIPSTask, AIPSList
+from AIPSTask import AIPSTask
 from AIPSData import *
-from AIPSData import AIPSUVData, AIPSImage
+from AIPSData import AIPSUVData
 from Wizardry.AIPSData import AIPSUVData as WizAIPSUVData
 from Wizardry.AIPSData import AIPSImage as WizAIPSImage
 
 import sys
 import os
-import math
 import argparse
 
 import pyfits
 
 def run_idlToSdfits(files, average, channels, display_idlToSdfits,
-               idlToSdfits_rms_flag, verbose, idlToSdfits_baseline_subtract):
+                    idlToSdfits_rms_flag, verbose, idlToSdfits_baseline_subtract):
 
     
     # set the idlToSdfits output file name
@@ -130,6 +136,13 @@ def read_command_line(argv):
     return args
     
 def dbcon(args):
+    """Call idlToSdfits and load data into AIPS.
+
+    This function is called internally by the pipeline and should not be
+    called by a user from the command line.
+    
+    """
+
     if not args.imfiles:
         return
     
@@ -157,7 +170,6 @@ def dbcon(args):
     
     uvlod=AIPSTask('uvlod')         # Create structures for AIPS tasks
     uvlod.outdisk=mydisk            # write all input data to a select disk
-    fittp=AIPSTask('fittp')
     dbcon=AIPSTask('dbcon')
     uvsrt=AIPSTask('uvsrt')
     mandl=AIPSTask('mandl')
@@ -200,7 +212,7 @@ def dbcon(args):
     
     # prepare to accumulate source names
     allObjects = ["","","","","","","","","","","","","","","","","","","",
-                      "","","","","","","","","","","","","","","","","","",""]
+                  "","","","","","","","","","","","","","","","","","",""]
     allObjects[0] = spectra.header.object
     nObjects = 1
     
@@ -273,15 +285,12 @@ def dbcon(args):
     spectra = AIPSUVData(AIPSCat()[mydisk][-1].name, AIPSCat()[mydisk][-1].klass, mydisk, AIPSCat()[mydisk][-1].seq)
     
     # Read parameters passed inside the spectra data header
-    nChan    = round(spectra.header.naxis[2])
     cellsize = round(spectra.header.cdelt[4] * 3600.)
-    refChan  = spectra.header.crpix[2]
     imxSize  = 2*round(spectra.header.crpix[3]/1.5 )
     imySize  = 2*round(spectra.header.crpix[4]/1.5 )
     raDeg    = spectra.header.crval[3]
     decDeg   = spectra.header.crval[4]
     nuRef    = spectra.header.crval[2]
-    dNu      = spectra.header.cdelt[2]
     
     print "Ra,Dec:", raDeg, decDeg, "Image:", imxSize, imySize, cellsize, 
     #print spectra.header
