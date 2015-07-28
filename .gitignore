@@ -11,3 +11,4 @@ Cal_*
 *.png
 *.flag
 *.fixed_lags
+*.ipynb*
