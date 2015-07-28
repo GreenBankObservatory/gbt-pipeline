@@ -220,15 +220,18 @@ def calibrate_maps(log, cl_params, row_list, term):
                       'Need map scan(s).\n'.format(t=term))
         sys.exit()
 
-    # make sure there are no map scans specified in the mapscans parameter
-    #   that are missing from the scanlist
-    missingscan = False
+    # make sure not all map scans specified in the mapscans parameter
+    #   are missing from the scanlist
+    have_at_least_one_scan = False
     for scan in cl_params.mapscans:
         if scan not in scanlist:
-            log.doMessage('ERR', 'Scan', scan, 'not found.')
-            missingscan = True
-    if missingscan:
-        sys.exit()
+            log.doMessage('DBG', 'Scan', scan, 'not found.')
+        else:
+            have_at_least_one_scan = True
+
+    if not have_at_least_one_scan:
+        log.doMessage('DBG', 'No scans found for this map. Continuing.')
+        return None
     
     # if feeds, pols and/or windows are not set at the command line then
     #  default to all that are found in the input file
@@ -385,12 +388,12 @@ def calibrate_file(term, log, command_options):
     try:
         # create a structure that lists the raw SDFITS rows for
         #  each scan/window/feed/polarization
-        row_list, summary = sdf.parseSdfitsIndex(indexfile)
+        row_list, summary = sdf.parseSdfitsIndex(indexfile, command_options.mapscans)
     except IOError:
         log.doMessage('ERR', 'Could not open index file', indexfile)
         sys.exit()
 
-    log.doMessage('INFO', 'Input file summary:')
+    log.doMessage('INFO', indexfile)
     log.doMessage('INFO', '    ', len(summary['WINDOWS']),'spectral window(s)')
     for (win,freq) in sorted(summary['WINDOWS']):
         log.doMessage('INFO', '       {win}: {freq:.4f} GHz'.format(win=win, freq=freq))
@@ -425,14 +428,14 @@ def calibrate_file(term, log, command_options):
     # check for presence of window(s) in dataset before attempting calibration
     if command_options.window:
         if  set(command_options.window).isdisjoint(set(row_list.windows())):
-            log.doMessage('WARN', 'WINDOW', command_options.window, 'not in', os.path.basename(indexfile))
+            log.doMessage('DBG', 'WINDOW', command_options.window, 'not in', os.path.basename(indexfile))
             proceed_with_calibration = False
         else:
             requested_windows = command_options.window
             command_options.window = list(set(command_options.window).intersection(set(row_list.windows())))
             window_diff = set(requested_windows).difference(set(command_options.window))
             if window_diff:
-                log.doMessage('WARN', 'WINDOW', list(window_diff), 'not in', os.path.basename(indexfile))            
+                log.doMessage('DBG', 'WINDOW', list(window_diff), 'not in', os.path.basename(indexfile))            
 
     if proceed_with_calibration == False:
         return None
@@ -523,7 +526,7 @@ def runPipeline():
         try:
             # create a structure that lists the raw SDFITS rows for
             #  each scan/window/feed/polarization
-            row_list, summary = sdf.parseSdfitsIndex(indexfile)
+            row_list, summary = sdf.parseSdfitsIndex(indexfile, cl_params.mapscans)
         except IOError:
             log.doMessage('ERR', 'Could not open index file', indexfile)
             sys.exit()
@@ -552,7 +555,7 @@ def runPipeline():
         for infilename in glob.glob(input_directory + '/' +
                                     os.path.basename(input_directory) +
                                     '*.fits'):
-            log.doMessage('INFO', 'Attempting to calibrate', os.path.basename(infilename).rstrip('.fits'))
+            log.doMessage('DBG', 'Attempting to calibrate', os.path.basename(infilename).rstrip('.fits'))
             # change the infilename in the params structure to the
             #  current infile in the directory for each iteration
             cl_params.infilename = infilename

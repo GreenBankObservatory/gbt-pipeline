@@ -53,7 +53,7 @@ class ObservationRows:
                                                                          self.pols()))
 
     def addRow(self, scan, feed, window, polarization,
-               fitsExtension, rowOfFitsFile, typeOfScan, obsid,
+               fitsExtension, rowOfFitsFile, obsid,
                procname, procscan, nchans):
         """Add rows to the ObservationRows object.
 
@@ -69,7 +69,6 @@ class ObservationRows:
         else:
             self.rows[key] = {'EXTENSION': fitsExtension,
                               'ROW': [rowOfFitsFile],
-                              'TYPE': typeOfScan,
                               'OBSID': obsid,
                               'PROCNAME': procname,
                               'PROCSCAN': procscan,
@@ -89,7 +88,7 @@ class ObservationRows:
         """Return a list of scans in the observation.
 
         """
-        return list(set([xx.scan for xx in self.rows.keys()]))
+        return sorted(list(set([xx.scan for xx in self.rows.keys()])))
 
     def feeds(self):
         """Return a list of feeds in the observation.

@@ -169,7 +169,7 @@ class SdFits:
     
         return maps
     
-    def parseSdfitsIndex(self, infile):
+    def parseSdfitsIndex(self, infile, mapscans=[]):
         
         try:
             ifile = open(infile)
@@ -199,18 +199,34 @@ class SdFits:
 
         summary = {'WINDOWS': set([]), 'FEEDS': set([])}
 
+        # keep a list of suspect scans so we can know if the
+        # user has already been warned
+        suspectScans = set()
+
         for row in ifile:
         
             rr.setrow(row)
+
             scanid = int(rr['SCAN'])
+
+            # have a look at the procedure
+            #  if it is "Unknown", the data is suspect, so skip it
+            procname = rr['PROCEDURE']
+            if scanid in suspectScans:
+                continue
+            if ((scanid not in suspectScans)
+                and procname.lower() == 'unknown'):
+                suspectScans.add(scanid)
+                if scanid in mapscans:
+                    print 'WARNING: scan', scanid, 'has "Unknown" procedure. Skipping.'
+                continue
+
             feed = int(rr['FDNUM'])
             windowNum = int(rr['IFNUM'])
             pol = int(rr['PLNUM'])
             fitsExtension = int(rr['EXT'])
             rowOfFitsFile = int(rr['ROW'])
-            typeOfScan = rr['PROCEDURE']
             obsid = rr['OBSID']
-            procname = rr['PROCEDURE']
             procscan = rr['PROCSCAN']
             nchans = rr['NUMCHN']
 
@@ -221,14 +237,14 @@ class SdFits:
             # we can assume all integrations of a single scan are within the same
             #   FITS extension
             observation.addRow(scanid, feed, windowNum, pol,
-                               fitsExtension, rowOfFitsFile, typeOfScan, obsid,
+                               fitsExtension, rowOfFitsFile, obsid,
                                procname, procscan, nchans)
             
         try:
             ifile.close()
         except NameError:
             raise
-        
+
         return observation, summary
 
     def getReferenceIntegration(self, cal_on, cal_off, scale):
