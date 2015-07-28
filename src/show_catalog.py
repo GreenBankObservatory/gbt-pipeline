@@ -30,7 +30,7 @@ parser.add_argument('aipsid', type=int,
                           "your system id, which you can find by typing "
                           "'id -u' at the command line."))
 args = parser.parse_args()
-DISK_ID = 2                        # choose a good default work disk
+DISK_ID = 1                        # choose a good default work disk
 cat.config(args.aipsid, DISK_ID)  # configure the catalog object
 cat.show()
 

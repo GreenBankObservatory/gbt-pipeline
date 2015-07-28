@@ -48,8 +48,8 @@ if os.path.dirname(os.path.realpath(__file__)).endswith('contrib'):
 from fixAipsImages import fixAipsImages
 import aips_utils
 
-DISK_ID = 2                        # choose a good default work disk
-BADDISK = 1                       # list a disk to avoid (0==no avoidance)
+DISK_ID = 1                        # choose a good default work disk
+BADDISK = 0                       # list a disk to avoid (0==no avoidance)
 cat = aips_utils.Catalog()
 
 def print_header(message):
