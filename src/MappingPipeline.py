@@ -30,14 +30,12 @@ from SdFitsIO import SdFits
 from Pipeutils import Pipeutils
 from Weather import Weather
 from PipeLogging import Logging
+from settings import *
 
 import numpy as np
 
 import os
 import sys
-
-CREATE_PLOTS = False
-PIPELINE_VERSION = '1.2'  # to record in output primary header
 
 if CREATE_PLOTS:
     import pylab

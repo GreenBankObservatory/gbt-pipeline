@@ -22,6 +22,8 @@
 
 # $Id$
 
+from settings import *
+
 import argparse
 
 
@@ -51,7 +53,8 @@ class CommandLine:
                        'epilog': 'Use @filename.par as a command line '
                        'parameter to use options from a file.  Any options '
                        'set on the command line will override whatever is '
-                       'stored in the file.',
+                       'stored in the file.\n'
+                       'Pipeline version:  ' + PIPELINE_VERSION,
                        'prog': 'gbtpipeline',
                        'usage': '%(prog)s [options]'}
         self.parser = myparser(**parser_args)

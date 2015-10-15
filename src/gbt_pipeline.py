@@ -22,8 +22,6 @@
 
 # $Id$
 
-PARALLEL = True  # useful to turn off when debugging
-
 import commandline
 from MappingPipeline import MappingPipeline
 from SdFitsIO import SdFits
@@ -31,6 +29,7 @@ from Imaging import Imaging
 from PipeLogging import Logging
 from Weather import Weather
 from Pipeutils import Pipeutils
+from settings import *
 
 from blessings import Terminal
 import fitsio
