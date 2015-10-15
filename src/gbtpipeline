@@ -69,8 +69,21 @@ fi
 export PATH
 export PYTHONPATH
 
+checkversion=0
+
 if [ $# -gt 0 ]; then
-    echo "gbtpipeline" $*
+    for arg in $@
+    do
+	if [[  $arg == "-V" || $arg == "--version"  ]]
+	then
+	    checkversion=1
+	    break
+	fi
+    done
+    
+    if [ $checkversion -ne 1 ]; then
+       echo "gbtpipeline" $*
+    fi
 fi
 
 source /home/gbt7/pipeline/${GBTPIPEVERSION}-env/bin/activate

@@ -59,12 +59,15 @@ class CommandLine:
                        'usage': '%(prog)s [options]'}
         self.parser = myparser(**parser_args)
 
+        self.parser.add_argument("-V", "--version", action='version',
+                            version='%(prog)s ' + PIPELINE_VERSION,
+                            help="Prints the pipeline version.")
+
         input_group = self.parser.add_argument_group('Input')
         input_group.add_argument("-i", "--infile", dest="infilename",
                                  default='', required=True,
                                  help='SDFITS file name containing map scans',
                                  type=str)
-
         data_selection = self.parser.add_argument_group('Data Selection')
         data_selection.add_argument("-m", "--map-scans", dest="mapscans",
                                     default=None,
