@@ -116,7 +116,14 @@ def read_command_line(argv):
     if len(argv) == 1:
         argv.append('-h')
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description="This tool is called internally "
+                                     "by the pipeline and should not be called by "
+                                     "a user from the command line. \n"
+
+                                     "The user-driven equivalent is the "
+                                     "idlToSdifts -> aipspy load.py -> aipspy image.py "
+                                     "chain of commands.  See the Pipeline User's guide "
+                                     "for more information.")
     parser.add_argument('aipsid', type=int,
                         help=("The AIPS catalog number to use.  This is typically "
                               "your system id, which you can find by typing "
