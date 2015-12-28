@@ -65,10 +65,10 @@ class SdFits:
     def find_maps(self, indexfile, debug=False):
         """Find mapping blocks. Also find samplers used in each map
     
-        Keywords:
-        indexfile -- input required to search for maps and samplers
-        debug -- optional debug flag
-    
+        Args:
+            indexfile: input required to search for maps and samplers
+            debug: optional debug flag
+
         Returns:
         a (list) of map blocks, with each entry a (tuple) of the form:
         (int) reference 1,
