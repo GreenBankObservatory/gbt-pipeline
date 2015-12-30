@@ -51,11 +51,7 @@ class Weather:
         opacity_files = glob.glob('/home/gbtpipeline/weather/CoeffsOpacityFreqList_avrg_*.txt')
 
         if 0 == len(opacity_files):
-            if self.log:
-                self.log.doMessage('WARN', 'WARNING: No opacity coefficients file')
-            else:
-                print 'WARNING: No opacity coefficients file'
-            return False
+            return False, False
 
         # sort the list of files so they are in chronological order
         opacity_files.sort()
@@ -106,10 +102,10 @@ class Weather:
             return coeffs, opacity_db_range
         else:
             if self.log:
-                self.log.doMessage('WARN', 'WARNING: No opacity coefficients file')
+                self.log.doMessage('ERR', 'No opacity coefficients file')
             else:
-                print 'WARNING: No opacity coefficients file'
-            return False
+                print 'ERROR: No opacity coefficients file'
+            return False, False
 
     def _retrieve_opacity_coefficients(self, opacity_coefficients_filename):
         """Return opacities (taus) derived from a list of coeffients
@@ -202,6 +198,9 @@ class Weather:
                 log.doMessage('DBG', '   time in DB range ==', bool(self.db_time_range and (self.db_time_range[0] <= integration_mjd_timestamp <= self.db_time_range[1])))
 
             self.opacity_coeffs, self.db_time_range = self._opacity_database(integration_mjd_timestamp)
+            if (not self.opacity_coeffs) or (not self.db_time_range):
+                return False
+
             log.doMessage('DBG', 'DB time range:', self.db_time_range)
 
         for coeffs_line in self.opacity_coeffs:

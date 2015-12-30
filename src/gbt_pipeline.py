@@ -180,8 +180,14 @@ def preview_zenith_tau(log, row_list, cl_params, feeds, windows, pols):
 
         mjd = pu.dateToMjd(dateobs)
         zenithtau = weather.retrieve_zenith_opacity(mjd, obsfreq, log)
-        log.doMessage('INFO',
-                      'Approximate zenith opacity for map: {0:.3f}'.format(zenithtau))
+        if zenithtau:
+            log.doMessage('INFO',
+                          'Approximate zenith opacity for map: {0:.3f}'.format(zenithtau))
+        else:
+            log.doMessage('ERR', 'Not able to retrieve integration '
+                          'zenith opacity for calibration to:', cl_params.units,
+                          '\n  Please supply a zenith opacity or calibrate to Ta.')
+            sys.exit(9)
 
     # else if set at the command line
     else:
