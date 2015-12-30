@@ -115,8 +115,8 @@ class Calibration(object):
 
         """
 
-        deg2rad = (math.pi/180) # factor to convert degrees to radians
-        num_atmospheres = -0.023437 + 1.0140 / math.sin( deg2rad * (elev + 5.1774 / (elev + 3.3543) ) )
+        deg2rad = (math.pi/180)  # factor to convert degrees to radians
+        num_atmospheres = -0.023437 + 1.0140 / math.sin(deg2rad * (elev + 5.1774 / (elev + 3.3543)))
         corrected_opacity = zenith_opacity * num_atmospheres
 
         return corrected_opacity
@@ -179,7 +179,7 @@ class Calibration(object):
         freq_ghz = float(freq_hz)/1e9
 
         air_temp_k_A = air_temp_k_B = 0
-        for idx, term in enumerate(zip(aaa,bbb)):
+        for idx, term in enumerate(zip(aaa, bbb)):
             if idx > 0:
                 air_temp_k_A = air_temp_k_A + term[0] * (freq_ghz**idx)
                 air_temp_k_B = air_temp_k_B + term[1] * (freq_ghz**idx)
@@ -237,7 +237,7 @@ class Calibration(object):
             window_size = 1
 
         ref = self.pu.masked_array(ref)
-            
+
         spectrum = tsys * ((sig-ref)/ref)
         exposure_time = (t_sig * t_ref * window_size / (t_sig + t_ref*window_size))
         return spectrum, exposure_time
@@ -282,7 +282,7 @@ class Calibration(object):
 
         # do fractional channel shift
         fractional_shift = channel_shift - int(channel_shift)
-        #doMessage(logger, msg.DBG, 'Fractional channel shift is',
+        # doMessage(logger, msg.DBG, 'Fractional channel shift is',
         #          fractional_shift)
         xxp = range(len(ta1_ishifted))
         yyp = ta1_ishifted
@@ -323,8 +323,7 @@ class Calibration(object):
                             integration_timestamp):
 
         time_btwn_ref_scans = second_ref_timestamp-first_ref_timestamp
-        aa1 = ((second_ref_timestamp-integration_timestamp)
-               / time_btwn_ref_scans)
+        aa1 = (second_ref_timestamp-integration_timestamp) / time_btwn_ref_scans
         aa2 = (integration_timestamp-first_ref_timestamp) / time_btwn_ref_scans
         return aa1*reference1 + aa2*reference2
 
@@ -390,4 +389,3 @@ class Calibration(object):
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
-    

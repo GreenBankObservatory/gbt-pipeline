@@ -60,8 +60,8 @@ class CommandLine:
         self.parser = myparser(**parser_args)
 
         self.parser.add_argument("-V", "--version", action='version',
-                            version='%(prog)s ' + PIPELINE_VERSION,
-                            help="Prints the pipeline version.")
+                                 version='%(prog)s ' + PIPELINE_VERSION,
+                                 help="Prints the pipeline version.")
 
         input_group = self.parser.add_argument_group('Input')
         input_group.add_argument("-i", "--infile", dest="infilename",

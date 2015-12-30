@@ -4,11 +4,12 @@ import numpy as np
 
 from Calibration import Calibration
 
+
 class test_Calibration:
 
     def setup(self):
         self.cal = Calibration()
-        
+
     def test_total_power(self):
         array1 = np.ones(10)
         array2 = np.ones(10) * 2
@@ -32,7 +33,7 @@ class test_Calibration:
         tsky_correction = self.cal.tsky_correction(tsky_sig, tsky_ref, spillover)
         expected_result = np.ones(array_size) * .123
         np.testing.assert_equal(tsky_correction, expected_result)
-        
+
     def test_aperture_efficiency(self):
         reference_eta_a = .71
         freq_hz = 23e9
@@ -46,18 +47,18 @@ class test_Calibration:
         efficiency = self.cal.main_beam_efficiency(reference_eta_a, freq_hz)
         expected_result = 0.6347374630868166
         assert_almost_equal(efficiency, expected_result)
-        
+
     def test_elevation_adjusted_opacity(self):
         zenith_opacity = .1
         elevation = 45.
         adjusted_opacity = self.cal.elevation_adjusted_opacity(.1, 45.)
         expected_result = 0.07071067811865475
         assert_almost_equal(adjusted_opacity, expected_result)
-        
+
     def check__natm(self, elevation):
         number_of_atmospheres = self.cal._natm(elevation)
         assert_true(number_of_atmospheres)
-        
+
     def test__natms(self):
         for elevation in range(0, 90):
             yield self.check__natm, elevation
@@ -73,9 +74,9 @@ class test_Calibration:
         atmospheric_effective_temp = self.cal._tatm(freq_hz, temp_c)
         expected_result = 298.88517422006998
         assert_almost_equal(atmospheric_effective_temp, expected_result)
-        
+
     def test_zenith_opacity(self):
-        opacity_coefficients = [2,1,0]
+        opacity_coefficients = [2, 1, 0]
         freq_ghz = 16.79
         zenith_opacity = self.cal.zenith_opacity(opacity_coefficients, freq_ghz)
         expected_result = 18.79
@@ -96,10 +97,10 @@ class test_Calibration:
         antenna_temp = self.cal.antenna_temp(tsys, sig, ref)
         expected_result = np.ones(128) * .5
         np.testing.assert_equal(antenna_temp, expected_result)
-        
+
     def test__ta_fs_one_state(self):
-        sigref_state = [{'cal_on':None, 'cal_off':None, 'TP':None},
-                       {'cal_on':None, 'cal_off':None, 'TP':None}]
+        sigref_state = [{'cal_on': None, 'cal_off': None, 'TP': None},
+                        {'cal_on': None, 'cal_off': None, 'TP': None}]
 
         sigref_state[0]['cal_on'] = np.ones(128)
         sigref_state[0]['cal_off'] = np.ones(128)
@@ -111,10 +112,10 @@ class test_Calibration:
         refid = 1
 
         assert False
-        
+
     def test_ta_fs(self):
         assert False
-        
+
     def test_ta_star(self):
         antenna_temp = np.ones(128)
         beam_scaling = 1.
@@ -127,10 +128,10 @@ class test_Calibration:
     def test_jansky(self):
         ta_star = np.ones(128)
         aperture_efficiency = .1
-        jansky = self.cal.jansky(ta_star, aperture_efficiency )
+        jansky = self.cal.jansky(ta_star, aperture_efficiency)
         expected = np.ones(128) / .285
         np.testing.assert_almost_equal(jansky, expected)
-        
+
     def test_interpolate_by_time(self):
         reference1 = 0.
         reference1_time = 10000.
@@ -138,7 +139,7 @@ class test_Calibration:
         reference2_time = 20000.
         result_time = 15000.
         result_value = self.cal.interpolate_by_time(reference1, reference2,
-                reference1_time, reference2_time, result_time)
+                                                    reference1_time, reference2_time,
+                                                    result_time)
         expected = 50.
         assert_equal(result_value, expected)
-

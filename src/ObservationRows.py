@@ -1,5 +1,5 @@
 # Copyright (C) 2007 Associated Universities, Inc. Washington DC, USA.
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
@@ -9,11 +9,11 @@
 # WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 # General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-# 
+#
 # Correspondence concerning GBT software should be addressed as follows:
 #       GBT Operations
 #       National Radio Astronomy Observatory
@@ -24,6 +24,7 @@
 
 from ordereddict import OrderedDict
 from collections import namedtuple
+
 
 class ObservationRows:
     """Store index file information.
@@ -38,14 +39,14 @@ class ObservationRows:
        When rows are added to this object (addRow), the FITS extension,
        row of the FITS table and scan type are stored.
 
-       A list of rows for each scan/feed/window/polarization can be 
+       A list of rows for each scan/feed/window/polarization can be
        retrieved with the 'get' method.
 
     """
     def __init__(self):
         self.rows = OrderedDict()
         self.Key = namedtuple('key', 'scan, feed, window, polarization')
-    
+
     def __repr__(self):
         return ('Scans: {0}\nFeeds: {1}\nWindows: {2}\nPols: {3}'.format(self.scans(),
                                                                          self.feeds(),
@@ -61,9 +62,9 @@ class ObservationRows:
            row of the FITS table and scan type are stored.
 
         """
-       
+
         key = self.Key(scan, feed, window, polarization)
-        
+
         if key in self.rows:
             self.rows[key]['ROW'].append(rowOfFitsFile)
         else:
@@ -73,7 +74,7 @@ class ObservationRows:
                               'PROCNAME': procname,
                               'PROCSCAN': procscan,
                               'NCHANS': nchans}
-            
+
     def get(self, scan, feed, window, polarization):
         """Retreive a list of rows for scan/feed/win/pol.
 
@@ -83,7 +84,7 @@ class ObservationRows:
             return self.rows[key]
         except(KeyError):
             raise
-        
+
     def scans(self):
         """Return a list of scans in the observation.
 
@@ -95,7 +96,7 @@ class ObservationRows:
 
         """
         return list(set([xx.feed for xx in self.rows.keys()]))
-    
+
     def windows(self):
         """Return a list of windows in the observation.
 
@@ -107,4 +108,3 @@ class ObservationRows:
 
         """
         return list(set([xx.polarization for xx in self.rows.keys()]))
-    
