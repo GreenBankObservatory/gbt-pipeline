@@ -1,4 +1,4 @@
-from nose.tools import *
+import nose.tools as ntest
 
 import numpy as np
 
@@ -6,6 +6,9 @@ from Calibration import Calibration
 
 
 class test_Calibration:
+
+    def __init__(self):
+        self.cal = None
 
     def setup(self):
         self.cal = Calibration()
@@ -23,7 +26,7 @@ class test_Calibration:
         tau = .05
         tsky = self.cal.tsky(ambient_temp_k, freq_hz, tau)
         expected_result = 13.432242475061472
-        assert_almost_equal(tsky, expected_result)
+        ntest.assert_almost_equal(tsky, expected_result)
 
     def test_tsky_correction(self):
         array_size = 128
@@ -39,48 +42,35 @@ class test_Calibration:
         freq_hz = 23e9
         efficiency = self.cal.aperture_efficiency(reference_eta_a, freq_hz)
         expected_result = 0.64748265789117276
-        assert_almost_equal(efficiency, expected_result)
+        ntest.assert_almost_equal(efficiency, expected_result)
 
     def test_main_beam_efficiency(self):
         reference_eta_a = .7
         freq_hz = 23.7e9
         efficiency = self.cal.main_beam_efficiency(reference_eta_a, freq_hz)
         expected_result = 0.6347374630868166
-        assert_almost_equal(efficiency, expected_result)
+        ntest.assert_almost_equal(efficiency, expected_result)
 
     def test_elevation_adjusted_opacity(self):
         zenith_opacity = .1
         elevation = 45.
         adjusted_opacity = self.cal.elevation_adjusted_opacity(.1, 45.)
         expected_result = 0.07071067811865475
-        assert_almost_equal(adjusted_opacity, expected_result)
-
-    def check__natm(self, elevation):
-        number_of_atmospheres = self.cal._natm(elevation)
-        assert_true(number_of_atmospheres)
-
-    def test__natms(self):
-        for elevation in range(0, 90):
-            yield self.check__natm, elevation
-
-    def test_specific__natm(self):
-        elevation = 58.5
-        number_of_atmospheres = self.cal._natm(elevation)
-        assert_almost_equal(number_of_atmospheres, 0.8526401643540922)
+        ntest.assert_almost_equal(adjusted_opacity, expected_result)
 
     def test__tatm(self):
         freq_hz = 23e9
         temp_c = 40.
         atmospheric_effective_temp = self.cal._tatm(freq_hz, temp_c)
         expected_result = 298.88517422006998
-        assert_almost_equal(atmospheric_effective_temp, expected_result)
+        ntest.assert_almost_equal(atmospheric_effective_temp, expected_result)
 
     def test_zenith_opacity(self):
         opacity_coefficients = [2, 1, 0]
         freq_ghz = 16.79
         zenith_opacity = self.cal.zenith_opacity(opacity_coefficients, freq_ghz)
         expected_result = 18.79
-        assert_equal(zenith_opacity, expected_result)
+        ntest.assert_equal(zenith_opacity, expected_result)
 
     def test_tsys(self):
         tcal = 1.
@@ -88,7 +78,7 @@ class test_Calibration:
         cal_on = np.ones(128)*3
         tsys = self.cal.tsys(tcal, cal_on, cal_off)
         expected = 1.
-        assert_equal(tsys, expected)
+        ntest.assert_equal(tsys, expected)
 
     def test_antenna_temp(self):
         tsys = .5
@@ -142,4 +132,4 @@ class test_Calibration:
                                                     reference1_time, reference2_time,
                                                     result_time)
         expected = 50.
-        assert_equal(result_value, expected)
+        ntest.assert_equal(result_value, expected)
