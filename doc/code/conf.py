@@ -177,7 +177,7 @@ htmlhelp_basename = 'GBTPipelinedoc'
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
   ('index', 'GBTPipeline.tex', u'GBT Pipeline Documentation',
-   u'Glen Langston, Bob Garwood, Joe Masters', 'manual'),
+   u'Joe Masters, Bob Garwood', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
