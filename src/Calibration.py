@@ -1,6 +1,8 @@
-"""Module containing all the calibration methods for the GBT Pipeline.
+"""Calibration methods for the GBT Pipeline.
 
-This includes both Position-switched and Frequency-switched calibration.
+This module contains all the core calibration methods for GBT
+single dish mapping needed by the pipeline.  It includes both
+position-switched and frequency-switched calibration methods.
 
 """
 # Copyright (C) 2007 Associated Universities, Inc. Washington DC, USA.
@@ -34,11 +36,6 @@ from Pipeutils import Pipeutils
 
 
 class Calibration(object):
-    """Class containing all the calibration methods for the GBT Pipeline.
-
-    This includes both Position-switched and Frequency-switched calibration.
-
-    """
 
     def __init__(self, smoothing_window_size=0):
 
@@ -51,30 +48,63 @@ class Calibration(object):
     # ------------- Unit methods: do not depend on any other pipeline methods
 
     def total_power(self, cal_on, cal_off, t_on, t_off):
-        return np.ma.mean((cal_on, cal_off), axis=0), t_on+t_off
+        r"""Calculate the total power of spectrum with noise diode-switching.
 
-    def tsky_correction(self, tsky_sig, tsky_ref, spillover):
-        return spillover*(tsky_sig-tsky_ref)
-
-    def aperture_efficiency(self, reference_eta_a, freq_hz):
-        """Determine aperture efficiency
-
-        Keyword attributes:
-        freq_hz -- input frequency in Hz
+        Args:
+            cal_on(1d array): Spectrum *with* noise diode applied.
+            cal_off(1d array): Spectrum *without* noise diode applied.
+            t_on(float): Exposure time of the spectrum *with* noise diode.
+            t_off(float): Exposure time of the spectrum *without* noise diode.
 
         Returns:
-        eta -- point or main beam efficiency (range 0 to 1)
+            1d array and float:
 
-        EtaA model is from memo by Jim Condon, provided by Ron Maddalena
-
-        >>> cal = Calibration()
-        >>> print '{0:.6f}'.format(cal.aperture_efficiency(.71, 23e9))
-        0.647483
-        >>> print '{0:.6f}'.format(cal.aperture_efficiency(.91, 23e9))
-        0.829872
+            A spectrum and a total exposure time.
+            The spectrum is the average of the input spectra.
+            The exposure time is the sum of the input exposure times.
 
         """
+        return np.ma.mean((cal_on, cal_off), axis=0), t_on + t_off
 
+    def tsky_correction(self, tsky_sig, tsky_ref, spillover):
+        r"""
+
+        Args:
+            tsky_sig:
+            tsky_ref:
+            spillover:
+
+        Returns:
+
+        """
+        return spillover * (tsky_sig - tsky_ref)
+
+    def aperture_efficiency(self, reference_eta_a, freq_hz):
+        r"""Determine telescope aperture efficiency at a given frequency.
+
+        EtaA model is from memo by Jim Condon, provided by Ron Maddalena.
+
+        Args:
+            reference_eta_a(float): Reference aperture efficiency.
+            freq_hz(float): Frequency in Hertz.
+
+        Returns:
+            float:
+            Point or main beam efficiency (ranges from 0 to 1).
+
+        .. testsetup::
+
+           from Calibration import Calibration
+
+        .. doctest::
+
+           >>> cal = Calibration()
+           >>> print '{0:.6f}'.format(cal.aperture_efficiency(.71, 23e9))
+           0.647483
+           >>> print '{0:.6f}'.format(cal.aperture_efficiency(.91, 23e9))
+           0.829872
+
+        """
         freq_ghz = float(freq_hz)/1e9
         return reference_eta_a * math.e**-((self.BB * freq_ghz)**2)
 
@@ -89,32 +119,41 @@ class Calibration(object):
         return self.aperture_efficiency(reference_eta_b, freq_hz)
 
     def elevation_adjusted_opacity(self, zenith_opacity, elev):
-        """Compute elevation-corrected opacities.
-
-        Keywords:
-
-        zenith_opacity -- opacity based only on time
-        elev -- (float) elevation angle of integration or scan
+        r"""Compute elevation-corrected opacities.
 
         We need to estimate the number of atmospheres along the
         line of site at an input elevation
 
         This comes from a model reported by Ron Maddalena:
 
-        1) A = 1/sin(elev) is a good approximation down to about 15 deg but
+        :math:`A = \frac{1}{\sin(elev)}` is a good approximation down to about 15 deg but
         starts to get pretty poor below that.  Here's a quick-to-calculate,
         better approximation that I determined from multiple years worth of
         weather data and which is good down to elev = 1 deg:
 
-        A = -0.023437  + 1.0140 / math.sin( (math.pi/180.)*(elev + 5.1774 /
-            (elev + 3.3543) ) )
+        .. math::
 
-        >>> cal = Calibration()
-        >>> print ['{0:.6f}'.format(cal.elevation_adjusted_opacity(1, el)) for el in range(90)]
-        ['37.621216', '26.523488', '19.566942', '15.217485', '12.341207', '10.331365', '8.861127', '7.745094', '6.872195', '6.172545', '5.600276', '5.124171', '4.722318', '4.378917', '4.082311', '3.823718', '3.596410', '3.395144', '3.215779', '3.055004', '2.910137', '2.778989', '2.659751', '2.550918', '2.451229', '2.359617', '2.275175', '2.197126', '2.124803', '2.057628', '1.995099', '1.936775', '1.882273', '1.831253', '1.783416', '1.738495', '1.696253', '1.656478', '1.618982', '1.583595', '1.550162', '1.518545', '1.488619', '1.460271', '1.433397', '1.407903', '1.383703', '1.360719', '1.338878', '1.318115', '1.298369', '1.279585', '1.261710', '1.244698', '1.228504', '1.213089', '1.198415', '1.184446', '1.171152', '1.158501', '1.146467', '1.135024', '1.124146', '1.113814', '1.104005', '1.094700', '1.085882', '1.077533', '1.069639', '1.062184', '1.055156', '1.048543', '1.042331', '1.036512', '1.031074', '1.026009', '1.021309', '1.016966', '1.012972', '1.009322', '1.006009', '1.003029', '1.000376', '0.998047', '0.996038', '0.994346', '0.992968', '0.991902', '0.991147', '0.990701']
+           A = -0.023437  + \frac{1.0140}{\sin( \frac{pi}{180} * (elev + \frac{5.1774}{elev + 3.3543} )}
+
+        Args:
+            zenith_opacity(float): Opacity at zenith based only on time.
+            elev(float): Elevation angle of integration or scan.
+
+        Returns:
+            float:
+            Elevation-adjusted opacity
+
+        .. testsetup::
+
+           from Calibration import Calibration
+
+        .. doctest::
+
+           >>> cal = Calibration()
+           >>> print ['{0:.6f}'.format(cal.elevation_adjusted_opacity(1, el)) for el in range(90)]
+           ['37.621216', '26.523488', '19.566942', '15.217485', '12.341207', '10.331365', '8.861127', '7.745094', '6.872195', '6.172545', '5.600276', '5.124171', '4.722318', '4.378917', '4.082311', '3.823718', '3.596410', '3.395144', '3.215779', '3.055004', '2.910137', '2.778989', '2.659751', '2.550918', '2.451229', '2.359617', '2.275175', '2.197126', '2.124803', '2.057628', '1.995099', '1.936775', '1.882273', '1.831253', '1.783416', '1.738495', '1.696253', '1.656478', '1.618982', '1.583595', '1.550162', '1.518545', '1.488619', '1.460271', '1.433397', '1.407903', '1.383703', '1.360719', '1.338878', '1.318115', '1.298369', '1.279585', '1.261710', '1.244698', '1.228504', '1.213089', '1.198415', '1.184446', '1.171152', '1.158501', '1.146467', '1.135024', '1.124146', '1.113814', '1.104005', '1.094700', '1.085882', '1.077533', '1.069639', '1.062184', '1.055156', '1.048543', '1.042331', '1.036512', '1.031074', '1.026009', '1.021309', '1.016966', '1.012972', '1.009322', '1.006009', '1.003029', '1.000376', '0.998047', '0.996038', '0.994346', '0.992968', '0.991902', '0.991147', '0.990701']
 
         """
-
         deg2rad = (math.pi/180)  # factor to convert degrees to radians
         num_atmospheres = -0.023437 + 1.0140 / math.sin(deg2rad * (elev + 5.1774 / (elev + 3.3543)))
         corrected_opacity = zenith_opacity * num_atmospheres
@@ -122,7 +161,7 @@ class Calibration(object):
         return corrected_opacity
 
     def _tatm(self, freq_hz, tmp_c):
-        """Estimates the atmospheric effective temperature
+        """Estimates the atmospheric effective temperature.
 
         Keyword arguments:
         freq_hz -- input frequency in Hz
@@ -162,12 +201,11 @@ class Calibration(object):
 
         tatm model is provided by Ron Maddalena
 
-        >>> cal = Calibration()
-        >>> print '{0:.6f}'.format(cal._tatm(23e9, 40))
+        >>> print '{0:.6f}'.format(Calibration()._tatm(23e9, 40))
         298.885174
-        >>> print '{0:.6f}'.format(cal._tatm(23e9, 30))
+        >>> print '{0:.6f}'.format(Calibration()._tatm(23e9, 30))
         289.780603
-        >>> print '{0:.6f}'.format(cal._tatm(1.42e9, 30))
+        >>> print '{0:.6f}'.format(Calibration()._tatm(1.42e9, 30))
         271.978666
 
         """
@@ -191,12 +229,12 @@ class Calibration(object):
         return air_temp_k
 
     def zenith_opacity(self, coeffs, freq_ghz):
-        """Interpolate low and high opacities across a vector of frequencies
+        """ Interpolate low and high opacities across a vector of frequencies.
 
         Keywords:
         coeffs -- (list) opacitiy coefficients from archived text file,
-                    produced by GBT weather prediction code
-        freq_ghz -- frequency value in GHz
+        produced by GBT weather prediction code.
+        freq_ghz -- frequency value in GHz.
 
         Returns:
         A zenith opacity at requested frequency.
@@ -221,15 +259,52 @@ class Calibration(object):
         return zenith_opacity
 
     def tsys(self, tcal, cal_on, cal_off):
+        r"""Calculate the system temperature for an integration.
+
+        Args:
+            tcal(float): Lab-measured receiver calibration temperature.
+            cal_on(1d array): Spectrum *with* noise diode applied.
+            cal_off(1d array): Spectrum *without* noise diode applied.
+
+        Returns:
+            float:
+            .. math::
+               tcal * \frac{cal\_{off}}{cal\_{on} - cal\_{off}} + \frac{tcal}{2}
+
+        """
         nchan = len(cal_off)
-        low = int(.1*nchan)
-        high = int(.9*nchan)
+        low = int(.1 * nchan)
+        high = int(.9 * nchan)
         cal_off = (cal_off[low:high]).mean()
         cal_on = (cal_on[low:high]).mean()
-        return np.float(tcal*(cal_off/(cal_on-cal_off))+tcal/2)
+        return np.float(tcal * (cal_off / (cal_on - cal_off)) + tcal / 2)
 
     def antenna_temp(self, tsys, sig, ref, t_sig, t_ref):
+        r"""Calibrate a spectrum to units of antenna temperature.
 
+        Args:
+            tsys(float): System temperature of the reference scan.
+            sig(1d array): Signal ("on") spectrum.
+            ref(1d array): Reference ("off") spectrum.
+            t_sig(float): Exposure time of the signal spectrum.
+            t_ref(float): Exposure time of the reference spectrum.
+
+        Returns:
+            1d array or float:
+            A calibrated spectrum with an exposure time.
+            The spectrum is
+
+            .. math:: tsys * \frac{sig - ref}{ref}.
+
+            The exposure time is
+
+            .. math::
+               \frac{t\_{sig} * t\_{ref} * window\_{size}}{t\_{sig} + (t\_{ref} * window\_{size})}
+
+            where the window size is an optional smoothing kernel size for the
+            reference spectrum.
+
+        """
         if self.SMOOTHING_WINDOW > 1:
             ref = smoothing.boxcar(ref, self.SMOOTHING_WINDOW)
             window_size = self.SMOOTHING_WINDOW
@@ -312,36 +387,120 @@ class Calibration(object):
         return ta, tsys, exposure_sum
 
     def ta_star(self, antenna_temp, opacity, spillover):
-        # opacity is corrected for elevation
-        return antenna_temp * math.e**opacity * 1/spillover
+        r"""Calibrate a spectrum to units of **ta***.
 
-    def jansky(self, ta_star, aperture_efficiency):
-        return ta_star/(2.85*aperture_efficiency)
+        Args:
+            antenna_temp(1d array): Spectrum calibrated to units of antenna temperature.
+            opacity(float): Elevation-adjusted atmospheric opacity.
+            spillover(float): Correction factor for rear-spillover,	ohmic loss and blockage	efficiency.
+
+        Returns:
+            1d array:
+            A calibrated spectrum.
+
+            .. math::
+               antenna\_{temp} * e^{opacity} * \frac{1}{spillover}
+
+        """
+        # opacity is corrected for elevation
+        return antenna_temp * math.e**opacity * 1 / spillover
+
+    def jansky(self, spectrum, aperture_efficiency):
+        r"""Calibrate a spectrum to units of **Jansky**.
+
+        Args:
+            spectrum(1d array): A spectrum previously calibrated to **ta***.
+            aperture_efficiency(float): The aperture efficiency factor.
+
+        Returns:
+            1d array:
+
+            .. math::
+               \frac{spectrum}{2.85 * aperture\_{efficiency}}
+
+        """
+        return spectrum / (2.85 * aperture_efficiency)
 
     def interpolate_by_time(self, reference1, reference2,
                             first_ref_timestamp, second_ref_timestamp,
                             integration_timestamp):
+        r"""Calculate interpolated value(s).
 
-        time_btwn_ref_scans = second_ref_timestamp-first_ref_timestamp
-        aa1 = (second_ref_timestamp-integration_timestamp) / time_btwn_ref_scans
-        aa2 = (integration_timestamp-first_ref_timestamp) / time_btwn_ref_scans
-        return aa1*reference1 + aa2*reference2
+        This function can be used to calculate a single interpolated value
+        or an array of values at a specified time.
+
+        Args:
+            reference1(float or 1d array): Value(s) for first time.
+            reference2(float or 1d array): Value(s) for second time.
+            first_ref_timestamp(float): First time.
+            second_ref_timestamp(float): Second time.
+            integration_timestamp(float): The time for which we want a value.
+
+        Returns:
+            float or 1d array:
+            Interpolated value(s) for a specific time.
+
+        .. testsetup::
+
+           from Calibration import Calibration
+           import numpy as np
+
+        .. doctest::
+
+           >>> cal = Calibration()
+           >>> cal.interpolate_by_time(1, 2, 0, 100, 75)
+           1.75
+           >>> cal.interpolate_by_time(np.array([1, 2]), np.array([2, 3]), 0, 100, 75)
+           array([ 1.75,  2.75])
+
+        """
+
+        time_btwn_ref_scans = float(second_ref_timestamp) - float(first_ref_timestamp)
+        aa1 = (second_ref_timestamp - integration_timestamp) / time_btwn_ref_scans
+        aa2 = (integration_timestamp - first_ref_timestamp) / time_btwn_ref_scans
+        return aa1 * reference1 + aa2 * reference2
 
     def make_weights(self, tsyss, exposures):
         return exposures / tsyss**2
 
     def average_tsys(self, tsyss, exposures):
+        r"""Compute a weighted average multiple system temperatures.
+
+        Args:
+            tsyss(1d array): The system temperatures to average.
+            exposures(1d array): The exposure times corresponding to each system temperature.
+
+        Returns:
+            1d array:
+            A weighted average system temperature.  See the *make_weights* method to see how
+            the weights are computed.
+
+        """
         weights = self.make_weights(tsyss, exposures)
         return np.sqrt(np.average(tsyss**2, axis=0, weights=weights))
 
     def average_spectra(self, specs, tsyss, exposures):
+        r"""Perform a weighted average of two spectra.
+
+        Args:
+            specs(two 1d arrays): The two input spectra to be averaged.
+            tsyss(two floats): System temperatures corresponding to each input spectrum.
+            exposures(two floats): Exposure times corresponding to each input spectrum.
+
+        Returns:
+            1d array:
+            A weighted average spectrum.  See the *make_weights* method to see how the weights
+            are computed.
+
+        """
         weights = self.make_weights(tsyss, exposures)
+
         if float('nan') in specs[0] or float('nan') in specs[1]:
-            weight0 = np.ma.array([weights[0]]*len(specs[0]),
-                                  mask=specs[0].mask)
-            weight1 = np.ma.array([weights[1]]*len(specs[1]),
-                                  mask=specs[1].mask)
+
+            weight0 = np.ma.array([weights[0]] * len(specs[0]), mask=specs[0].mask)
+            weight1 = np.ma.array([weights[1]] * len(specs[1]), mask=specs[1].mask)
             weights = [weight0.filled(0), weight1.filled(0)]
+
         return np.ma.average(specs, axis=0, weights=weights)
 
     def getReferenceAverage(self, crefs, tsyss, exposures, timestamps,
@@ -369,20 +528,22 @@ class Calibration(object):
                 avg_elevation, exposure)
 
     def tsky(self, ambient_temp_k, freq_hz, tau):
-        """Determine the sky temperature contribution at a frequency
+        r"""Determine the sky brightness temperature at a frequency.
 
-        Keywords:
-        ambient_temp_k -- (float) mean ambient temperature value, in kelvin
-        freq -- (float)
-        tau -- (float) opacity value
+        Args:
+            ambient_temp_k(float): Mean ambient temperature in Kelvin.
+            freq_hz(float): Frequency in Hz.
+            tau(float): Atmospheric opacity value.
+
         Returns:
-        the sky model temperature contribution at frequncy channel
+            float:
+            The sky model temperature contribution at frequency channel.
 
         """
-        ambient_temp_c = ambient_temp_k-273.15  # convert to celcius
+        ambient_temp_c = ambient_temp_k - 273.15  # convert to Celsius
         airTemp = self._tatm(freq_hz, ambient_temp_c)
 
-        tsky = airTemp * (1-math.e**(-tau))
+        tsky = airTemp * (1 - math.e**(-tau))
 
         return tsky
 
