@@ -148,14 +148,14 @@ class MappingPipeline:
         ext = referenceRows['EXTENSION']
         rows = referenceRows['ROW']
 
-        crefs = []
-        tsyss = []
-        cal_on = None
-        cal_off = None
-        exposures = []   # used for weighting the average of reference integrations
-        timestamps = []  # will get an average to use for interpolation bt/wn references
-        tambients = []   # used for tsky computation for ta* and beyond
-        elevations = []  # used for tsky computation for ta* and beyond
+        crefs = []  # each element will be an average of noise diode on & off pairs
+        tsyss = []  # each element corresponds to the combined noise diode on & off, see Calibration().tsys()
+        cal_on = None  # to hold the integration with noise diode ON
+        cal_off = None  # to hold the integration with noise diode OFF
+        exposures = []   # each element is total exposure, used for weighting the average of reference integrations
+        timestamps = []  # each element is an average to use for interpolation bt/wn references
+        tambients = []   # from the cal_off integration, used for tsky computation for ta* and beyond
+        elevations = []  # from the call_off integration, used for tsky computation for ta* and beyond
 
         columns = tuple(self.infile[ext].get_colnames())
 

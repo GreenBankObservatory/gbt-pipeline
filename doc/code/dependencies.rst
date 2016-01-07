@@ -28,7 +28,7 @@ SciPy is open-source software for mathematics, science, and engineering. It is a
 The pipeline makes minimal use of scipy for smoothing and interpolation.
 
 GBT Weather Forecasting (from Ron Maddalena)
----------------------------------------------
+--------------------------------------------
 http://www.gb.nrao.edu/~rmaddale/Weather/index.html
 
 AIPS (idlToSdfits + Parseltongue + Obit)

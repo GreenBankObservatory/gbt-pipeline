@@ -67,14 +67,22 @@ class Calibration(object):
         return np.ma.mean((cal_on, cal_off), axis=0), t_on + t_off
 
     def tsky_correction(self, tsky_sig, tsky_ref, spillover):
-        r"""
+        r"""Correction factor for sky brightness variation between reference and current integration.
 
         Args:
-            tsky_sig:
-            tsky_ref:
-            spillover:
+            tsky_sig(float): Sky brightness at current temperature, \
+                frequency and elevation.
+            tsky_ref(float): Sky brightness at reference temperature, \
+                frequency and elevation.
+            spillover(float): Spillover factor.
 
         Returns:
+            float:
+            A sky brightness correction factor.
+
+            .. math::
+
+               spillover * (tsky\_{sig} - tsky\_{ref})
 
         """
         return spillover * (tsky_sig - tsky_ref)
@@ -96,7 +104,7 @@ class Calibration(object):
 
            from Calibration import Calibration
 
-        .. doctest::
+        .. doctest:: :hide:
 
            >>> cal = Calibration()
            >>> print '{0:.6f}'.format(cal.aperture_efficiency(.71, 23e9))
@@ -109,13 +117,20 @@ class Calibration(object):
         return reference_eta_a * math.e**-((self.BB * freq_ghz)**2)
 
     def main_beam_efficiency(self, reference_eta_b, freq_hz):
-        """Determine main beam efficiency, given reference etaB value and freq.
+        r"""Determine main beam efficiency, given a reference etaB value and frequency.
 
         This is the same equation as is used to determine aperture efficiency.
         The only difference is the reference value.
 
-        """
+        Args:
+            reference_eta_b(float): The main beam efficiency. \
+             For the GBT, the default is :math:`1.28 * \eta_A`, where :math:`\eta_A` is aperture efficiency.
+            freq_hz(float): The frequency in Hertz.
 
+        Returns:
+            float:
+            An aperture efficiency at a given frequency.
+        """
         return self.aperture_efficiency(reference_eta_b, freq_hz)
 
     def elevation_adjusted_opacity(self, zenith_opacity, elev):
@@ -147,7 +162,7 @@ class Calibration(object):
 
            from Calibration import Calibration
 
-        .. doctest::
+        .. doctest:: :hide:
 
            >>> cal = Calibration()
            >>> print ['{0:.6f}'.format(cal.elevation_adjusted_opacity(1, el)) for el in range(90)]
@@ -229,15 +244,16 @@ class Calibration(object):
         return air_temp_k
 
     def zenith_opacity(self, coeffs, freq_ghz):
-        """ Interpolate low and high opacities across a vector of frequencies.
+        r"""Interpolate low and high opacities across a vector of frequencies.
 
-        Keywords:
-        coeffs -- (list) opacitiy coefficients from archived text file,
-        produced by GBT weather prediction code.
-        freq_ghz -- frequency value in GHz.
+        Args:
+            coeffs(1d array): Opacitiy coefficients from archived text file, \
+                produced by GBT weather prediction code.
+            freq_ghz(float): Frequency value in GHz.
 
         Returns:
-        A zenith opacity at requested frequency.
+            float:
+            A zenith opacity at requested frequency.
 
         """
         # interpolate between the coefficients based on time for a
@@ -337,6 +353,21 @@ class Calibration(object):
         return antenna_temp, tsys, exposure
 
     def ta_fs(self, sigref_state, scale):
+        r"""Calibrate a frequency-switched integration to units of antenna temperature.
+
+        Args:
+            sigref_state(struct): A structure holding the noise diode off and on \
+                integrations (which are full rows from the FITS table, including the DATA column), \
+                a total power integration, FITS table row number and \
+                exposure time.
+            scale(float): A relative beam scaling factor.  Default is 1, or no scaling.
+
+        Returns:
+            1d array, float, float:
+            An averaged spectrum calibrated to units of antenna temperature, \
+            a system temperature and a total exposure time for the spectrum.
+
+        """
 
         ta0, tsys0, exposure0 = self._ta_fs_one_state(sigref_state, 0, 1, scale)
         ta1, tsys1, exposure1 = self._ta_fs_one_state(sigref_state, 1, 0, scale)
@@ -445,7 +476,7 @@ class Calibration(object):
            from Calibration import Calibration
            import numpy as np
 
-        .. doctest::
+        .. doctest:: :hide:
 
            >>> cal = Calibration()
            >>> cal.interpolate_by_time(1, 2, 0, 100, 75)
@@ -461,6 +492,22 @@ class Calibration(object):
         return aa1 * reference1 + aa2 * reference2
 
     def make_weights(self, tsyss, exposures):
+        r"""Create weights for integration averaging.
+
+        Args:
+            tsyss(1d array): A list of system temperatures.
+            exposures(1d array): A list of exposure times.  \
+            The number of exposure times must match the number of system temperatures.
+
+        Returns:
+            1d array:
+            A list of weights.  The weights are computed with the following formula.
+
+            .. math::
+
+               \frac{exposure\ time}{tsys^2}
+
+        """
         return exposures / tsyss**2
 
     def average_tsys(self, tsyss, exposures):
@@ -505,6 +552,22 @@ class Calibration(object):
 
     def getReferenceAverage(self, crefs, tsyss, exposures, timestamps,
                             tambients, elevations):
+        r"""Average the total power integrations from a reference scan.
+
+        Args:
+            crefs(stack of 1d arrays): The total power integrations (spectra) for a single reference scan.
+            tsyss(1d array): The system temperatures; one for each input spectrum.
+            exposures(1d array): The exposure times; one for each input spectrum.
+            timestamps(1d array): The timestamps; one for each input spectrum.
+            tambients(1d array): Ambient temperatures in Kelvin; one for each input spectrum.
+            elevations(1d array): Elevation in degrees; one for each input spectrum.
+
+        Returns:
+            1d array, float, float, float, float, float:
+            An average value for each of the input parameters.  An average spectrum along with
+            average system temperature, exposure time, timestamp, ambient temperature and elevation.
+
+        """
 
         # convert to numpy arrays
         crefs = np.array(crefs)
@@ -524,8 +587,7 @@ class Calibration(object):
         avg_tambient = tambients.mean()
         avg_elevation = elevations.mean()
 
-        return (avg_cref, avg_tsys80, avg_timestamp, avg_tambient,
-                avg_elevation, exposure)
+        return avg_cref, avg_tsys80, avg_timestamp, avg_tambient, avg_elevation, exposure
 
     def tsky(self, ambient_temp_k, freq_hz, tau):
         r"""Determine the sky brightness temperature at a frequency.
