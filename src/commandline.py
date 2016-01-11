@@ -1,3 +1,4 @@
+# coding=utf-8
 # Copyright (C) 2007 Associated Universities, Inc. Washington DC, USA.
 #
 # This program is free software; you can redistribute it and/or modify
@@ -27,7 +28,7 @@ from settings import *
 import argparse
 
 
-class myparser(argparse.ArgumentParser):
+class _myparser(argparse.ArgumentParser):
     def convert_arg_line_to_args(self, arg_line):
         arg_line = arg_line.lstrip()
         arg_line = arg_line.split('#')[0]
@@ -42,7 +43,7 @@ class myparser(argparse.ArgumentParser):
 
 
 class CommandLine:
-    """Interpret command line options
+    """Interpret command line options.
 
     """
     def __init__(self):
@@ -57,7 +58,7 @@ class CommandLine:
                        'Pipeline version:  ' + PIPELINE_VERSION,
                        'prog': 'gbtpipeline',
                        'usage': '%(prog)s [options]'}
-        self.parser = myparser(**parser_args)
+        self.parser = _myparser(**parser_args)
 
         self.parser.add_argument("-V", "--version", action='version',
                                  version='%(prog)s ' + PIPELINE_VERSION,
@@ -171,30 +172,34 @@ class CommandLine:
                             dest='keeptempfiles', default=False,
                             help='If set, do not remove intermediate aips.fits '
                             'imaging files and summary directory.')
-
-    def _parse_range(self, rangelist):
-        """Given a range string, produce a list of integers
+    @staticmethod
+    def parse_range(rangelist):
+        r"""Given a range string, produce a list of integers.
 
         Inclusive and exclusive integers are both possible.
 
-        The range string 1:4,6:8,10 becomes 1,2,3,4,6,7,8,10
-        The range string 1:4,-2 becomes 1,3,4
+        The range string 1:4,6:8,10 becomes 1,2,3,4,6,7,8,10.
+        The range string 1:4,-2 becomes 1,3,4.
 
-        Keywords:
-        rangelist -- a range string with inclusive ranges and
-                     exclusive integers
+        Args:
+            rangelist(string): a range string with inclusive ranges and exclusive integers
 
         Returns:
-        a (list) of integers
+            list:
+            A list of integers.
 
-        >>> cl = CommandLine()
-        >>> cl._parse_range('1:4,6:8,10')
-        [1, 2, 3, 4, 6, 7, 8, 10]
-        >>> cl._parse_range('1:4,-2')
-        [1, 3, 4]
+        .. testsetup::
+
+           from commandline import CommandLine
+
+        .. doctest:: :hide:
+
+            >>> CommandLine.parse_range('1:4,6:8,10')
+            [1, 2, 3, 4, 6, 7, 8, 10]
+            >>> CommandLine.parse_range('1:4,-2')
+            [1, 3, 4]
 
         """
-
         oklist = set([])
         excludelist = set([])
 
@@ -279,19 +284,19 @@ class CommandLine:
                                    in opt.beamscaling.split(',')]
 
             if opt.feed:
-                opt.feed = self._parse_range(opt.feed)
+                opt.feed = self.parse_range(opt.feed)
 
             if opt.pol:
-                opt.pol = self._parse_range(opt.pol)
+                opt.pol = self.parse_range(opt.pol)
 
             if opt.window:
-                opt.window = self._parse_range(opt.window)
+                opt.window = self.parse_range(opt.window)
 
             if opt.mapscans:
-                opt.mapscans = self._parse_range(opt.mapscans)
+                opt.mapscans = self.parse_range(opt.mapscans)
 
             if opt.refscans:
-                opt.refscans = self._parse_range(opt.refscans)
+                opt.refscans = self.parse_range(opt.refscans)
 
         except ValueError:
             print 'ERROR: there is a malformed parameter option'
