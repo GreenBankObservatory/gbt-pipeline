@@ -28,7 +28,7 @@ from settings import *
 import argparse
 
 
-class _myparser(argparse.ArgumentParser):
+class _MyParser(argparse.ArgumentParser):
     def convert_arg_line_to_args(self, arg_line):
         arg_line = arg_line.lstrip()
         arg_line = arg_line.split('#')[0]
@@ -58,7 +58,7 @@ class CommandLine:
                        'Pipeline version:  ' + PIPELINE_VERSION,
                        'prog': 'gbtpipeline',
                        'usage': '%(prog)s [options]'}
-        self.parser = _myparser(**parser_args)
+        self.parser = _MyParser(**parser_args)
 
         self.parser.add_argument("-V", "--version", action='version',
                                  version='%(prog)s ' + PIPELINE_VERSION,
@@ -172,6 +172,7 @@ class CommandLine:
                             dest='keeptempfiles', default=False,
                             help='If set, do not remove intermediate aips.fits '
                             'imaging files and summary directory.')
+
     @staticmethod
     def parse_range(rangelist):
         r"""Given a range string, produce a list of integers.
@@ -213,7 +214,7 @@ class CommandLine:
             # change to ints
             try:
                 int_item = [int(ii) for ii in item]
-            except(ValueError):
+            except ValueError:
                 print repr(':'.join(item)), 'not convertable to integer'
                 raise
 
