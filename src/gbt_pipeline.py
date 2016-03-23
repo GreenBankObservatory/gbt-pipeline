@@ -31,7 +31,7 @@ from Weather import Weather
 from Pipeutils import Pipeutils
 from settings import *
 
-from blessings import Terminal
+import blessings
 import fitsio
 
 import os
@@ -41,6 +41,7 @@ import sys
 import glob
 import copy
 from collections import namedtuple
+
 
 def mkdir_p(path):
     """Create a directory if it does not exist
@@ -153,20 +154,19 @@ def preview_zenith_tau(log, row_list, cl_params, feeds, windows, pols):
     foo = None
 
     # if using the weather database
-    if None == cl_params.zenithtau:
+    if cl_params.zenithtau is None:
         for feed in feeds:
             for window in windows:
                 for pol in pols:
                     try:
                         foo = row_list.get(cl_params.mapscans[0], feed, window, pol)
-                        break # if we found a row move on, otherwise try another feed/win/pol
+                        break  # if we found a row move on, otherwise try another feed/win/pol
                     except KeyError:
                         continue
         if not foo:
             log.doMessage('ERR', 'Could not find scan for zenith opacity preview')
             return
-            
-            
+
         ff = fitsio.FITS(cl_params.infilename)
         extension = foo['EXTENSION']
         row = foo['ROW'][0]
@@ -180,8 +180,14 @@ def preview_zenith_tau(log, row_list, cl_params, feeds, windows, pols):
 
         mjd = pu.dateToMjd(dateobs)
         zenithtau = weather.retrieve_zenith_opacity(mjd, obsfreq, log)
-        log.doMessage('INFO',
-                      'Approximate zenith opacity for map: {0:.3f}'.format(zenithtau))
+        if zenithtau:
+            log.doMessage('INFO',
+                          'Approximate zenith opacity for map: {0:.3f}'.format(zenithtau))
+        else:
+            log.doMessage('ERR', 'Not able to retrieve integration '
+                          'zenith opacity for calibration to:', cl_params.units,
+                          '\n  Please supply a zenith opacity or calibrate to Ta.')
+            sys.exit(9)
 
     # else if set at the command line
     else:
@@ -231,7 +237,7 @@ def calibrate_maps(log, cl_params, row_list, term):
     if not have_at_least_one_scan:
         log.doMessage('DBG', 'No scans found for this map. Continuing.')
         return None
-    
+
     # if feeds, pols and/or windows are not set at the command line then
     #  default to all that are found in the input file
     if not feeds:
@@ -325,7 +331,7 @@ def command_summary(cl_params, term, log):
         parameter, parameter_value = input_param
 
         if 'zenithtau' == parameter:
-            if None == parameter_value:
+            if parameter_value is None:
                 if cl_params.units != 'ta':
                     value = 'determined from GB database'
                 else:
@@ -335,7 +341,7 @@ def command_summary(cl_params, term, log):
         elif ('feed' == parameter or
               'pol' == parameter or
               'window' == parameter):
-            if None == parameter_value:
+            if parameter_value is None:
                 value = 'all'
             else:
                 value = ','.join(map(str, parameter_value))
@@ -346,7 +352,7 @@ def command_summary(cl_params, term, log):
             else:
                 value = 'on'
         elif 'channels' == parameter:
-            if False == parameter_value:
+            if parameter_value is False:
                 value = 'all'
             else:
                 value = str(parameter_value)
@@ -393,16 +399,16 @@ def calibrate_file(term, log, command_options):
         sys.exit()
 
     log.doMessage('INFO', indexfile)
-    log.doMessage('INFO', '    ', len(summary['WINDOWS']),'spectral window(s)')
-    for (win,freq) in sorted(summary['WINDOWS']):
+    log.doMessage('INFO', '    ', len(summary['WINDOWS']), 'spectral window(s)')
+    for (win, freq) in sorted(summary['WINDOWS']):
         log.doMessage('INFO', '       {win}: {freq:.4f} GHz'.format(win=win, freq=freq))
-    log.doMessage('INFO', '    ', len(summary['FEEDS']),'feed(s):', ', '.join(sorted(summary['FEEDS'])))
+    log.doMessage('INFO', '    ', len(summary['FEEDS']), 'feed(s):', ', '.join(sorted(summary['FEEDS'])))
 
     proceed_with_calibration = True
 
     # check for presence of pol(s) in dataset before attempting calibration
     if command_options.pol:
-        if  set(command_options.pol).isdisjoint(set(row_list.pols())):
+        if set(command_options.pol).isdisjoint(set(row_list.pols())):
             log.doMessage('WARN', 'POL', command_options.pol, 'not in', os.path.basename(indexfile))
             proceed_with_calibration = False
         else:
@@ -410,11 +416,11 @@ def calibrate_file(term, log, command_options):
             command_options.pol = list(set(command_options.pol).intersection(set(row_list.pols())))
             pol_diff = set(requested_pols).difference(set(command_options.pol))
             if pol_diff:
-                log.doMessage('WARN', 'POL', list(pol_diff), 'not in', os.path.basename(indexfile))            
+                log.doMessage('WARN', 'POL', list(pol_diff), 'not in', os.path.basename(indexfile))
 
     # check for presence of feed(s) in dataset before attempting calibration
     if command_options.feed:
-        if  set(command_options.feed).isdisjoint(set(row_list.feeds())):
+        if set(command_options.feed).isdisjoint(set(row_list.feeds())):
             log.doMessage('WARN', 'FEED', command_options.feed, 'not in', os.path.basename(indexfile))
             proceed_with_calibration = False
         else:
@@ -422,11 +428,11 @@ def calibrate_file(term, log, command_options):
             command_options.feed = list(set(command_options.feed).intersection(set(row_list.feeds())))
             feed_diff = set(requested_feeds).difference(set(command_options.feed))
             if feed_diff:
-                log.doMessage('WARN', 'FEED', list(feed_diff), 'not in', os.path.basename(indexfile))            
+                log.doMessage('WARN', 'FEED', list(feed_diff), 'not in', os.path.basename(indexfile))
 
     # check for presence of window(s) in dataset before attempting calibration
     if command_options.window:
-        if  set(command_options.window).isdisjoint(set(row_list.windows())):
+        if set(command_options.window).isdisjoint(set(row_list.windows())):
             log.doMessage('DBG', 'WINDOW', command_options.window, 'not in', os.path.basename(indexfile))
             proceed_with_calibration = False
         else:
@@ -434,9 +440,9 @@ def calibrate_file(term, log, command_options):
             command_options.window = list(set(command_options.window).intersection(set(row_list.windows())))
             window_diff = set(requested_windows).difference(set(command_options.window))
             if window_diff:
-                log.doMessage('DBG', 'WINDOW', list(window_diff), 'not in', os.path.basename(indexfile))            
+                log.doMessage('DBG', 'WINDOW', list(window_diff), 'not in', os.path.basename(indexfile))
 
-    if proceed_with_calibration == False:
+    if proceed_with_calibration is False:
         return None
 
     calibrated_maps = []
@@ -447,7 +453,7 @@ def calibrate_file(term, log, command_options):
             log.doMessage('WARN', 'Referene scan(s) given without map scans, '
                           'ignoring reference scan settings.')
         command_options.refscans = []
-         # this is where we try to guess the mapping blocks in the
+        # this is where we try to guess the mapping blocks in the
         #  input file.  A powition-switched mapping block is defined
         #  as a reference scan, followed by mapping scans, optionally
         #  followed by another reference scan.  The returned structure
@@ -476,8 +482,9 @@ def calibrate_file(term, log, command_options):
 
 def runPipeline():
 
-    # the terminal object is used for printing to the screen
-    term = Terminal()
+    # the blessings.Terminal object is used for printing to the screen
+    terminal = blessings.Terminal()
+    term = terminal
 
     # create instance of CommandLine object to parse input, then
     # parse all the input parameters and store them as attributes in
@@ -498,6 +505,9 @@ def runPipeline():
 
         # instantiate an Imaging object
         imag = Imaging()
+
+    else:
+        imag = None
 
     log.doMessage('INFO', '{t.underline}Start '
                   'calibration.{t.normal}'.format(t=term))
@@ -549,7 +559,7 @@ def runPipeline():
 
         if quitcal:
             sys.exit(12)
-    
+
         # calibrate one raw SDFITS file at a time
         for infilename in glob.glob(input_directory + '/' +
                                     os.path.basename(input_directory) +

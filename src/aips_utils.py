@@ -1,5 +1,5 @@
 # Copyright (C) 2013 Associated Universities, Inc. Washington DC, USA.
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
@@ -9,11 +9,11 @@
 # WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 # General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-# 
+#
 # Correspondence concerning GBT software should be addressed as follows:
 #       GBT Operations
 #       National Radio Astronomy Observatory
@@ -25,10 +25,11 @@ from AIPS import AIPS
 from AIPSData import AIPSUVData, AIPSCat
 from Wizardry.AIPSData import AIPSImage as WizAIPSImage
 
+
 class Task(object):
     """
     """
-    
+
     def __init__(self, taskname, name, klass, seq):
         """
         """
@@ -40,10 +41,11 @@ class Task(object):
     def __setitem__(self, key, value):
         self.task.key = value
 
+
 class Catalog(object):
     """Utility class to operate on the AIPS catalog.
     """
-    
+
     def __init__(self,):
         """
         """
@@ -57,7 +59,7 @@ class Catalog(object):
         """
         AIPS.userno = userno
         self.DISK_ID = disk_id
-        
+
     def show(self,):
         msg = "AIPS Catalog"
         print ""
@@ -99,7 +101,6 @@ class Catalog(object):
         except:
             data = self.get_image(entry)
             data.zap()
-            
 
     def empty(self, do_empty):
         """Empty the AIPS catalog."""
@@ -115,4 +116,3 @@ class Catalog(object):
                 self.empty(do_empty)  # if they didn't type 'y' or 'n', ask again.
         else:
             AIPSCat().zap()
- 

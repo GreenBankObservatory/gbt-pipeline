@@ -12,3 +12,5 @@ Cal_*
 *.flag
 *.fixed_lags
 *.ipynb*
+.idea/
+_build/
