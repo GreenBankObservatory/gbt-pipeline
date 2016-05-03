@@ -1,4 +1,9 @@
-# coding=utf-8
+"""Command line reading methods for the GBT Pipeline.
+
+This module contains the code for reading parameter values from
+the gbtpipeline.
+
+"""
 # Copyright (C) 2007 Associated Universities, Inc. Washington DC, USA.
 #
 # This program is free software; you can redistribute it and/or modify
@@ -193,7 +198,7 @@ class CommandLine:
 
            from commandline import CommandLine
 
-        .. doctest:: :hide:
+        .. doctest:: :hide:
 
             >>> CommandLine.parse_range('1:4,6:8,10')
             [1, 2, 3, 4, 6, 7, 8, 10]

@@ -20,14 +20,14 @@
 #       P. O. Box 2
 #       Green Bank, WV 24944-0002 USA
 
-from AIPS import AIPS
-from AIPSTask import AIPSTask
-
 import os
 import sys
-import argparse
 
-import aips_utils
+import argparse
+from AIPSTask import AIPSTask
+
+from AIPS import AIPS
+from src.AIPS import aips_utils
 
 if os.path.dirname(os.path.realpath(__file__)).endswith('contrib'):
     # if we're in the contrib/ directory, that means we are running

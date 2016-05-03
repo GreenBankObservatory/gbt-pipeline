@@ -1,3 +1,8 @@
+"""Convenience methods for controlling AIPS.
+
+These classes and methods build upon the ParselTongue AIPS module.
+
+"""
 # Copyright (C) 2013 Associated Universities, Inc. Washington DC, USA.
 #
 # This program is free software; you can redistribute it and/or modify
@@ -21,22 +26,22 @@
 #       Green Bank, WV 24944-0002 USA
 
 import sys
-from AIPS import AIPS
+from src.AIPS import AIPS
+from AIPSTask import AIPSTask
 from AIPSData import AIPSUVData, AIPSCat
 from Wizardry.AIPSData import AIPSImage as WizAIPSImage
 
 
 class Task(object):
-    """
+    """An object to represent an AIPS task.
     """
 
     def __init__(self, taskname, name, klass, seq):
-        """
-        """
+
         self.task = AIPSTask(taskname)
         self.task.name = name
-        task.klass = klass
-        task.seq = seq
+        self.task.klass = klass
+        self.task.seq = seq
 
     def __setitem__(self, key, value):
         self.task.key = value
@@ -46,21 +51,25 @@ class Catalog(object):
     """Utility class to operate on the AIPS catalog.
     """
 
-    def __init__(self,):
-        """
-        """
-
     def __len__(self,):
         """Get the number of catalog entries."""
         return len(AIPSCat()[self.DISK_ID])
 
     def config(self, userno, disk_id):
-        """
+        """Configure an AIPS catalog object.
+
+        Args:
+            userno: The AIPS user id.
+            disk_id: The AIPS disk.
+
         """
         AIPS.userno = userno
         self.DISK_ID = disk_id
 
     def show(self,):
+        """Print to screen the contents of the AIPS catalog.
+
+        """
         msg = "AIPS Catalog"
         print ""
         print "-" * len(msg)
@@ -70,29 +79,57 @@ class Catalog(object):
         print AIPSCat(self.DISK_ID)
 
     def last_entry(self,):
-        """Return the most recent AIPS catalog entry"""
+        """Retrieve the most recent AIPS catalog entry.
+
+        Returns:
+            Last AIPS catalog entry.
+
+        """
         return self.get_entry(-1)
 
     def get_entry(self, n):
-        """Return an AIPS catalog entry."""
+        """Return an AIPS catalog entry.
+
+        Args:
+            n(int): Catalog entry number.
+
+        Returns:
+            AIPS catalog entry.
+
+        """
         return AIPSCat()[self.DISK_ID][n]
 
     def get_image(self, e):
         """Get a WizAIPSImage object form the AIPS entry.
 
-        e -- a catalog entry, like what's returned from get_entry()
+        Args:
+            e: A catalog entry, like what's returned from get_entry().
+
+        Returns:
+            AIPS image.
+
         """
         return WizAIPSImage(e.name, e.klass, self.DISK_ID, e.seq)
 
     def get_uv(self, e):
         """Get a AIPSUVData object form the AIPS entry.
 
-        e -- a catalog entry, like what's returned from get_entry()
+        Args:
+            e: A catalog entry, like what's returned from get_entry()
+
+        Returns:
+            AIPS UVData object.
+
         """
         return AIPSUVData(e.name, e.klass, self.DISK_ID, e.seq)
 
     def zap_entry(self, n):
-        """Remove an entry from the AIPS catalog using python index"""
+        """Remove an entry from the AIPS catalog using python index
+
+        Args:
+            n(int): Catalog entry number.
+
+        """
 
         entry = self.get_entry(n)
         try:
@@ -103,7 +140,12 @@ class Catalog(object):
             data.zap()
 
     def empty(self, do_empty):
-        """Empty the AIPS catalog."""
+        """Empty the AIPS catalog.
+
+        Args:
+            do_empty(bool): If set, do not prompt user for confirmation.
+
+        """
         if not do_empty:
             choice = raw_input('Is it OK to clear your AIPS '
                                'catalog (id={0})? [y/n] '.format(AIPS.userno))

@@ -27,24 +27,6 @@ called by a user from the command line.
 #       P. O. Box 2
 #       Green Bank, WV 24944-0002 USA
 
-# $Id$
-
-# parsel-tongue script that performs only the default processing
-# HISTORY
-# 11MAR04 GIL add more messages and fix dbcon
-# 10DEC16 GIL sort uvdata to final slot; this fixes some data issues.
-# 10DEC02 GIL assure final dbcon is in the first catalog slot
-# 10DEC01 GIL merge all spectra in single dish format
-# 10NOV30 GIL make generic version gaussian convolving function
-# 10NOV29 GIL add TMC CP coordinates
-# 10NOV12 GIL try to improve baseline for NH3
-# 10OCT28 GIL Strip out sampler name for output
-# 10OCT20 GIL default average is 3 channels, add comments
-# 10OCT08 GIL comment out all source specific lines
-# 10OCT07 GIL remove Line specific processing; add comments
-# 10OCT05 GIL slight name and comment changes
-# 10SEP29 GIL try on NH3 1-1
-# 10SEP01 GIL initial version
 
 from AIPS import *
 from AIPS import AIPS
@@ -63,6 +45,22 @@ import pyfits
 
 def run_idlToSdfits(files, average, channels, display_idlToSdfits,
                     idlToSdfits_rms_flag, verbose, idlToSdfits_baseline_subtract):
+    """Run the external idlToSdfits program.
+
+    Args:
+        files: A list of calibrated spectra tables stored as FITS files.
+        average(int): Number of channels to average for output spectra.
+        channels: A range of channels to keep in output.
+        display_idlToSdfits: If set, display the summary line plots.
+        idlToSdfits_rms_flag: If set, flag integration with excess noise.
+        verbose(int): Output verbosity leve, defaults to 0.
+        idlToSdfits_baseline_subtract: Width of median-filtered continuum, in channels.
+
+    Returns:
+        list of strings:
+        A list of output filenames, suitable for input to AIPS.
+
+    """
 
     # set the idlToSdfits output file name
     for infile in files:
@@ -112,7 +110,15 @@ def run_idlToSdfits(files, average, channels, display_idlToSdfits,
 
 
 def read_command_line(argv):
-    """Read options from the command line."""
+    """Read options from the command line.
+
+    Args:
+        argv: A list of command line arguments.
+
+    Returns:
+        A list of parsed command line arguments.
+
+    """
     # if no options are set, print help
     if len(argv) == 1:
         argv.append('-h')

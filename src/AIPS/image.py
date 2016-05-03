@@ -24,22 +24,16 @@
 
 # parsel-tongue script that performs only the default imaging
 
-from AIPS import *
-from AIPS import AIPS
-from AIPSTask import AIPSTask
-from AIPSData import *
-from AIPSData import AIPSUVData, AIPSImage
-from Wizardry.AIPSData import AIPSUVData as WizAIPSUVData
-from Wizardry.AIPSData import AIPSImage as WizAIPSImage
-
-import sys
-import os
 import math
+import os
+import sys
+
 import argparse
-import time
+from AIPSData import *
+from AIPSTask import AIPSTask
 
 from fixAipsImages import fixAipsImages
-import aips_utils
+from src.AIPS import aips_utils
 
 if os.path.dirname(os.path.realpath(__file__)).endswith('contrib'):
     # if we're in the contrib/ directory, that means we are running

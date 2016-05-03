@@ -1,5 +1,5 @@
-Pipeline Source Code
-====================
+Calibration source code
+=======================
 
 Modules:
 
@@ -8,4 +8,3 @@ Modules:
    :glob:
 
    pipeline/*
-

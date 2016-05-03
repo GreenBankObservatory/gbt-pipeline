@@ -22,6 +22,7 @@ Contents:
    :maxdepth: 2
 
    pipeline
+   aips
    dependencies
    installation
 
