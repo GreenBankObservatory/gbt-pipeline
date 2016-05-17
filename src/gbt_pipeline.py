@@ -25,7 +25,7 @@
 import commandline
 from MappingPipeline import MappingPipeline
 from SdFitsIO import SdFits
-from Imaging import Imaging
+from AIPS import Imaging
 from PipeLogging import Logging
 from Weather import Weather
 from Pipeutils import Pipeutils
