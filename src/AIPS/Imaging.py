@@ -56,7 +56,7 @@ class Imaging:
         # and location of the needed scripts and tools
         # if these are not found, turn imaging off
         pipe_dir = os.path.dirname(os.path.abspath(__file__))
-        tools_dir = '/'.join((pipe_dir, "tools"))
+        tools_dir = '/../'.join((pipe_dir, "tools"))
 
         load_script = '/'.join((pipe_dir, 'convert_and_load.py'))
         map_script = '/'.join((pipe_dir, 'image.py'))
@@ -70,7 +70,7 @@ class Imaging:
 
         # if the user opted to do imaging, then check for the presence
         # of the necessary imaging scripts (load.py, image.py, aipspy).
-        if (not os.path.isfile(map_script) or not os.path.isfile(load_script) or not os.path.isfile(aipspy)):
+        if not os.path.isfile(map_script) or not os.path.isfile(load_script) or not os.path.isfile(aipspy):
             log.doMessage('ERR', "Imaging script(s) not found.  Stopping after calibration.")
             sys.exit()
 
