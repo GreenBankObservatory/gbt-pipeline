@@ -504,7 +504,7 @@ def runPipeline():
     if not cl_params.imagingoff:
 
         # instantiate an Imaging object
-        imag = Imaging()
+        imag = Imaging.Imaging()
 
     else:
         imag = None
