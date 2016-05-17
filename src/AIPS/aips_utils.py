@@ -26,7 +26,7 @@ These classes and methods build upon the ParselTongue AIPS module.
 #       Green Bank, WV 24944-0002 USA
 
 import sys
-from src.AIPS import AIPS
+import AIPS
 from AIPSTask import AIPSTask
 from AIPSData import AIPSUVData, AIPSCat
 from Wizardry.AIPSData import AIPSImage as WizAIPSImage

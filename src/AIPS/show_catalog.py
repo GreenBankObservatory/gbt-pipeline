@@ -21,7 +21,7 @@
 #       Green Bank, WV 24944-0002 USA
 import argparse
 
-from src.AIPS.aips_utils import Catalog
+from aips_utils import Catalog
 
 cat = Catalog()   # initialize a catalog object
 parser = argparse.ArgumentParser()
