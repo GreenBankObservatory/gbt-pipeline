@@ -13,8 +13,9 @@ Pipeline calibration code is written in Python.  Imaging dependencies include id
 
 SDFITS files are the required input.
 
-Due to the interaction with weather prediction scripts only available in Green Bank, the code can only be effectively run on a Green Bank network computer.
+To calibrate beyond antenna temperature, the code must run on a Green Bank network computer.
+This is because weather prediction scripts are only available in Green Bank.
 
 jmasters@nrao.edu
 
-*Last modified*:  04 March 2015
+*Last modified*:  03 June 2016
