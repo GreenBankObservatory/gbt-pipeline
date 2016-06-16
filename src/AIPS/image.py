@@ -362,11 +362,11 @@ def make_cube(args):
     sdgrd.optype = '-GLS'
     sdgrd.reweight[1] = 0
 
+    spectra = cat.get_uv(last)
     if 'center' in args and args.center:
         raDeg, decDeg = args.center
-
-    spectra = cat.get_uv(last)
-    raDeg, decDeg = spectra.header.crval[3], spectra.header.crval[4]
+    else:
+        raDeg, decDeg = spectra.header.crval[3], spectra.header.crval[4]
 
     # must break up RA into hours minutes seconds
     hh, mm, ss = ra_deg2hms(raDeg)
@@ -423,9 +423,9 @@ def make_cube(args):
 
     if 'size' in args and args.size:
         imxSize, imySize = args.size
-
-    imxSize = (2 * round(spectra.header.crpix[3] / 1.95)) + 20
-    imySize = (2 * round(spectra.header.crpix[4] / 1.95)) + 20
+    else:
+        imxSize = (2 * round(spectra.header.crpix[3] / 1.95)) + 20
+        imySize = (2 * round(spectra.header.crpix[4] / 1.95)) + 20
 
     print "Ra, Dec          : {0}, {1}".format(raDeg, decDeg)
     print "Image size (X,Y) : {0}, {1}".format(imxSize, imySize)
