@@ -104,6 +104,20 @@ class MappingPipeline:
                 beam_scaling = beam_scaling.reshape((7, 2))
                 return beam_scaling[feed][pol]
 
+        elif receiver == 'Rcvr18_26':
+            if len(beam_scaling) != 4:
+                self.log.doMessage('ERR', 'You need to supply 4 beam '
+                                   'scaling factors for the K-band receiver.  The '
+                                   'format is a comma-separated list of values '
+                                   'orded by feed and polarization: '
+                                   '0L,0R,1L,1R')
+                sys.exit(9)
+            else:
+                beam_scaling = np.array(beam_scaling)
+                beam_scaling = beam_scaling.reshape((2, 2))
+                return beam_scaling[feed][pol]
+            
+
         else:
             self.log.doMessage('ERR', 'Beam scaling factors not known for '
                                'receiver:', receiver)
