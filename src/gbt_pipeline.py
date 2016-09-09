@@ -220,6 +220,10 @@ def calibrate_maps(log, cl_params, row_list, term):
     if cl_params.mapscans:
         log.doMessage('INFO', 'Mapscan(s):',
                       ','.join([str(xx) for xx in cl_params.mapscans]))
+    else:
+        log.doMessage('ERR', '{t.bold}ERROR{t.normal}: '
+                      'Need map scan(s).\n'.format(t=term))
+        sys.exit()
 
     # make sure not all map scans specified in the mapscans parameter
     #   are missing from the scanlist
@@ -586,13 +590,9 @@ def runPipeline():
 
         # image all the calibrated maps
         import itertools
+        calibrated_maps = list(itertools.chain(*calibrated_maps))
 
-        # check if object is iterable. if so, chain into list and image.
-        try:
-            calibrated_maps = list(itertools.chain(*calibrated_maps))
-            imag.run(log, term, cl_params, calibrated_maps)
-        except TypeError, te:
-            log.doMessage('ERR', calibrated_maps, 'is not iterable')
+        imag.run(log, term, cl_params, calibrated_maps)
 
     sys.stdout.write('\n')
 

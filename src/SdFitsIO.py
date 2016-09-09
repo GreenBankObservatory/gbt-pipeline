@@ -89,35 +89,17 @@ class SdFits:
         if debug:
             print '------------------------- All scans'
             for scanid in sorted(observation.scans()):
-                try:
-                    scanstruct = observation.get(scanid, feed, window, pol)
-                except KeyError:
-                    continue
-                print('scan \'{0}\' obsid \'{1}\' procname \'{2}\' '
-                      'procscan \'{3}\' sequence number \'{4}\' '
-                      'frequency-switch states {5}'.format(scanid,
-                                                           scanstruct['OBSID'],
-                                                           scanstruct['PROCNAME'],
-                                                           scanstruct['PROCSCAN'],
-                                                           scanstruct['SEQUENCE_IDX'],
-                                                           len(scanstruct['FREQUENCY_SWITCH_STATES'])))
+                scanstruct = observation.get(scanid, feed, window, pol)
+                print('scan \'{0}\' obsid \'{1}\' procname \'{2}\' procscan \'{3}\''.format(scanid,
+                                                                                            scanstruct['OBSID'],
+                                                                                            scanstruct['PROCNAME'],
+                                                                                            scanstruct['PROCSCAN']))
 
         for scanid in observation.scans():
-            try:
-                scanstruct = observation.get(scanid, feed, window, pol)
-            except KeyError:
-                continue
+            scanstruct = observation.get(scanid, feed, window, pol)
             obsid = scanstruct['OBSID'].upper()
-            
             procname = scanstruct['PROCNAME'].upper()
             procscan = scanstruct['PROCSCAN'].upper()
-            seqidx = scanstruct['SEQUENCE_IDX']
-
-            fslen = len(scanstruct['FREQUENCY_SWITCH_STATES'])
-            if fslen == 2:
-                fs_state = True
-            else:
-                fs_state = False
 
             # keyword check should depend on presence of PROCSCAN key, which is an
             # alternative to checking SDFITVER.
@@ -125,28 +107,20 @@ class SdFits:
 
             # create a new list that only has 'MAP' and 'OFF' scans
             if not procscan and (obsid == 'MAP' or obsid == 'OFF'):
-                map_scans[scanid] = obsid, fs_state
-            elif (procscan == 'MAP' or 
-                  (procname == 'POINTMAP' and procscan == 'ON' ) or
+                map_scans[scanid] = obsid
+            elif (procscan == 'MAP' or
                   procname == 'TRACK' or
                   (procname == 'ONOFF' and procscan == 'OFF') or
                   (procname == 'OFFON' and procscan == 'OFF')):
-                map_scans[scanid] = {'procscan': procscan, 'procname': procname, 
-                                     'fs_state': fs_state, 'seqidx': seqidx}
+                map_scans[scanid] = procscan
 
         mapkeys = map_scans.keys()
         mapkeys.sort()
 
         if debug:
-            print '------------------------- Relevant scans'
+            print '------------------------- Relavant scans'
             for scanid in mapkeys:
-                if map_scans[scanid]['fs_state']:
-                    isfs = 'FS'
-                    seqidx = map_scans[scanid]['seqidx']
-                else:
-                    isfs = ''
-                    seqidx = ''
-                print 'scan', scanid, map_scans[scanid]['procscan'], isfs, seqidx
+                print 'scan', scanid, map_scans[scanid]
 
         maps = []  # final list of maps
         ref1 = None
@@ -157,78 +131,31 @@ class SdFits:
         if debug:
             print 'mapkeys', mapkeys
 
-        endmap = False   # used for signifying end of FS map
-
         MapParams = namedtuple("MapParams", "refscan1 mapscans refscan2")
         for idx, scan in enumerate(mapkeys):
 
-            # Make is easy to check if we have a frequency-switched scan
-            frequency_switch_scan = map_scans[scan]['fs_state']
-
             # look for the reference scans
-            if ((map_scans[scan]['procscan']).upper() == 'OFF' or
-                (map_scans[scan]['procscan']).upper() == 'ON' and (map_scans[scan]['procname']).upper() != 'POINTMAP'):
+            if (map_scans[scan]).upper() == 'OFF' or (map_scans[scan]).upper() == 'ON':
                 # if there is no ref1 or this is another ref1
-                if not ref1 or (ref1 and mapscans == []): 
+                if not ref1 or (ref1 and bool(mapscans) == False):
                     ref1 = scan
                 else:
                     ref2 = scan
                     prev_ref2 = ref2
 
-            elif ((map_scans[scan]['procscan']).upper() == 'MAP' or
-                  (map_scans[scan]['procname']).upper() == 'POINTMAP' and (map_scans[scan]['procscan']).upper() == 'ON'):
-
-                if not frequency_switch_scan:
-                    # For PS maps, this is the case where we reuse
-                    #   a previous reference scan as the first 
-                    #   reference scan of the next map
-                    if not ref1 and prev_ref2:
-                        ref1 = prev_ref2
-
-                if frequency_switch_scan:
-
-                        
-                    ref1 = None
-                    ref2 = None
-
-                    # The sequence index always increases by 1 within a map.
-                    #
-                    # Look to see if the next scan is a MAP scan, also
-                    #   frequency switched, with a sequence incerase of 1.
-                    #   If not, then call this the end of the current map.
-                    #
-                    # If the next scan is not a MAP scan, it's also the end
-                    #   of the map.
-                    #
-                    # Only do this if the current scan isn't the last one.
-                    if idx != len(mapkeys)-1:
-                        nextscan = mapkeys[idx+1]
-                        if ((
-                                # is this a map scan?
-                                ((map_scans[nextscan]['procscan']).upper() == 'MAP'
-                                 or
-                                 (map_scans[scan]['procname']).upper() == 'POINTMAP' and (map_scans[scan]['procscan']).upper() == 'ON')
-
-                             and
-                                # and with an index > 1 from the last map scan
-                                map_scans[nextscan]['fs_state'] and
-                                map_scans[nextscan]['seqidx'] - map_scans[scan]['seqidx'] != 1)
-                            or
-                            # is it not a map scan
-                            (map_scans[nextscan]['procscan']).upper() != 'MAP' and not (map_scans[scan]['procname']).upper() == 'POINTMAP' and (map_scans[scan]['procscan']).upper() == 'ON'):
-
-                                endmap = True
+            elif (map_scans[scan]).upper() == 'MAP':
+                if not ref1 and prev_ref2:
+                    ref1 = prev_ref2
 
                 mapscans.append(scan)
 
             # see if this scan is the last one in the relevant scan list
             # or see if we have a ref2
             # if so, close out
-            if endmap or ref2 or idx == len(mapkeys)-1:
+            if ref2 or idx == len(mapkeys)-1:
                 maps.append(MapParams(ref1, mapscans, ref2))
                 ref1 = False
                 ref2 = False
-                endmap = False
                 mapscans = []
 
         if debug:
@@ -301,10 +228,8 @@ class SdFits:
             feed = int(rr['FDNUM'])
             windowNum = int(rr['IFNUM'])
             pol = int(rr['PLNUM'])
-            sequenceIndex = int(rr['PROCS'])
             fitsExtension = int(rr['EXT'])
             rowOfFitsFile = int(rr['ROW'])
-            sigState = rr['SIG']
             obsid = rr['OBSID']
             procscan = rr['PROCSCAN']
             nchans = rr['NUMCHN']
@@ -316,8 +241,7 @@ class SdFits:
             #   FITS extension
             observation.addRow(scanid, feed, windowNum, pol,
                                fitsExtension, rowOfFitsFile, obsid,
-                               procname, procscan, sequenceIndex,
-                               sigState, nchans)
+                               procname, procscan, nchans)
 
         try:
             ifile.close()

@@ -793,6 +793,7 @@ class MappingPipeline:
                         row['EXPOSURE'] = exposure
 
                     output_data[outputidx] = row.data
+
                     outputidx = outputidx + 1
 
                     self.show_progress(outputidx, rows2write)
