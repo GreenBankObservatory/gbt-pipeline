@@ -55,7 +55,8 @@ class ObservationRows:
 
     def addRow(self, scan, feed, window, polarization,
                fitsExtension, rowOfFitsFile, obsid,
-               procname, procscan, nchans):
+               procname, procscan, sequenceIndex,
+               sigState, nchans):
         """Add rows to the ObservationRows object.
 
            When rows are added to this object (addRow), the FITS extension,
@@ -67,12 +68,15 @@ class ObservationRows:
 
         if key in self.rows:
             self.rows[key]['ROW'].append(rowOfFitsFile)
+            self.rows[key]['FREQUENCY_SWITCH_STATES'].add(sigState)
         else:
             self.rows[key] = {'EXTENSION': fitsExtension,
                               'ROW': [rowOfFitsFile],
                               'OBSID': obsid,
                               'PROCNAME': procname,
                               'PROCSCAN': procscan,
+                              'SEQUENCE_IDX': sequenceIndex,
+                              'FREQUENCY_SWITCH_STATES': set(sigState),
                               'NCHANS': nchans}
 
     def get(self, scan, feed, window, polarization):
