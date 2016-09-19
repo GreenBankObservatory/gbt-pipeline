@@ -93,8 +93,8 @@ class CommandLine:
                                     help='spectral windows, e.g. "0,1,2,3"')
         data_selection.add_argument("-c", "--channels", dest="channels",
                                     default=False, type=str,
-                                    help='channel selection, e.g. "100:200".  '
-                                    '(Passed directly to idlToSdfits)')
+                                    help='channel selection, e.g. "100:200" '
+                                    '(passed to gbtgridder)')
 
         control = self.parser.add_argument_group('Control')
         control.add_argument("--imaging-off", dest="imagingoff",
@@ -105,23 +105,7 @@ class CommandLine:
         control.add_argument("-a", "--average", dest="average", default=0,
                              type=int,
                              help='average the spectra over N channels '
-                             '(passed directly to idlToSdfits)')
-        control.add_argument("-n", "--rms-flag", dest="idlToSdfits_rms_flag",
-                             default=False,
-                             help="flag integrations with RMS noise > N "
-                             "kelvin (passed directly to idlToSdfits)",
-                             metavar="N")
-        control.add_argument("--median-baseline-subtract",
-                             dest="idlToSdfits_baseline_subtract",
-                             default=False, help="subtract median-filtered "
-                             "baseline, with a median window half width of N "
-                             "channels (passed directly to idlToSdfits)",
-                             metavar="N")
-        control.add_argument("--display-idlToSdfits-plots",
-                             action='store_true',
-                             dest="display_idlToSdfits", default=False,
-                             help="display idlToSdfits plots of "
-                             "calibrated spectra")
+                             '(passed to gbtgridder)')
 
         calibration = self.parser.add_argument_group('Calibration')
         calibration.add_argument("-u", "--units", dest="units", default='tmb',
