@@ -7,6 +7,12 @@ INSTALL_DIR=/home/gbt7/pipeline
 # activate virtualenv
 source ${INSTALL_DIR}/imaging-env/bin/activate
 
+# record usage to log file
+STAT_FILE="/home/scratch/pipeline/aipspy.log"
+if [ -w $STAT_FILE ]; then
+    echo `whoami`,`date`,`uname -n`,`pwd`,$fullpath $* >> $STAT_FILE
+fi
+
 # initialize AIPS
 AIPS_ROOT=/home/aips
 . $AIPS_ROOT/LOGIN.SH
