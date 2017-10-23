@@ -38,7 +38,8 @@ def runUnitTests() {
         source pipelineEnv/bin/activate
         source /opt/rh/devtoolset-4/enable
         cd test
-        nosetests --with-xunit gbtpipeline_unit_tests.py
+        nosetests --help
+        #nosetests --with-xunit gbtpipeline_unit_tests.py
     '''
 }
 
