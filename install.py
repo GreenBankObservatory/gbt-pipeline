@@ -104,7 +104,8 @@ def make_venv(dirpath):
     tar = tarfile.open('virtualenv-{ver}.tar.gz'.format(ver=VIRTUALENV_VER))
     tar.extractall()
     tar.close()
-    os.system('/usr/bin/python virtualenv-{ver}/virtualenv.py pipeline_env'.format(ver=VIRTUALENV_VER))
+    #os.system('/usr/bin/python virtualenv-{ver}/virtualenv.py pipeline_env'.format(ver=VIRTUALENV_VER))
+    os.system('/usr/bin/python virtualenv-{ver}/virtualenv.py -p /home/gbt7/newt/bin/python pipeline_env'.format(ver=VIRTUALENV_VER))
 
     print("Created {parent}/pipeline_env environment.".format(parent=dirpath))
 
@@ -121,7 +122,8 @@ def make_venv(dirpath):
 
 
 def install_numpy():
-    os.system("pip install numpy")
+    #os.system("pip install numpy")
+    os.system("pip install --no-index --find-links python_archive numpy -v")
 
 
 def install_others():
