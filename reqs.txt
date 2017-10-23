@@ -1,0 +1,5 @@
+fitsio==v0.9.3
+blessings==1.6
+ordereddict==1.1
+argparse==1.4.0
+pyfits==3.4
