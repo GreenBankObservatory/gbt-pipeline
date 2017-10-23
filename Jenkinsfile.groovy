@@ -35,7 +35,9 @@ def build() {
 
 def runUnitTests() {
     sh '''
-       echo Work in progress.
+        source pipelineEnv/bin/activate
+        source /opt/rh/devtoolset-4/enable
+        nosetests --with-xunit test/gbtpipeline_unit_tests.py
     '''
 }
 
@@ -64,7 +66,7 @@ node {
     stage('Test') {
         try {
             runUnitTests()
-            //junit '**/results-*.xml'
+            junit '**/nosetests.xml'
         } catch(error) {
             echo "Failure!"
             notify('failure', 'An error has occurred during the <b>Test</b> stage.')

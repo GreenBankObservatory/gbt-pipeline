@@ -1,7 +1,8 @@
 import unittest
 import numpy as np
 import math
-import pipeutils
+#import pipeutils
+import Pipeutils
 
 #import gbtpipeline as pipe
 
@@ -130,7 +131,7 @@ class TestSpectrumOperations(unittest.TestCase):
     def test_number_of_atmospheres(self):
         
         elevation_deg = 55
-        result = pipeutils.natm(elevation_deg)
+        result = Pipeutils.natm(elevation_deg)
         expected_result =  0.8191520442889918
         assert result == expected_result
         
@@ -138,7 +139,7 @@ class TestSpectrumOperations(unittest.TestCase):
         
         freqHz = 23e9
         temp_celcius = 40
-        result = pipeutils.tatm(freqHz, temp_celcius)
+        result = Pipeutils.tatm(freqHz, temp_celcius)
         expected_result = 298.88517422006998
         assert result == expected_result
         
@@ -146,7 +147,7 @@ class TestSpectrumOperations(unittest.TestCase):
         
         zenith_opacities = [.01*xx for xx in range(1,9)]
         elevation = 45.
-        result = pipeutils.corrected_opacity(zenith_opacities, elevation)
+        result = Pipeutils.corrected_opacity(zenith_opacities, elevation)
         expected_result = [0.985957394633712, 0.9721119840328972,
                            0.958460999069284, 0.9450017095003759,
                            0.9317314234233945, 0.91864748673689,
@@ -176,7 +177,7 @@ class TestSpectrumOperations(unittest.TestCase):
         
         elevation = 63
         gain = self.pipe.gain((.91,.00434,-5.22e-5),elevation)
-        opacity = pipeutils.corrected_opacity((.07,), elevation)[0]
+        opacity = Pipeutils.corrected_opacity((.07,), elevation)[0]
         beam_scaling = 1
         result = self.pipe.TaStar(Ta,beam_scaling,opacity,gain,elevation)
         expected_result = np.array([75.49444398748547, 1.864747919874635,
@@ -193,7 +194,7 @@ class TestSpectrumOperations(unittest.TestCase):
         
         elevation = 63
         gain = self.pipe.gain((.91,.00434,-5.22e-5),elevation)
-        opacity = pipeutils.corrected_opacity((.07,), elevation)[0]
+        opacity = Pipeutils.corrected_opacity((.07,), elevation)[0]
         beam_scaling = 1
         tastar = self.pipe.TaStar(Ta,beam_scaling,opacity,gain,elevation)
         aperture_efficiency = self.pipe.aperture_efficiency(.23,27e9)
