@@ -40,6 +40,11 @@ def runUnitTests() {
         #nosetests --version
         #nosetests -p
         nosetests --with-xunit test/gbtpipeline_unit_tests.py
+        nosetests --with-xunit test/test_Calibration.py
+        nosetests --with-xunit test/test_Integration.py
+        nosetests --with-xunit test/test_Pipeutils.py
+        nosetests --with-xunit test/test_smoothing.py
+        nosetests --with-xunit test/test_Weather.py
     '''
 }
 

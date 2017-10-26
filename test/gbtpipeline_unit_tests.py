@@ -128,6 +128,7 @@ class TestSpectrumOperations(unittest.TestCase):
         expected_result = 0.99321999999999999
         assert result == expected_result
         
+    @unittest.skip("Ignoring test per email from Joe Masters, 2017-10-26")
     def test_number_of_atmospheres(self):
         
         elevation_deg = 55
@@ -135,6 +136,7 @@ class TestSpectrumOperations(unittest.TestCase):
         expected_result =  0.8191520442889918
         assert result == expected_result
         
+    @unittest.skip("Ignoring test per email from Joe Masters, 2017-10-26")
     def test_atmospheric_effective_temperature(self):
         
         freqHz = 23e9
@@ -143,6 +145,7 @@ class TestSpectrumOperations(unittest.TestCase):
         expected_result = 298.88517422006998
         assert result == expected_result
         
+    @unittest.skip("Ignoring test per email from Joe Masters, 2017-10-26")
     def test_atmospheric_opacity(self):  # eqn. (9) in PS spec
         
         zenith_opacities = [.01*xx for xx in range(1,9)]
@@ -166,7 +169,8 @@ class TestSpectrumOperations(unittest.TestCase):
         
         expected_result = np.array([ 5.04475956,  0.12460791, -0.03343619])
         np.testing.assert_allclose(result,expected_result)
-    
+
+    @unittest.skip("Ignoring test per email from Joe Masters, 2017-10-26")
     def test_TaStar(self):
         
         Cref = self.pipe.Cref(self.calONRef,self.calOFFRef)
@@ -184,6 +188,7 @@ class TestSpectrumOperations(unittest.TestCase):
                                     -0.5003700906180537])
         np.testing.assert_equal(result,expected_result)
 
+    @unittest.skip("Ignoring test per email from Joe Masters, 2017-10-26")
     def test_jansky(self):
         
         Cref = self.pipe.Cref(self.calONRef,self.calOFFRef)
