@@ -13,6 +13,7 @@ class test_Calibration:
     def setup(self):
         self.cal = Calibration()
 
+    @unittest.skip("Ignoring test per email from Joe Masters, 2017-10-26")
     def test_total_power(self):
         array1 = np.ones(10)
         array2 = np.ones(10) * 2
@@ -80,6 +81,7 @@ class test_Calibration:
         expected = 1.
         ntest.assert_equal(tsys, expected)
 
+    @unittest.skip("Ignoring test per email from Joe Masters, 2017-10-26")
     def test_antenna_temp(self):
         tsys = .5
         sig = np.ones(128) * 2
@@ -106,6 +108,7 @@ class test_Calibration:
     def test_ta_fs(self):
         assert False
 
+    @unittest.skip("Ignoring test per email from Joe Masters, 2017-10-26")
     def test_ta_star(self):
         antenna_temp = np.ones(128)
         beam_scaling = 1.
