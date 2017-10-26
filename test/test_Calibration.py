@@ -1,3 +1,4 @@
+import unittest
 import nose.tools as ntest
 
 import numpy as np
