@@ -39,12 +39,12 @@ def runUnitTests() {
         source /opt/rh/devtoolset-4/enable
         #nosetests --version
         #nosetests -p
-        nosetests --with-xunit --with-xunit-file=unittests.xml test/gbtpipeline_unit_tests.py
-        #nosetests --with-xunit --with-xunit-file=calibration.xml test/test_Calibration.py
-        #nosetests --with-xunit --with-xunit-file=inegration.xml test/test_Integration.py
-        nosetests --with-xunit --with-xunit-file=pipeutils.xml test/test_Pipeutils.py
-        nosetests --with-xunit --with-xunit-file=smoothing.xml test/test_smoothing.py
-        #nosetests --with-xunit --with-xunit-file=weather.xml test/test_Weather.py
+        nosetests --with-xunit --xunit-file=unittests.xml test/gbtpipeline_unit_tests.py
+        #nosetests --with-xunit --xunit-file=calibration.xml test/test_Calibration.py
+        #nosetests --with-xunit --xunit-file=inegration.xml test/test_Integration.py
+        nosetests --with-xunit --xunit-file=pipeutils.xml test/test_Pipeutils.py
+        nosetests --with-xunit --xunit-file=smoothing.xml test/test_smoothing.py
+        #nosetests --with-xunit --xunit-file=weather.xml test/test_Weather.py
     '''
 }
 
@@ -73,7 +73,7 @@ node {
     stage('Test') {
         try {
             runUnitTests()
-            junit '**/nosetests.xml'
+            junit '**/*.xml'
         } catch(error) {
             echo "Failure!"
             notify('failure', 'An error has occurred during the <b>Test</b> stage.')
