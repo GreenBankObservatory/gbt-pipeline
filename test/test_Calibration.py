@@ -53,6 +53,7 @@ class test_Calibration:
         expected_result = 0.6347374630868166
         ntest.assert_almost_equal(efficiency, expected_result)
 
+    @unittest.skip("This test is outdated, and should be revisited in the future.")
     def test_elevation_adjusted_opacity(self):
         zenith_opacity = .1
         elevation = 45.
@@ -91,6 +92,7 @@ class test_Calibration:
         expected_result = np.ones(128) * .5
         np.testing.assert_equal(antenna_temp, expected_result)
 
+    @unittest.skip("This is a stub test that we would like to expand in the future.")
     def test__ta_fs_one_state(self):
         sigref_state = [{'cal_on': None, 'cal_off': None, 'TP': None},
                         {'cal_on': None, 'cal_off': None, 'TP': None}]
@@ -106,6 +108,7 @@ class test_Calibration:
 
         assert False
 
+    @unittest.skip("This is a stub test that we would like to expand in the future.")
     def test_ta_fs(self):
         assert False
 
