@@ -14,7 +14,7 @@ def notify(status, details){
         failure_description = """${env.BUILD_NUMBER} failed."""
     }
     emailext (
-      to: "nsizemor@nrao.edu",
+      to: "sddev@nrao.edu",
       subject: "${status}: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'",
       body: """${status}: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]':
         ${failure_description}
@@ -24,7 +24,7 @@ def notify(status, details){
 }
 
 def checkout() {
-    git '/home/sandboxes/nsizemor/repos/gbt-pipeline'
+    git 'https://github.com/nrao/gbt-pipeline'
 }
 
 def build() {
