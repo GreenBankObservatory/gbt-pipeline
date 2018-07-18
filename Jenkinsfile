@@ -14,11 +14,11 @@ pipeline {
       }
     }
 
-    stage('virtualenv') {
-      steps {
-        sh './createPipelineEnv.bash'
-      }
-    }
+    // stage('virtualenv') {
+    //   steps {
+    //     sh './createPipelineEnv.bash'
+    //   }
+    // }
 
     stage('Test') {
       steps {
@@ -31,7 +31,7 @@ pipeline {
           nosetests --with-xunit --xunit-file=pipeutils.xml test/test_Pipeutils.py
           nosetests --with-xunit --xunit-file=smoothing.xml test/test_smoothing.py
         '''
-        junit '**/results-*.xml'
+        junit '**/*.xml'
       }
     }
   }
