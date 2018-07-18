@@ -14,11 +14,11 @@ pipeline {
       }
     }
 
-    // stage('virtualenv') {
-    //   steps {
-    //     sh './createPipelineEnv.bash'
-    //   }
-    // }
+    stage('virtualenv') {
+      steps {
+        sh './createPipelineEnv.bash'
+      }
+    }
 
     stage('Test') {
       steps {
