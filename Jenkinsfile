@@ -18,6 +18,12 @@ pipeline {
       }
     }
 
+    stage('Examples') {
+      steps {
+        sh './pipeline_examples'
+      }
+    }
+
     stage('Test') {
       steps {
         sh '''

@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Bail on errors
+set -e
+
 if [ -n "$1" ]; then
     venv_path="$1"
 else
@@ -15,5 +18,4 @@ source "$venv_path/bin/activate"
 pip install numpy==1.6.2
 # Install the rest of the requirements
 pip install -r requirements.txt
-# Quick sanity check
-python src/gbt_pipeline.py -i /home/gbtpipeline/reference-data/TKFPA_29/TKFPA_29.raw.acs.fits
+
