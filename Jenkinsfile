@@ -1,8 +1,5 @@
 pipeline {
-  agent {
-    // label 'rhel7'
-    'any'
-  }
+  agent 'any'
 
   stages {
     stage('Init') {
