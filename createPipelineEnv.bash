@@ -8,8 +8,7 @@ fi
 
 # Prevent numpy error "ImportError: libptf77blas.so: cannot open shared object file: No such file or directory"
 export LD_LIBRARY_PATH=/opt/local/lib:$LD_LIBRARY_PATH
-# Force use of Python 2.6 and create the virtual environment
-virtualenv --python=/usr/bin/python2.6 "$venv_path"
+virtualenv --python=/home/gbt7/newt/bin/python "$venv_path"
 # Enter the virtual environment
 source "$venv_path/bin/activate"
 # Install numpy prior to other requirements due to poor dependency resolution in early pip versions
