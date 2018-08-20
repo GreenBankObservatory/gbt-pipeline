@@ -20,7 +20,10 @@ pipeline {
 
     stage('Examples') {
       steps {
-        sh './pipeline_examples'
+        sh '''
+          source jenkins-pipeline-env/bin/activate
+          ./pipeline_examples
+        '''
       }
     }
 
