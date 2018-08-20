@@ -1,7 +1,7 @@
 pipeline {
-  agent {
-    label 'rhel7'
-  }
+  // agent {
+  //   label 'rhel7'
+  // }
 
   stages {
     stage('Init') {
