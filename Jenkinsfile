@@ -1,6 +1,10 @@
 pipeline {
   agent 'any'
 
+  environment {
+    LD_LIBRARY_PATH = "/opt/local/lib"
+  }
+
   stages {
     stage('Init') {
       steps {
@@ -30,7 +34,6 @@ pipeline {
     stage('Test') {
       steps {
         sh '''
-          export LD_LIBRARY_PATH=/opt/local/lib:$LD_LIBRARY_PATH
           source jenkins-pipeline-env/bin/activate
           source /opt/rh/devtoolset-4/enable
           nosetests --with-xunit --xunit-file=unittests.xml test/gbtpipeline_unit_tests.py
