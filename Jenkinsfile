@@ -16,14 +16,15 @@ pipeline {
 
     stage('virtualenv') {
       steps {
-        sh './createPipelineEnv.bash'
+        sh './createPipelineEnv.bash jenkins-pipeline-env'
       }
     }
 
     stage('Test') {
       steps {
         sh '''
-          source pipelineEnv/bin/activate
+          export LD_LIBRARY_PATH=/opt/local/lib:$LD_LIBRARY_PATH
+          source jenkins-pipeline-env/bin/activate
           source /opt/rh/devtoolset-4/enable
           nosetests --with-xunit --xunit-file=unittests.xml test/gbtpipeline_unit_tests.py
           nosetests --with-xunit --xunit-file=calibration.xml test/test_Calibration.py

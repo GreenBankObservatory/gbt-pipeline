@@ -11,17 +11,17 @@ if [ $ARCH != 'x86_64' ]; then
     retval=1
 fi
  
-ret=`grep 'release 6.' /etc/redhat-release`
-if [ $? -ne 0 ]
-then
-    echo -n "The operating system must be Redhat Version 6.  "
-    echo    "Please find another machine and continue."
-    retval=2
-fi
-if [ $retval -ne 0 ]
-then
-    exit $retval 
-fi
+# ret=`grep 'release 6.' /etc/redhat-release`
+# if [ $? -ne 0 ]
+# then
+#     echo -n "The operating system must be Redhat Version 6.  "
+#     echo    "Please find another machine and continue."
+#     retval=2
+# fi
+# if [ $retval -ne 0 ]
+# then
+#     exit $retval 
+# fi
 
 # ------ use the pipeline command name to determine the version
 
@@ -86,7 +86,8 @@ if [ $# -gt 0 ]; then
     fi
 fi
 
-source /home/gbt7/pipeline/${GBTPIPEVERSION}-env/bin/activate
+# source /home/gbt7/pipeline/${GBTPIPEVERSION}-env/bin/activate
+source /home/sandboxes/tchamber/repos/gbt-pipeline/tchamber_pipeline_env_rh6_newt/bin/activate
 export LD_LIBRARY_PATH=/opt/local/lib:$LD_LIBRARY_PATH
 
 STAT_FILE="/home/scratch/pipeline/stats.log"
