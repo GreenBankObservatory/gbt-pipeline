@@ -1,5 +1,12 @@
+#!/usr/bin/env groovy
+
 pipeline {
   agent 'any'
+
+  triggers {
+    // trigger a weekly build on the master branch
+    cron(env.BRANCH_NAME == 'master' ? '@weekly' : '')
+  }
 
   environment {
     LD_LIBRARY_PATH = "/opt/local/lib"
