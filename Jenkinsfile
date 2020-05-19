@@ -42,7 +42,7 @@ pipeline {
       steps {
         sh '''
           source jenkins-pipeline-env/bin/activate
-          source /opt/rh/devtoolset-4/enable
+          source /opt/rh/devtoolset-7/enable
           nosetests --with-xunit --xunit-file=unittests.xml test/gbtpipeline_unit_tests.py
           nosetests --with-xunit --xunit-file=calibration.xml test/test_Calibration.py
           nosetests --with-xunit --xunit-file=pipeutils.xml test/test_Pipeutils.py
