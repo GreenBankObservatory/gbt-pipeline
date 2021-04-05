@@ -1,5 +1,8 @@
 #!/usr/bin/env groovy
 
+def schedule = env.BRANCH_NAME == 'master'       ? '@weekly' :
+               env.BRANCH_NAME == 'release_19.4' ? '@weekly' : ''
+
 pipeline {
   agent {
     label 'rhel7'
@@ -7,7 +10,7 @@ pipeline {
 
   triggers {
     // trigger a weekly build on the master branch
-    cron(env.BRANCH_NAME == 'master' ? '@weekly' : '')
+    cron(schedule)
   }
 
   environment {
