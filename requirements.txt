@@ -1,4 +1,4 @@
-numpy==1.6.2
+numpy==1.22.0
 fitsio==v0.9.3
 blessings==1.6
 ordereddict==1.1
