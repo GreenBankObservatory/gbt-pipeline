@@ -129,6 +129,7 @@ class Imaging:
                         '--average', average,
                         '--output', output,
                         '--verbose', verbose,
+                        '--autoConfirm',
                         clobber,
                         infiles))
 
