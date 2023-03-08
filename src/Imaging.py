@@ -66,7 +66,7 @@ class Imaging:
             scanrange = str(thismap.start) + '_' + str(thismap.end)
 
             imfiles = glob.glob('*' + scanrange + '*window' +
-                                str(thismap.window) + '*pol*' + '.fits')
+                                str(thismap.window) + '_feed*_pol*' + '.fits')
 
             if not imfiles:
                 # no files found
