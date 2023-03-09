@@ -87,7 +87,7 @@ if [ $# -gt 0 ]; then
 fi
 
 # source /home/gbt7/pipeline/${GBTPIPEVERSION}-env/bin/activate
-source /home/sandboxes/tchamber/repos/gbt-pipeline/tchamber_pipeline_env_rh6_newt/bin/activate
+source /home/gbt7/pipeline/release/bin/activate
 export LD_LIBRARY_PATH=/opt/local/lib:$LD_LIBRARY_PATH
 
 STAT_FILE="/home/scratch/pipeline/stats.log"
@@ -95,5 +95,5 @@ if [ -w $STAT_FILE ]; then
     export LC_TIME="en_US.UTF-8"; echo `whoami`,`date`,`uname -n`,`pwd`,$fullpath $* >> $STAT_FILE
 fi
 
-python ${pathdir}/gbt_pipeline.py $*
+python ${pathdir}/src/gbt_pipeline.py $*
 
