@@ -1,4 +1,4 @@
 #!/bin/bash
 
 # Quick sanity check
-python src/gbt_pipeline.py -i /home/gbtpipeline/reference-data/TKFPA_29/TKFPA_29.raw.acs.fits
+./src/gbtpipeline -i /home/gbtpipeline/reference-data/TKFPA_29/TKFPA_29.raw.acs.fits
