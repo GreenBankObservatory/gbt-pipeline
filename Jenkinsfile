@@ -28,17 +28,9 @@ pipeline {
       }
     }
 
-    stage('virtualenv') {
+    stage('Install') {
       steps {
         sh 'uv sync'
-      }
-    }
-
-    stage('Examples') {
-      steps {
-        sh '''
-          uv run ./pipeline_examples
-        '''
       }
     }
 
@@ -48,6 +40,14 @@ pipeline {
           uv run pytest --junit-xml=junit.xml
         '''
         junit '**/*.xml'
+      }
+    }
+
+    stage('Regression Test') {
+      steps {
+        sh '''
+          uv run gbtpipeline -i /home/gbtpipeline/reference-data/TKFPA_29/TKFPA_29.raw.acs.fits
+        '''
       }
     }
   }
