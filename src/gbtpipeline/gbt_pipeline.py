@@ -172,7 +172,7 @@ def preview_zenith_tau(log, row_list, cl_params, feeds, windows, pols):
         row = foo['ROW'][0]
         bar = ff[extension]['OBSFREQ', 'DATE-OBS'][row]
         dateobs = bar['DATE-OBS'][0]
-        obsfreq = bar['OBSFREQ'][0]
+        obsfreq = bar['OBSFREQ']
         ff.close()
 
         weather = Weather()
