@@ -26,3 +26,9 @@ gbtpipeline = "gbtpipeline.gbt_pipeline:runPipeline"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.uv]
+dev-dependencies = [
+    "ipython>=8.27.0",
+    "pytest>=8.3.3",
+]
