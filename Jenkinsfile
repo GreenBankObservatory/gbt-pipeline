@@ -13,9 +13,9 @@ pipeline {
     cron(schedule)
   }
 
-  environment {
-    // LD_LIBRARY_PATH = "/opt/local/lib"
-  }
+  // environment {
+  //   // LD_LIBRARY_PATH = "/opt/local/lib"
+  // }
 
   stages {
     stage('Init') {
