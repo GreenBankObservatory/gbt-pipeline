@@ -1,6 +1,6 @@
 import os
 import sys
-import pyfits
+import astropy.io.fits as pyfits
 import argparse
 
 parser = argparse.ArgumentParser(description="""

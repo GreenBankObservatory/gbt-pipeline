@@ -1,4 +1,4 @@
-import pyfits
+import astropy.io.fits as pyfits
 import pylab
 from matplotlib.font_manager import FontProperties
 import sys

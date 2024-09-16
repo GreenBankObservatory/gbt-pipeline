@@ -20,7 +20,7 @@
 #       P. O. Box 2
 #       Green Bank, WV 24944-0002 USA
 
-import pyfits
+import astropy.io.fits as pyfits
 import sys
 import os
 

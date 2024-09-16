@@ -19,7 +19,7 @@ virtualenv -p python2.7 "$venv_path"
 source "$venv_path/bin/activate"
 pip install --upgrade pip
 # Install numpy prior to other requirements due to poor dependency resolution in early pip versions
-pip install numpy==1.6.2
+#pip install numpy==1.6.2
 # Install the rest of the requirements
 pip install -r requirements.txt
 
