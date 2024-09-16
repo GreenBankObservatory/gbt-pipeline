@@ -50,7 +50,6 @@ import string
 
 
 def fixAipsImages(fitsFiles, refFrame=None, restFreq=None):
-
     kwWarning = False
     for fitsFile in fitsFiles:
         if not os.path.exists(fitsFile):
@@ -58,45 +57,53 @@ def fixAipsImages(fitsFiles, refFrame=None, restFreq=None):
             continue
 
         try:
-            f = pyfits.open(fitsFile, mode='update', memmap=True)
+            f = pyfits.open(fitsFile, mode="update", memmap=True)
         except:
             print("fixAipsImages could not open %s" % fitsFile)
             continue
 
         if refFrame is None:
             hists = f[0].header.get_history()
-            veldefs = [x for x in hists if 'VELDEF' in x]
+            veldefs = [x for x in hists if "VELDEF" in x]
             if len(veldefs) > 0:
                 veldefHist = veldefs[0].split()
-                if len(veldefHist) == 4 and veldefHist[0] == 'SDFITS':
+                if len(veldefHist) == 4 and veldefHist[0] == "SDFITS":
                     # looks OK to use
                     veldefVal = veldefHist[3][1:-1]
                     refFrame = veldefVal[5:8]
 
         if refFrame is None:
             # could not find a valid SDFITS VELDEF history
-            if 'VELREF' in f[0].header:
-                vref = f[0].header['velref']
+            if "VELREF" in f[0].header:
+                vref = f[0].header["velref"]
                 if vref > 255:
-                    vref = vref-256
+                    vref = vref - 256
 
                 if vref == 1:
-                    refFrame = 'LSR'
+                    refFrame = "LSR"
                 elif vref == 2:
-                    refFrame = 'HEL'
+                    refFrame = "HEL"
                 elif vref == 3:
-                    refFrame = 'OBS'
+                    refFrame = "OBS"
 
                 if refFrame is None:
-                    print('fixAipsImages unable to find a default frequency reference frame in %s' % fitsFile)
-                if refFrame == 'OBS':
-                    print("fixAipsImages default reference frame is topocentric from the VELREF keyword.")
+                    print(
+                        "fixAipsImages unable to find a default frequency reference frame in %s"
+                        % fitsFile
+                    )
+                if refFrame == "OBS":
+                    print(
+                        "fixAipsImages default reference frame is topocentric from the VELREF keyword."
+                    )
                     print("   That may be incorrect.  %s " % fitsFile)
 
         # time to set things
         if refFrame is not None:
-            if 'CTYPE3' not in f[0].header or f[0].header['CTYPE3'][0:4] != 'FREQ':
-                print("fixAipsImages: the 3rd axis does not exist or is not a frequency axis in %s" % fitsFile)
+            if "CTYPE3" not in f[0].header or f[0].header["CTYPE3"][0:4] != "FREQ":
+                print(
+                    "fixAipsImages: the 3rd axis does not exist or is not a frequency axis in %s"
+                    % fitsFile
+                )
             else:
                 refCode = None
                 if refFrame == "LSR":
@@ -119,26 +126,31 @@ def fixAipsImages(fitsFiles, refFrame=None, restFreq=None):
                 # refCode = 6 is the SOURCE frame which is not available at the GBT
                 # LGR and COB have no refCode but are valid GBT frames
                 if refCode is None:
-                    print("fixAipsImages: unrecognized reference frame.  See -h for help. %s" % refFrame)
+                    print(
+                        "fixAipsImages: unrecognized reference frame.  See -h for help. %s"
+                        % refFrame
+                    )
                     return
 
-                f[0].header['CTYPE3'] = 'FREQ-'+refFrame
+                f[0].header["CTYPE3"] = "FREQ-" + refFrame
 
-                if 'VELREF' in f[0].header:
+                if "VELREF" in f[0].header:
                     # make sure they agree
                     if refCode > 0:
-                        if f[0].header['VELREF'] > 256:
+                        if f[0].header["VELREF"] > 256:
                             refCode += 256
-                        f[0].header['VELREF'] = refCode
+                        f[0].header["VELREF"] = refCode
                     else:
                         if not kwWarning:
-                            print("fixAipsImages: reference frame incompatible with VELREF, ALRPIX.  Removing those keywords.")
+                            print(
+                                "fixAipsImages: reference frame incompatible with VELREF, ALRPIX.  Removing those keywords."
+                            )
                             kwWarning = True
-                        del f[0].header['VELREF']
-                        del f[0].header['ALTRPIX']
+                        del f[0].header["VELREF"]
+                        del f[0].header["ALTRPIX"]
 
         if restFreq is not None:
-            f[0].header['RESTFREQ'] = restFreq
+            f[0].header["RESTFREQ"] = restFreq
 
         f.close()
 
@@ -189,7 +201,6 @@ OPTIONS
 
 
 def doFixAipsImages():
-
     aipsImages = []
     restFreq = None
     refFrame = None
@@ -200,11 +211,11 @@ def doFixAipsImages():
             return
 
         if arg[0] == "-":
-            if '=' not in arg:
+            if "=" not in arg:
                 print("Unrecognized option '%s'.  Use -h for help" % arg)
                 return
 
-            k, v = string.split(arg, '=')
+            k, v = string.split(arg, "=")
             if k == "-refframe":
                 if len(v) != 3:
                     print("refframe must have 3 letters: %s" % v)
@@ -224,6 +235,7 @@ def doFixAipsImages():
         return
 
     fixAipsImages(aipsImages, refFrame=refFrame, restFreq=restFreq)
+
 
 if __name__ == "__main__":
     doFixAipsImages()

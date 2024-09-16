@@ -4,7 +4,7 @@ import os
 import tarfile
 import shutil
 
-VIRTUALENV_VER = '13.1.2'
+VIRTUALENV_VER = "13.1.2"
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -44,21 +44,37 @@ def location_ok(dirname):
 
     # check if it exists already
     if os.path.exists(dirname):
-        print(("'{pname}' exists.  Are you sure you want to install here? (Y/N) ".format(pname=dirname)))
+        print(
+            (
+                "'{pname}' exists.  Are you sure you want to install here? (Y/N) ".format(
+                    pname=dirname
+                )
+            )
+        )
         yn = input()
 
         # user decides path is not OK
-        if 'n' == yn.lower():
-
-            print(("Please remove {pname} or choose another install location.".format(pname=dirname)))
+        if "n" == yn.lower():
+            print(
+                (
+                    "Please remove {pname} or choose another install location.".format(
+                        pname=dirname
+                    )
+                )
+            )
             return False
 
         # user decides path is OK
-        elif 'y' == yn.lower():
-
+        elif "y" == yn.lower():
             # if this is not a directory, try again
             if not os.path.isdir(dirname):
-                print(("'{pname}' is not a directory. Please try again".format(pname=dirname)))
+                print(
+                    (
+                        "'{pname}' is not a directory. Please try again".format(
+                            pname=dirname
+                        )
+                    )
+                )
                 return False
 
             else:
@@ -71,24 +87,35 @@ def location_ok(dirname):
 
     else:
         # path does not exist
-        if dirname.startswith('/'):
+        if dirname.startswith("/"):
             parentdir = os.path.dirname(dirname)
             if os.path.exists(parentdir):
                 return True
             else:
-                print(("Parent directory '{pname}' does not exist.  Please try again.".format(pname=parentdir)))
+                print(
+                    (
+                        "Parent directory '{pname}' does not exist.  Please try again.".format(
+                            pname=parentdir
+                        )
+                    )
+                )
                 return False
         else:
-            fullpathparent = os.path.dirname(os.getcwd() + '/' + dirname)
+            fullpathparent = os.path.dirname(os.getcwd() + "/" + dirname)
             if os.path.exists(fullpathparent):
                 return True
             else:
-                print(("Parent directory '{pname}' does not exist.  Please try again.".format(pname=fullpathparent)))
+                print(
+                    (
+                        "Parent directory '{pname}' does not exist.  Please try again.".format(
+                            pname=fullpathparent
+                        )
+                    )
+                )
                 return False
 
 
 def make_venv(dirpath):
-
     if os.path.exists(dirpath):
         os.chdir(dirpath)
     else:
@@ -98,47 +125,57 @@ def make_venv(dirpath):
     # see if the 'virtualenv' command exists
     print(("   Downloading and running virtualenv.py in {path}.".format(path=dirpath)))
 
-    os.system('curl -O https://pypi.python.org/packages/source'
-              '/v/virtualenv/virtualenv-{ver}.tar.gz'.format(ver=VIRTUALENV_VER))
+    os.system(
+        "curl -O https://pypi.python.org/packages/source"
+        "/v/virtualenv/virtualenv-{ver}.tar.gz".format(ver=VIRTUALENV_VER)
+    )
 
-    tar = tarfile.open('virtualenv-{ver}.tar.gz'.format(ver=VIRTUALENV_VER))
+    tar = tarfile.open("virtualenv-{ver}.tar.gz".format(ver=VIRTUALENV_VER))
     tar.extractall()
     tar.close()
-    #os.system('/usr/bin/python virtualenv-{ver}/virtualenv.py pipeline_env'.format(ver=VIRTUALENV_VER))
-    os.system('/usr/bin/python virtualenv-{ver}/virtualenv.py -p /home/gbt7/newt/bin/python pipeline_env'.format(ver=VIRTUALENV_VER))
+    # os.system('/usr/bin/python virtualenv-{ver}/virtualenv.py pipeline_env'.format(ver=VIRTUALENV_VER))
+    os.system(
+        "/usr/bin/python virtualenv-{ver}/virtualenv.py -p /home/gbt7/newt/bin/python pipeline_env".format(
+            ver=VIRTUALENV_VER
+        )
+    )
 
     print(("Created {parent}/pipeline_env environment.".format(parent=dirpath)))
 
     # cleanup
-    os.unlink('virtualenv-{ver}.tar.gz'.format(ver=VIRTUALENV_VER))
-    shutil.rmtree('virtualenv-{ver}'.format(ver=VIRTUALENV_VER))
+    os.unlink("virtualenv-{ver}.tar.gz".format(ver=VIRTUALENV_VER))
+    shutil.rmtree("virtualenv-{ver}".format(ver=VIRTUALENV_VER))
 
     # doing execfile() on this file will alter the current interpreter's
     # environment so you can import libraries in the virtualenv
     activate_this_file = "pipeline_env/bin/activate_this.py"
-    exec(compile(open(activate_this_file, "rb").read(), activate_this_file, 'exec'), dict(__file__=activate_this_file))
+    exec(
+        compile(open(activate_this_file, "rb").read(), activate_this_file, "exec"),
+        dict(__file__=activate_this_file),
+    )
 
     print("Activated virtual environment.")
 
 
 def install_numpy():
-    #os.system("pip install numpy")
+    # os.system("pip install numpy")
     os.system("pip install --no-index --find-links python_archive numpy -v")
 
 
 def install_others():
-
     os.system("pip install -r {rdir}/requirements.txt".format(rdir=SCRIPT_DIR))
 
-if __name__ == "__main__":
 
-    installdir = ''
+if __name__ == "__main__":
+    installdir = ""
     while True:
         # Prompt the user for an install location
-        installdir = input("Please specify an install directory for the gbtpipeline [.]: ")
+        installdir = input(
+            "Please specify an install directory for the gbtpipeline [.]: "
+        )
         # default to current working directory
-        if installdir.strip() == '':
-            installdir = '.'
+        if installdir.strip() == "":
+            installdir = "."
         installdir = normalize(installdir)
         if location_ok(installdir):
             break

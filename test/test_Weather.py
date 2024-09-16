@@ -5,7 +5,6 @@ from gbtpipeline.Weather import Weather
 
 
 class TestWeather(unittest.TestCase):
-
     def setUp(self):
         self.weather = Weather()
 

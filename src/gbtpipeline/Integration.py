@@ -28,18 +28,17 @@ import numpy as np
 
 
 class Integration:
-
     def __init__(self, row):
         self.pu = Pipeutils()
         self.data = row
 
     def __getitem__(self, key):
-        if key == 'DATA':
+        if key == "DATA":
             return self.pu.masked_array(self.data[key][0])
         else:
             # strip leading and trailing whitespace
-            return_val = self.data[key][0]
-            if isinstance(return_val, str) or type(return_val) == np.string_:
+            return_val = self.data[key]
+            if isinstance(return_val, str) or type(return_val) is np.str_:
                 return return_val.strip()
             else:
                 return return_val

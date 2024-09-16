@@ -36,11 +36,9 @@ from .Pipeutils import Pipeutils
 
 
 class Calibration(object):
-
     def __init__(self, smoothing_window_size=0):
-
         # set calibration constants
-        self.BB = .0132  # Ruze equation parameter
+        self.BB = 0.0132  # Ruze equation parameter
         self.UNDER_2GHZ_TAU_0 = 0.008
         self.SMOOTHING_WINDOW = smoothing_window_size
         self.pu = Pipeutils()
@@ -113,8 +111,8 @@ class Calibration(object):
            0.829872
 
         """
-        freq_ghz = float(freq_hz)/1e9
-        return reference_eta_a * math.e**-((self.BB * freq_ghz)**2)
+        freq_ghz = float(freq_hz) / 1e9
+        return reference_eta_a * math.e ** -((self.BB * freq_ghz) ** 2)
 
     def main_beam_efficiency(self, reference_eta_b, freq_hz):
         r"""Determine main beam efficiency, given a reference etaB value and frequency.
@@ -169,8 +167,10 @@ class Calibration(object):
            ['37.621216', '26.523488', '19.566942', '15.217485', '12.341207', '10.331365', '8.861127', '7.745094', '6.872195', '6.172545', '5.600276', '5.124171', '4.722318', '4.378917', '4.082311', '3.823718', '3.596410', '3.395144', '3.215779', '3.055004', '2.910137', '2.778989', '2.659751', '2.550918', '2.451229', '2.359617', '2.275175', '2.197126', '2.124803', '2.057628', '1.995099', '1.936775', '1.882273', '1.831253', '1.783416', '1.738495', '1.696253', '1.656478', '1.618982', '1.583595', '1.550162', '1.518545', '1.488619', '1.460271', '1.433397', '1.407903', '1.383703', '1.360719', '1.338878', '1.318115', '1.298369', '1.279585', '1.261710', '1.244698', '1.228504', '1.213089', '1.198415', '1.184446', '1.171152', '1.158501', '1.146467', '1.135024', '1.124146', '1.113814', '1.104005', '1.094700', '1.085882', '1.077533', '1.069639', '1.062184', '1.055156', '1.048543', '1.042331', '1.036512', '1.031074', '1.026009', '1.021309', '1.016966', '1.012972', '1.009322', '1.006009', '1.003029', '1.000376', '0.998047', '0.996038', '0.994346', '0.992968', '0.991902', '0.991147', '0.990701']
 
         """
-        deg2rad = (math.pi/180)  # factor to convert degrees to radians
-        num_atmospheres = -0.023437 + 1.0140 / math.sin(deg2rad * (elev + 5.1774 / (elev + 3.3543)))
+        deg2rad = math.pi / 180  # factor to convert degrees to radians
+        num_atmospheres = -0.023437 + 1.0140 / math.sin(
+            deg2rad * (elev + 5.1774 / (elev + 3.3543))
+        )
         corrected_opacity = zenith_opacity * num_atmospheres
 
         return corrected_opacity
@@ -227,9 +227,23 @@ class Calibration(object):
 
         # where TMPC = ground-level air temperature in C and Freq is in GHz.
         # The A and B coefficients are:
-        aaa = [259.69185966, -1.66599001, 0.226962192, -0.0100909636,  0.00018402955, -0.00000119516]
-        bbb = [0.42557717, 0.033932476, 0.0002579834, -0.00006539032, 0.00000157104, -0.00000001182]
-        freq_ghz = float(freq_hz)/1e9
+        aaa = [
+            259.69185966,
+            -1.66599001,
+            0.226962192,
+            -0.0100909636,
+            0.00018402955,
+            -0.00000119516,
+        ]
+        bbb = [
+            0.42557717,
+            0.033932476,
+            0.0002579834,
+            -0.00006539032,
+            0.00000157104,
+            -0.00000001182,
+        ]
+        freq_ghz = float(freq_hz) / 1e9
 
         air_temp_k_A = air_temp_k_B = 0
         for idx, term in enumerate(zip(aaa, bbb)):
@@ -256,17 +270,18 @@ class Calibration(object):
             A zenith opacity at requested frequency.
 
         """
+
         # interpolate between the coefficients based on time for a
         # given frequency
         def _interpolated_zenith_opacity(freq):
             # for frequencies < 2 GHz, return a default zenith opacity
             if np.array(freq).mean() < 2:
-                result = np.ones(np.array(freq).shape)*self.UNDER_2GHZ_TAU_0
+                result = np.ones(np.array(freq).shape) * self.UNDER_2GHZ_TAU_0
                 return result
             result = 0
             for idx, term in enumerate(coeffs):
                 if idx > 0:
-                    result = result + term*freq**idx
+                    result = result + term * freq**idx
                 else:
                     result = term
             return result
@@ -289,8 +304,8 @@ class Calibration(object):
 
         """
         nchan = len(cal_off)
-        low = int(.1 * nchan)
-        high = int(.9 * nchan)
+        low = int(0.1 * nchan)
+        high = int(0.9 * nchan)
         cal_off = (cal_off[low:high]).mean()
         cal_on = (cal_on[low:high]).mean()
         return float(tcal * (cal_off / (cal_on - cal_off)) + tcal / 2)
@@ -329,25 +344,28 @@ class Calibration(object):
 
         ref = self.pu.masked_array(ref)
 
-        spectrum = tsys * ((sig-ref)/ref)
-        exposure_time = (t_sig * t_ref * window_size / (t_sig + t_ref*window_size))
+        spectrum = tsys * ((sig - ref) / ref)
+        exposure_time = t_sig * t_ref * window_size / (t_sig + t_ref * window_size)
         return spectrum, exposure_time
 
     def _ta_fs_one_state(self, sigref_state, sigid, refid, scale):
+        sig = sigref_state[sigid]["TP"]
 
-        sig = sigref_state[sigid]['TP']
+        ref = sigref_state[refid]["TP"]
+        ref_cal_on = sigref_state[refid]["cal_on"]
+        ref_cal_off = sigref_state[refid]["cal_off"]
 
-        ref = sigref_state[refid]['TP']
-        ref_cal_on = sigref_state[refid]['cal_on']
-        ref_cal_off = sigref_state[refid]['cal_off']
+        tcal = ref_cal_off["TCAL"] * scale
 
-        tcal = ref_cal_off['TCAL'] * scale
+        tsys = self.tsys(tcal, ref_cal_on["DATA"], ref_cal_off["DATA"])
 
-        tsys = self.tsys(tcal,  ref_cal_on['DATA'],  ref_cal_off['DATA'])
-
-        a_temp_params = {'tsys': tsys, 'sig': sig, 'ref': ref,
-                         't_sig': sigref_state[sigid]['EXPOSURE'],
-                         't_ref': sigref_state[refid]['EXPOSURE']}
+        a_temp_params = {
+            "tsys": tsys,
+            "sig": sig,
+            "ref": ref,
+            "t_sig": sigref_state[sigid]["EXPOSURE"],
+            "t_ref": sigref_state[refid]["EXPOSURE"],
+        }
         antenna_temp, exposure = self.antenna_temp(**a_temp_params)
 
         return antenna_temp, tsys, exposure
@@ -373,18 +391,18 @@ class Calibration(object):
         ta1, tsys1, exposure1 = self._ta_fs_one_state(sigref_state, 1, 0, scale)
 
         # shift in frequency
-        sig_centerfreq = sigref_state[0]['cal_off']['OBSFREQ']
-        ref_centerfreq = sigref_state[1]['cal_off']['OBSFREQ']
+        sig_centerfreq = sigref_state[0]["cal_off"]["OBSFREQ"]
+        ref_centerfreq = sigref_state[1]["cal_off"]["OBSFREQ"]
 
-        sig_delta = sigref_state[0]['cal_off']['CDELT1']
-        channel_shift = -((sig_centerfreq-ref_centerfreq)/sig_delta)
+        sig_delta = sigref_state[0]["cal_off"]["CDELT1"]
+        channel_shift = -((sig_centerfreq - ref_centerfreq) / sig_delta)
 
         # do integer channel shift to second spectrum
         ta1_ishifted = np.roll(ta1, int(channel_shift))
         if channel_shift > 0:
-            ta1_ishifted[:channel_shift] = float('nan')
+            ta1_ishifted[:channel_shift] = float("nan")
         elif channel_shift < 0:
-            ta1_ishifted[channel_shift:] = float('nan')
+            ta1_ishifted[channel_shift:] = float("nan")
 
         # do fractional channel shift
         fractional_shift = channel_shift - int(channel_shift)
@@ -392,7 +410,7 @@ class Calibration(object):
         #          fractional_shift)
         xxp = list(range(len(ta1_ishifted)))
         yyp = ta1_ishifted
-        xxx = xxp-fractional_shift
+        xxx = xxp - fractional_shift
 
         yyy = np.interp(xxx, xxp, yyp)
         ta1_shifted = self.pu.masked_array(yyy)
@@ -452,9 +470,14 @@ class Calibration(object):
         """
         return spectrum / (2.85 * aperture_efficiency)
 
-    def interpolate_by_time(self, reference1, reference2,
-                            first_ref_timestamp, second_ref_timestamp,
-                            integration_timestamp):
+    def interpolate_by_time(
+        self,
+        reference1,
+        reference2,
+        first_ref_timestamp,
+        second_ref_timestamp,
+        integration_timestamp,
+    ):
         r"""Calculate interpolated value(s).
 
         This function can be used to calculate a single interpolated value
@@ -542,16 +565,16 @@ class Calibration(object):
         """
         weights = self.make_weights(tsyss, exposures)
 
-        if float('nan') in specs[0] or float('nan') in specs[1]:
-
+        if float("nan") in specs[0] or float("nan") in specs[1]:
             weight0 = np.ma.array([weights[0]] * len(specs[0]), mask=specs[0].mask)
             weight1 = np.ma.array([weights[1]] * len(specs[1]), mask=specs[1].mask)
             weights = [weight0.filled(0), weight1.filled(0)]
 
         return np.ma.average(specs, axis=0, weights=weights)
 
-    def getReferenceAverage(self, crefs, tsyss, exposures, timestamps,
-                            tambients, elevations):
+    def getReferenceAverage(
+        self, crefs, tsyss, exposures, timestamps, tambients, elevations
+    ):
         r"""Average the total power integrations from a reference scan.
 
         Args:
@@ -587,7 +610,14 @@ class Calibration(object):
         avg_tambient = tambients.mean()
         avg_elevation = elevations.mean()
 
-        return avg_cref, avg_tsys80, avg_timestamp, avg_tambient, avg_elevation, exposure
+        return (
+            avg_cref,
+            avg_tsys80,
+            avg_timestamp,
+            avg_tambient,
+            avg_elevation,
+            exposure,
+        )
 
     def tsky(self, ambient_temp_k, freq_hz, tau):
         r"""Determine the sky brightness temperature at a frequency.
@@ -605,10 +635,12 @@ class Calibration(object):
         ambient_temp_c = ambient_temp_k - 273.15  # convert to Celsius
         airTemp = self._tatm(freq_hz, ambient_temp_c)
 
-        tsky = airTemp * (1 - math.e**(-tau))
+        tsky = airTemp * (1 - math.e ** (-tau))
 
         return tsky
 
+
 if __name__ == "__main__":
     import doctest
+
     doctest.testmod()

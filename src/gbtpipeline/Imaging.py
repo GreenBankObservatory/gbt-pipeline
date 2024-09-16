@@ -33,13 +33,15 @@ import socket
 
 
 class Imaging:
-
-    def __init__(self,):
+    def __init__(
+        self,
+    ):
         pass
 
     def run(self, log, terminal, cl_params, mapping_pipelines):
-
-        log.doMessage('INFO', '\n{t.underline}Start imaging.{t.normal}'.format(t=terminal))
+        log.doMessage(
+            "INFO", "\n{t.underline}Start imaging.{t.normal}".format(t=terminal)
+        )
 
         # ------------------------------------------------- identify imaging scripts
 
@@ -47,62 +49,82 @@ class Imaging:
 
         maps = {}
         for mp in mapping_pipelines:
-            nchans = int(mp.mp_object.row_list.get(mp.start, mp.feed, mp.window, mp.pol)['NCHANS'])
+            nchans = int(
+                mp.mp_object.row_list.get(mp.start, mp.feed, mp.window, mp.pol)[
+                    "NCHANS"
+                ]
+            )
             maps[MapStruct(nchans, mp.window, mp.start, mp.end)] = set()
 
         for mp in mapping_pipelines:
-            nchans = int(mp.mp_object.row_list.get(mp.start, mp.feed, mp.window, mp.pol)['NCHANS'])
+            nchans = int(
+                mp.mp_object.row_list.get(mp.start, mp.feed, mp.window, mp.pol)[
+                    "NCHANS"
+                ]
+            )
             maps[MapStruct(nchans, mp.window, mp.start, mp.end)].add(mp.feed)
 
-        log.doMessage('DBG', 'maps', maps)
+        log.doMessage("DBG", "maps", maps)
 
         for thismap in maps:
+            log.doMessage(
+                "INFO",
+                "Imaging window {win} " "for map scans {start}-{stop}".format(
+                    win=thismap.window, start=thismap.start, stop=thismap.end
+                ),
+            )
 
-            log.doMessage('INFO', 'Imaging window {win} '
-                          'for map scans {start}-{stop}'.format(win=thismap.window,
-                                                                start=thismap.start,
-                                                                stop=thismap.end))
+            scanrange = str(thismap.start) + "_" + str(thismap.end)
 
-            scanrange = str(thismap.start) + '_' + str(thismap.end)
-
-            imfiles = glob.glob('*' + scanrange + '*window' +
-                                str(thismap.window) + '_feed*_pol*' + '.fits')
+            imfiles = glob.glob(
+                "*"
+                + scanrange
+                + "*window"
+                + str(thismap.window)
+                + "_feed*_pol*"
+                + ".fits"
+            )
 
             if not imfiles:
                 # no files found
-                log.doMessage('ERR', 'No calibrated files found.')
+                log.doMessage("ERR", "No calibrated files found.")
                 continue
 
             # filter file list to only include those with a feed calibrated for use in this map
             feeds = list(map(str, sorted(maps[thismap])))
 
             ff = fitsio.FITS(imfiles[0])
-            nchans = int([xxx['tdim'] for xxx
-                          in ff[1].get_info()['colinfo']
-                          if xxx['name'] == 'DATA'][0][0])
+            breakpoint()
+            nchans = int(
+                [
+                    xxx["tdim"]
+                    for xxx in ff[1].get_info()["colinfo"]
+                    if xxx["name"] == "DATA"
+                ][0][0]
+            )
             ff.close()
             if cl_params.channels:
                 channels = str(cl_params.channels)
             elif nchans:
-                chan_min = int(nchans*.02)  # start at 2% of nchan
-                chan_max = int(nchans*.98)  # end at 98% of nchans
-                channels = str(chan_min) + ':' + str(chan_max)
+                chan_min = int(nchans * 0.02)  # start at 2% of nchan
+                chan_max = int(nchans * 0.98)  # end at 98% of nchans
+                channels = str(chan_min) + ":" + str(chan_max)
 
-            infiles = ' '.join(imfiles)
+            infiles = " ".join(imfiles)
 
             if cl_params.keeptempfiles:
-                keeptempfiles = '1'
+                keeptempfiles = "1"
             else:
-                keeptempfiles = '0'
+                keeptempfiles = "0"
 
             # get the source name and restfrequency from an input file
             tabledata = fitsio.read(imfiles[0])
-            source = tabledata['OBJECT'][0].strip()
-            restfreq = tabledata['RESTFREQ'][0]
+            source = tabledata["OBJECT"][0].strip()
+            restfreq = tabledata["RESTFREQ"][0]
             del tabledata
 
             freq = "_%.0f_MHz" % (restfreq * 1e-6)
-            output_basename = source + '_' + scanrange + freq
+            output_basename = source + "_" + scanrange + freq
 
             if cl_params.average <= 1:
                 average = 1
@@ -110,38 +132,47 @@ class Imaging:
                 average = cl_params.average
 
             if cl_params.clobber:
-                clobber = ' --clobber'
+                clobber = " --clobber"
             else:
-                clobber = ''
+                clobber = ""
 
-            self.grid(log,
-                      channels,
-                      str(average),
-                      output_basename,
-                      str(cl_params.verbose),
-                      clobber,
-                      infiles)
-
+            self.grid(
+                log,
+                channels,
+                str(average),
+                output_basename,
+                str(cl_params.verbose),
+                clobber,
+                infiles,
+            )
 
     def grid(self, log, channels, average, output, verbose, clobber, infiles):
-        cmd = ' '.join(('gbtgridder',
-                        '--channels', channels,
-                        '--average', average,
-                        '--output', output,
-                        '--verbose', verbose,
-                        '--autoConfirm',
-                        clobber,
-                        infiles))
+        cmd = " ".join(
+            (
+                "gbtgridder",
+                "--channels",
+                channels,
+                "--average",
+                average,
+                "--output",
+                output,
+                "--verbose",
+                verbose,
+                "--autoConfirm",
+                clobber,
+                infiles,
+            )
+        )
 
-        p = subprocess.Popen(cmd.split(),
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
+        p = subprocess.Popen(
+            cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
         try:
             print(cmd)
             a_stdout, a_stderr = p.communicate()
         except:
-            log.doMessage('ERR', cmd, 'failed.')
+            log.doMessage("ERR", cmd, "failed.")
             sys.exit()
 
-        log.doMessage('DBG', a_stdout)
-        log.doMessage('DBG', a_stderr)
+        log.doMessage("DBG", a_stdout)
+        log.doMessage("DBG", a_stderr)

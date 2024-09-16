@@ -27,7 +27,7 @@ import numpy as np
 
 def boxcar(myarray, window):
     outputarray = myarray.copy()
-    result = np.convolve(outputarray, np.ones(window), mode='same') / float(window)
+    result = np.convolve(outputarray, np.ones(window), mode="same") / float(window)
     result[0:window] = result[window]
     result[-window:] = result[-window]
     return result

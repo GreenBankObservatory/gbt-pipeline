@@ -23,13 +23,18 @@ import argparse
 
 from .aips_utils import Catalog
 
-cat = Catalog()   # initialize a catalog object
+cat = Catalog()  # initialize a catalog object
 parser = argparse.ArgumentParser()
-parser.add_argument('aipsid', type=int,
-                    help=("The AIPS catalog number to use.  This is typically "
-                          "your system id, which you can find by typing "
-                          "'id -u' at the command line."))
+parser.add_argument(
+    "aipsid",
+    type=int,
+    help=(
+        "The AIPS catalog number to use.  This is typically "
+        "your system id, which you can find by typing "
+        "'id -u' at the command line."
+    ),
+)
 args = parser.parse_args()
-DISK_ID = 1                        # choose a good default work disk
+DISK_ID = 1  # choose a good default work disk
 cat.config(args.aipsid, DISK_ID)  # configure the catalog object
 cat.show()

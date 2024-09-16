@@ -1,5 +1,5 @@
 import unittest
-import pytest 
+import pytest
 
 import numpy as np
 
@@ -7,7 +7,6 @@ from gbtpipeline.Calibration import Calibration
 
 
 class TestCalibration(unittest.TestCase):
-
     def setUp(self):
         self.cal = Calibration()
 
@@ -22,7 +21,7 @@ class TestCalibration(unittest.TestCase):
     def test_tsky(self):
         ambient_temp_k = 310.1
         freq_hz = 18.458
-        tau = .05
+        tau = 0.05
         tsky = self.cal.tsky(ambient_temp_k, freq_hz, tau)
         expected_result = 13.432242475061472
         pytest.approx(tsky, expected_result)
@@ -31,20 +30,20 @@ class TestCalibration(unittest.TestCase):
         array_size = 128
         tsky_sig = np.ones(array_size) * 2
         tsky_ref = np.ones(array_size)
-        spillover = .123
+        spillover = 0.123
         tsky_correction = self.cal.tsky_correction(tsky_sig, tsky_ref, spillover)
-        expected_result = np.ones(array_size) * .123
+        expected_result = np.ones(array_size) * 0.123
         np.testing.assert_equal(tsky_correction, expected_result)
 
     def test_aperture_efficiency(self):
-        reference_eta_a = .71
+        reference_eta_a = 0.71
         freq_hz = 23e9
         efficiency = self.cal.aperture_efficiency(reference_eta_a, freq_hz)
         expected_result = 0.64748265789117276
         pytest.approx(efficiency, expected_result)
 
     def test_main_beam_efficiency(self):
-        reference_eta_a = .7
+        reference_eta_a = 0.7
         freq_hz = 23.7e9
         efficiency = self.cal.main_beam_efficiency(reference_eta_a, freq_hz)
         expected_result = 0.6347374630868166
@@ -52,15 +51,15 @@ class TestCalibration(unittest.TestCase):
 
     @unittest.skip("This test is outdated, and should be revisited in the future.")
     def test_elevation_adjusted_opacity(self):
-        zenith_opacity = .1
-        elevation = 45.
-        adjusted_opacity = self.cal.elevation_adjusted_opacity(.1, 45.)
+        zenith_opacity = 0.1
+        elevation = 45.0
+        adjusted_opacity = self.cal.elevation_adjusted_opacity(0.1, 45.0)
         expected_result = 0.07071067811865475
         pytest.approx(adjusted_opacity, expected_result)
 
     def test__tatm(self):
         freq_hz = 23e9
-        temp_c = 40.
+        temp_c = 40.0
         atmospheric_effective_temp = self.cal._tatm(freq_hz, temp_c)
         expected_result = 298.88517422006998
         pytest.approx(atmospheric_effective_temp, expected_result)
@@ -73,32 +72,34 @@ class TestCalibration(unittest.TestCase):
         assert zenith_opacity == expected_result
 
     def test_tsys(self):
-        tcal = 1.
+        tcal = 1.0
         cal_off = np.ones(128)
-        cal_on = np.ones(128)*3
+        cal_on = np.ones(128) * 3
         tsys = self.cal.tsys(tcal, cal_on, cal_off)
-        expected = 1.
+        expected = 1.0
         assert tsys == expected
 
     @unittest.skip("Ignoring test per email from Joe Masters, 2017-10-26")
     def test_antenna_temp(self):
-        tsys = .5
+        tsys = 0.5
         sig = np.ones(128) * 2
         ref = np.ones(128)
         antenna_temp = self.cal.antenna_temp(tsys, sig, ref)
-        expected_result = np.ones(128) * .5
+        expected_result = np.ones(128) * 0.5
         np.testing.assert_equal(antenna_temp, expected_result)
 
     @unittest.skip("This is a stub test that we would like to expand in the future.")
     def test__ta_fs_one_state(self):
-        sigref_state = [{'cal_on': None, 'cal_off': None, 'TP': None},
-                        {'cal_on': None, 'cal_off': None, 'TP': None}]
+        sigref_state = [
+            {"cal_on": None, "cal_off": None, "TP": None},
+            {"cal_on": None, "cal_off": None, "TP": None},
+        ]
 
-        sigref_state[0]['cal_on'] = np.ones(128)
-        sigref_state[0]['cal_off'] = np.ones(128)
+        sigref_state[0]["cal_on"] = np.ones(128)
+        sigref_state[0]["cal_off"] = np.ones(128)
 
-        sigref_state[1]['cal_on'] = np.ones(128)
-        sigref_state[1]['cal_off'] = np.ones(128)
+        sigref_state[1]["cal_on"] = np.ones(128)
+        sigref_state[1]["cal_off"] = np.ones(128)
 
         sigid = 0
         refid = 1
@@ -112,28 +113,28 @@ class TestCalibration(unittest.TestCase):
     @unittest.skip("Ignoring test per email from Joe Masters, 2017-10-26")
     def test_ta_star(self):
         antenna_temp = np.ones(128)
-        beam_scaling = 1.
+        beam_scaling = 1.0
         opacity = 0
-        spillover = 2.
+        spillover = 2.0
         ta_star = self.cal.ta_star(antenna_temp, beam_scaling, opacity, spillover)
-        expected = np.ones(128) * .5
+        expected = np.ones(128) * 0.5
         np.testing.assert_equal(ta_star, expected)
 
     def test_jansky(self):
         ta_star = np.ones(128)
-        aperture_efficiency = .1
+        aperture_efficiency = 0.1
         jansky = self.cal.jansky(ta_star, aperture_efficiency)
-        expected = np.ones(128) / .285
+        expected = np.ones(128) / 0.285
         np.testing.assert_almost_equal(jansky, expected)
 
     def test_interpolate_by_time(self):
-        reference1 = 0.
-        reference1_time = 10000.
-        reference2 = 100.
-        reference2_time = 20000.
-        result_time = 15000.
-        result_value = self.cal.interpolate_by_time(reference1, reference2,
-                                                    reference1_time, reference2_time,
-                                                    result_time)
-        expected = 50.
+        reference1 = 0.0
+        reference1_time = 10000.0
+        reference2 = 100.0
+        reference2_time = 20000.0
+        result_time = 15000.0
+        result_value = self.cal.interpolate_by_time(
+            reference1, reference2, reference1_time, reference2_time, result_time
+        )
+        expected = 50.0
         assert result_value == expected

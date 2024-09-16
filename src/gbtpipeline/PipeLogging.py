@@ -30,16 +30,13 @@ import blessings
 
 
 class Logging:
-    """Class for screen and text file logging of pipeline operation.
-
-    """
+    """Class for screen and text file logging of pipeline operation."""
 
     def __init__(self, opt, prefix, toconsole=True):
-
         self.t = blessings.Terminal()
         self.logger = None
 
-        logfilename = prefix + '_' + self.timestamp() + '.log'
+        logfilename = prefix + "_" + self.timestamp() + ".log"
         self.configure_logfile(opt, logfilename, toconsole)
 
     def timestamp(self):
@@ -50,7 +47,14 @@ class Logging:
         """
 
         lt = time.localtime(time.time())
-        return "%02d.%02d.%04d_%02d:%02d:%02d" % (lt[2], lt[1], lt[0], lt[3], lt[4], lt[5])
+        return "%02d.%02d.%04d_%02d:%02d:%02d" % (
+            lt[2],
+            lt[1],
+            lt[0],
+            lt[3],
+            lt[4],
+            lt[5],
+        )
 
     def doMessage(self, level, *args):
         """Write a message to the log file
@@ -61,23 +65,31 @@ class Logging:
         args -- the message text; this is a variable lengh list
 
         """
-        message = ' '.join(map(str, (args)))
-        if 'CRIT' == level:
-            self.logger.error('{t.bold}{t.red}CRITICAL:{t.normal} {m}'.format(m=message, t=self.t))
+        message = " ".join(map(str, (args)))
+        if "CRIT" == level:
+            self.logger.error(
+                "{t.bold}{t.red}CRITICAL:{t.normal} {m}".format(m=message, t=self.t)
+            )
             sys.stdout.flush()
-        elif 'ERR' == level:
-            self.logger.error('{t.bold}{t.red}ERROR:{t.normal} {m}'.format(m=message, t=self.t))
+        elif "ERR" == level:
+            self.logger.error(
+                "{t.bold}{t.red}ERROR:{t.normal} {m}".format(m=message, t=self.t)
+            )
             sys.stdout.flush()
-        elif 'WARN' == level:
-            self.logger.error('{t.bold}{t.yellow}WARNING:{t.normal} {m}'.format(m=message, t=self.t))
+        elif "WARN" == level:
+            self.logger.error(
+                "{t.bold}{t.yellow}WARNING:{t.normal} {m}".format(m=message, t=self.t)
+            )
             sys.stdout.flush()
-        elif 'INFO' == level:
+        elif "INFO" == level:
             self.logger.info(message)
-        elif 'DBG' == level:
-            self.logger.debug('{t.bold}{t.blue}DEBUG:{t.normal} {m}'.format(m=message, t=self.t))
+        elif "DBG" == level:
+            self.logger.debug(
+                "{t.bold}{t.blue}DEBUG:{t.normal} {m}".format(m=message, t=self.t)
+            )
             sys.stdout.flush()
         else:
-            print('ERROR: please check logging level.', level)
+            print("ERROR: please check logging level.", level)
         sys.stdout.flush()
         sys.stderr.flush()
 
@@ -90,16 +102,18 @@ class Logging:
         toconsole -- optional console output
 
         """
-        LEVELS = {5: logging.DEBUG,     # errors + warnings + summary + debug
-                  4: logging.INFO,      # errors + warnings + summary
-                  3: logging.WARNING,   # errors + warnings
-                  2: logging.ERROR,     # errors only
-                  1: logging.CRITICAL,  # unused
-                  0: logging.CRITICAL}  # no output
+        LEVELS = {
+            5: logging.DEBUG,  # errors + warnings + summary + debug
+            4: logging.INFO,  # errors + warnings + summary
+            3: logging.WARNING,  # errors + warnings
+            2: logging.ERROR,  # errors only
+            1: logging.CRITICAL,  # unused
+            0: logging.CRITICAL,
+        }  # no output
 
         level = LEVELS.get(opt.verbose, logging.DEBUG)
 
-        loggername = logfilename.split('.')[0]
+        loggername = logfilename.split(".")[0]
 
         self.logger = logging.getLogger(loggername)
 
@@ -107,7 +121,7 @@ class Logging:
         self.logger.setLevel(logging.DEBUG)
 
         # create file handler which logs even debug messages
-        fh = logging.FileHandler(filename='log/'+logfilename, mode='w')
+        fh = logging.FileHandler(filename="log/" + logfilename, mode="w")
         fh.setLevel(logging.DEBUG)
         fh_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
         fh.setFormatter(fh_formatter)

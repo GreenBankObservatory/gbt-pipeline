@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-"""Create a "virtual" Python installation
-"""
+"""Create a "virtual" Python installation"""
 
 # If you change the version here, change it in setup.py
 # and docs/conf.py as well.
@@ -26,9 +25,13 @@ try:
     import subprocess
 except ImportError:
     if sys.version_info <= (2, 3):
-        print(('ERROR: %s' % sys.exc_info()[1]))
-        print('ERROR: this script requires Python 2.4 or greater; or at least the subprocess module.')
-        print('If you copy subprocess.py from a newer version of Python this script will probably work')
+        print(("ERROR: %s" % sys.exc_info()[1]))
+        print(
+            "ERROR: this script requires Python 2.4 or greater; or at least the subprocess module."
+        )
+        print(
+            "If you copy subprocess.py from a newer version of Python this script will probably work"
+        )
         sys.exit(101)
     else:
         raise
@@ -47,213 +50,249 @@ except ImportError:
     import configparser as ConfigParser
 
 join = os.path.join
-py_version = 'python%s.%s' % (sys.version_info[0], sys.version_info[1])
+py_version = "python%s.%s" % (sys.version_info[0], sys.version_info[1])
 
-is_jython = sys.platform.startswith('java')
-is_pypy = hasattr(sys, 'pypy_version_info')
-is_win  = (sys.platform == 'win32')
-abiflags = getattr(sys, 'abiflags', '')
+is_jython = sys.platform.startswith("java")
+is_pypy = hasattr(sys, "pypy_version_info")
+is_win = sys.platform == "win32"
+abiflags = getattr(sys, "abiflags", "")
 
-user_dir = os.path.expanduser('~')
-if sys.platform == 'win32':
-    user_dir = os.environ.get('APPDATA', user_dir)  # Use %APPDATA% for roaming
-    default_storage_dir = os.path.join(user_dir, 'virtualenv')
+user_dir = os.path.expanduser("~")
+if sys.platform == "win32":
+    user_dir = os.environ.get("APPDATA", user_dir)  # Use %APPDATA% for roaming
+    default_storage_dir = os.path.join(user_dir, "virtualenv")
 else:
-    default_storage_dir = os.path.join(user_dir, '.virtualenv')
-default_config_file = os.path.join(default_storage_dir, 'virtualenv.ini')
+    default_storage_dir = os.path.join(user_dir, ".virtualenv")
+default_config_file = os.path.join(default_storage_dir, "virtualenv.ini")
 
 if is_pypy:
-    expected_exe = 'pypy'
+    expected_exe = "pypy"
 elif is_jython:
-    expected_exe = 'jython'
+    expected_exe = "jython"
 else:
-    expected_exe = 'python'
+    expected_exe = "python"
 
 
-REQUIRED_MODULES = ['os', 'posix', 'posixpath', 'nt', 'ntpath', 'genericpath',
-                    'fnmatch', 'locale', 'encodings', 'codecs',
-                    'stat', 'UserDict', 'readline', 'copy_reg', 'types',
-                    're', 'sre', 'sre_parse', 'sre_constants', 'sre_compile',
-                    'zlib']
+REQUIRED_MODULES = [
+    "os",
+    "posix",
+    "posixpath",
+    "nt",
+    "ntpath",
+    "genericpath",
+    "fnmatch",
+    "locale",
+    "encodings",
+    "codecs",
+    "stat",
+    "UserDict",
+    "readline",
+    "copy_reg",
+    "types",
+    "re",
+    "sre",
+    "sre_parse",
+    "sre_constants",
+    "sre_compile",
+    "zlib",
+]
 
-REQUIRED_FILES = ['lib-dynload', 'config']
+REQUIRED_FILES = ["lib-dynload", "config"]
 
 majver, minver = sys.version_info[:2]
 if majver == 2:
     if minver >= 6:
-        REQUIRED_MODULES.extend(['warnings', 'linecache', '_abcoll', 'abc'])
+        REQUIRED_MODULES.extend(["warnings", "linecache", "_abcoll", "abc"])
     if minver >= 7:
-        REQUIRED_MODULES.extend(['_weakrefset'])
+        REQUIRED_MODULES.extend(["_weakrefset"])
     if minver <= 3:
-        REQUIRED_MODULES.extend(['sets', '__future__'])
+        REQUIRED_MODULES.extend(["sets", "__future__"])
 elif majver == 3:
     # Some extra modules are needed for Python 3, but different ones
     # for different versions.
-    REQUIRED_MODULES.extend(['_abcoll', 'warnings', 'linecache', 'abc', 'io',
-                             '_weakrefset', 'copyreg', 'tempfile', 'random',
-                             '__future__', 'collections', 'keyword', 'tarfile',
-                             'shutil', 'struct', 'copy'])
+    REQUIRED_MODULES.extend(
+        [
+            "_abcoll",
+            "warnings",
+            "linecache",
+            "abc",
+            "io",
+            "_weakrefset",
+            "copyreg",
+            "tempfile",
+            "random",
+            "__future__",
+            "collections",
+            "keyword",
+            "tarfile",
+            "shutil",
+            "struct",
+            "copy",
+        ]
+    )
     if minver >= 2:
-        REQUIRED_FILES[-1] = 'config-%s' % majver
+        REQUIRED_FILES[-1] = "config-%s" % majver
     if minver == 3:
         # The whole list of 3.3 modules is reproduced below - the current
         # uncommented ones are required for 3.3 as of now, but more may be
         # added as 3.3 development continues.
-        REQUIRED_MODULES.extend([
-            #"aifc",
-            #"antigravity",
-            #"argparse",
-            #"ast",
-            #"asynchat",
-            #"asyncore",
-            "base64",
-            #"bdb",
-            #"binhex",
-            "bisect",
-            #"calendar",
-            #"cgi",
-            #"cgitb",
-            #"chunk",
-            #"cmd",
-            #"codeop",
-            #"code",
-            #"colorsys",
-            #"_compat_pickle",
-            #"compileall",
-            #"concurrent",
-            #"configparser",
-            #"contextlib",
-            #"cProfile",
-            #"crypt",
-            #"csv",
-            #"ctypes",
-            #"curses",
-            #"datetime",
-            #"dbm",
-            #"decimal",
-            #"difflib",
-            #"dis",
-            #"doctest",
-            #"dummy_threading",
-            "_dummy_thread",
-            #"email",
-            #"filecmp",
-            #"fileinput",
-            #"formatter",
-            #"fractions",
-            #"ftplib",
-            #"functools",
-            #"getopt",
-            #"getpass",
-            #"gettext",
-            #"glob",
-            #"gzip",
-            "hashlib",
-            "heapq",
-            "hmac",
-            #"html",
-            #"http",
-            #"idlelib",
-            #"imaplib",
-            #"imghdr",
-            #"importlib",
-            #"inspect",
-            #"json",
-            #"lib2to3",
-            #"logging",
-            #"macpath",
-            #"macurl2path",
-            #"mailbox",
-            #"mailcap",
-            #"_markupbase",
-            #"mimetypes",
-            #"modulefinder",
-            #"multiprocessing",
-            #"netrc",
-            #"nntplib",
-            #"nturl2path",
-            #"numbers",
-            #"opcode",
-            #"optparse",
-            #"os2emxpath",
-            #"pdb",
-            #"pickle",
-            #"pickletools",
-            #"pipes",
-            #"pkgutil",
-            #"platform",
-            #"plat-linux2",
-            #"plistlib",
-            #"poplib",
-            #"pprint",
-            #"profile",
-            #"pstats",
-            #"pty",
-            #"pyclbr",
-            #"py_compile",
-            #"pydoc_data",
-            #"pydoc",
-            #"_pyio",
-            #"queue",
-            #"quopri",
-            "reprlib",
-            "rlcompleter",
-            #"runpy",
-            #"sched",
-            #"shelve",
-            #"shlex",
-            #"smtpd",
-            #"smtplib",
-            #"sndhdr",
-            #"socket",
-            #"socketserver",
-            #"sqlite3",
-            #"ssl",
-            #"stringprep",
-            #"string",
-            #"_strptime",
-            #"subprocess",
-            #"sunau",
-            #"symbol",
-            #"symtable",
-            #"sysconfig",
-            #"tabnanny",
-            #"telnetlib",
-            #"test",
-            #"textwrap",
-            #"this",
-            #"_threading_local",
-            #"threading",
-            #"timeit",
-            #"tkinter",
-            #"tokenize",
-            #"token",
-            #"traceback",
-            #"trace",
-            #"tty",
-            #"turtledemo",
-            #"turtle",
-            #"unittest",
-            #"urllib",
-            #"uuid",
-            #"uu",
-            #"wave",
-            "weakref",
-            #"webbrowser",
-            #"wsgiref",
-            #"xdrlib",
-            #"xml",
-            #"xmlrpc",
-            #"zipfile",
-        ])
+        REQUIRED_MODULES.extend(
+            [
+                # "aifc",
+                # "antigravity",
+                # "argparse",
+                # "ast",
+                # "asynchat",
+                # "asyncore",
+                "base64",
+                # "bdb",
+                # "binhex",
+                "bisect",
+                # "calendar",
+                # "cgi",
+                # "cgitb",
+                # "chunk",
+                # "cmd",
+                # "codeop",
+                # "code",
+                # "colorsys",
+                # "_compat_pickle",
+                # "compileall",
+                # "concurrent",
+                # "configparser",
+                # "contextlib",
+                # "cProfile",
+                # "crypt",
+                # "csv",
+                # "ctypes",
+                # "curses",
+                # "datetime",
+                # "dbm",
+                # "decimal",
+                # "difflib",
+                # "dis",
+                # "doctest",
+                # "dummy_threading",
+                "_dummy_thread",
+                # "email",
+                # "filecmp",
+                # "fileinput",
+                # "formatter",
+                # "fractions",
+                # "ftplib",
+                # "functools",
+                # "getopt",
+                # "getpass",
+                # "gettext",
+                # "glob",
+                # "gzip",
+                "hashlib",
+                "heapq",
+                "hmac",
+                # "html",
+                # "http",
+                # "idlelib",
+                # "imaplib",
+                # "imghdr",
+                # "importlib",
+                # "inspect",
+                # "json",
+                # "lib2to3",
+                # "logging",
+                # "macpath",
+                # "macurl2path",
+                # "mailbox",
+                # "mailcap",
+                # "_markupbase",
+                # "mimetypes",
+                # "modulefinder",
+                # "multiprocessing",
+                # "netrc",
+                # "nntplib",
+                # "nturl2path",
+                # "numbers",
+                # "opcode",
+                # "optparse",
+                # "os2emxpath",
+                # "pdb",
+                # "pickle",
+                # "pickletools",
+                # "pipes",
+                # "pkgutil",
+                # "platform",
+                # "plat-linux2",
+                # "plistlib",
+                # "poplib",
+                # "pprint",
+                # "profile",
+                # "pstats",
+                # "pty",
+                # "pyclbr",
+                # "py_compile",
+                # "pydoc_data",
+                # "pydoc",
+                # "_pyio",
+                # "queue",
+                # "quopri",
+                "reprlib",
+                "rlcompleter",
+                # "runpy",
+                # "sched",
+                # "shelve",
+                # "shlex",
+                # "smtpd",
+                # "smtplib",
+                # "sndhdr",
+                # "socket",
+                # "socketserver",
+                # "sqlite3",
+                # "ssl",
+                # "stringprep",
+                # "string",
+                # "_strptime",
+                # "subprocess",
+                # "sunau",
+                # "symbol",
+                # "symtable",
+                # "sysconfig",
+                # "tabnanny",
+                # "telnetlib",
+                # "test",
+                # "textwrap",
+                # "this",
+                # "_threading_local",
+                # "threading",
+                # "timeit",
+                # "tkinter",
+                # "tokenize",
+                # "token",
+                # "traceback",
+                # "trace",
+                # "tty",
+                # "turtledemo",
+                # "turtle",
+                # "unittest",
+                # "urllib",
+                # "uuid",
+                # "uu",
+                # "wave",
+                "weakref",
+                # "webbrowser",
+                # "wsgiref",
+                # "xdrlib",
+                # "xml",
+                # "xmlrpc",
+                # "zipfile",
+            ]
+        )
 
 if is_pypy:
     # these are needed to correctly display the exceptions that may happen
     # during the bootstrap
-    REQUIRED_MODULES.extend(['traceback', 'linecache'])
+    REQUIRED_MODULES.extend(["traceback", "linecache"])
+
 
 class Logger(object):
-
     """
     Logging object for use in command-line script.  Allows ranges of
     levels, to avoid some redundancy of displayed information.
@@ -261,7 +300,7 @@ class Logger(object):
 
     DEBUG = logging.DEBUG
     INFO = logging.INFO
-    NOTIFY = (logging.INFO+logging.WARN)/2
+    NOTIFY = (logging.INFO + logging.WARN) / 2
     WARN = WARNING = logging.WARN
     ERROR = logging.ERROR
     FATAL = logging.FATAL
@@ -276,45 +315,51 @@ class Logger(object):
 
     def debug(self, msg, *args, **kw):
         self.log(self.DEBUG, msg, *args, **kw)
+
     def info(self, msg, *args, **kw):
         self.log(self.INFO, msg, *args, **kw)
+
     def notify(self, msg, *args, **kw):
         self.log(self.NOTIFY, msg, *args, **kw)
+
     def warn(self, msg, *args, **kw):
         self.log(self.WARN, msg, *args, **kw)
+
     def error(self, msg, *args, **kw):
         self.log(self.WARN, msg, *args, **kw)
+
     def fatal(self, msg, *args, **kw):
         self.log(self.FATAL, msg, *args, **kw)
+
     def log(self, level, msg, *args, **kw):
         if args:
             if kw:
                 raise TypeError(
-                    "You may give positional or keyword arguments, not both")
+                    "You may give positional or keyword arguments, not both"
+                )
         args = args or kw
         rendered = None
         for consumer_level, consumer in self.consumers:
             if self.level_matches(level, consumer_level):
-                if (self.in_progress_hanging
-                    and consumer in (sys.stdout, sys.stderr)):
+                if self.in_progress_hanging and consumer in (sys.stdout, sys.stderr):
                     self.in_progress_hanging = False
-                    sys.stdout.write('\n')
+                    sys.stdout.write("\n")
                     sys.stdout.flush()
                 if rendered is None:
                     if args:
                         rendered = msg % args
                     else:
                         rendered = msg
-                    rendered = ' '*self.indent + rendered
-                if hasattr(consumer, 'write'):
-                    consumer.write(rendered+'\n')
+                    rendered = " " * self.indent + rendered
+                if hasattr(consumer, "write"):
+                    consumer.write(rendered + "\n")
                 else:
                     consumer(rendered)
 
     def start_progress(self, msg):
         assert not self.in_progress, (
-            "Tried to start_progress(%r) while in_progress %r"
-            % (msg, self.in_progress))
+            "Tried to start_progress(%r) while in_progress %r" % (msg, self.in_progress)
+        )
         if self.level_matches(self.NOTIFY, self._stdout_level()):
             sys.stdout.write(msg)
             sys.stdout.flush()
@@ -323,16 +368,15 @@ class Logger(object):
             self.in_progress_hanging = False
         self.in_progress = msg
 
-    def end_progress(self, msg='done.'):
-        assert self.in_progress, (
-            "Tried to end_progress without start_progress")
+    def end_progress(self, msg="done."):
+        assert self.in_progress, "Tried to end_progress without start_progress"
         if self.stdout_level_matches(self.NOTIFY):
             if not self.in_progress_hanging:
                 # Some message has been printed out since start_progress
-                sys.stdout.write('...' + self.in_progress + msg + '\n')
+                sys.stdout.write("..." + self.in_progress + msg + "\n")
                 sys.stdout.flush()
             else:
-                sys.stdout.write(msg + '\n')
+                sys.stdout.write(msg + "\n")
                 sys.stdout.flush()
         self.in_progress = None
         self.in_progress_hanging = False
@@ -341,7 +385,7 @@ class Logger(object):
         """If we are in a progress scope, and no log messages have been
         shown, write out another '.'"""
         if self.in_progress_hanging:
-            sys.stdout.write('.')
+            sys.stdout.write(".")
             sys.stdout.flush()
 
     def stdout_level_matches(self, level):
@@ -381,7 +425,7 @@ class Logger(object):
         else:
             return level >= consumer_level
 
-    #@classmethod
+    # @classmethod
     def level_for_integer(cls, level):
         levels = cls.LEVELS
         if level < 0:
@@ -392,16 +436,19 @@ class Logger(object):
 
     level_for_integer = classmethod(level_for_integer)
 
+
 # create a silent logger just to prevent this from being undefined
 # will be overridden with requested verbosity main() is called.
 logger = Logger([(Logger.LEVELS[-1], sys.stdout)])
 
+
 def mkdir(path):
     if not os.path.exists(path):
-        logger.info('Creating %s', path)
+        logger.info("Creating %s", path)
         os.makedirs(path)
     else:
-        logger.info('Directory %s already exists', path)
+        logger.info("Directory %s already exists", path)
+
 
 def copyfileordir(src, dest):
     if os.path.isdir(src):
@@ -409,67 +456,74 @@ def copyfileordir(src, dest):
     else:
         shutil.copy2(src, dest)
 
+
 def copyfile(src, dest, symlink=True):
     if not os.path.exists(src):
         # Some bad symlink in the src
-        logger.warn('Cannot find file %s (bad symlink)', src)
+        logger.warn("Cannot find file %s (bad symlink)", src)
         return
     if os.path.exists(dest):
-        logger.debug('File %s already exists', dest)
+        logger.debug("File %s already exists", dest)
         return
     if not os.path.exists(os.path.dirname(dest)):
-        logger.info('Creating parent directories for %s' % os.path.dirname(dest))
+        logger.info("Creating parent directories for %s" % os.path.dirname(dest))
         os.makedirs(os.path.dirname(dest))
     if not os.path.islink(src):
         srcpath = os.path.abspath(src)
     else:
         srcpath = os.readlink(src)
-    if symlink and hasattr(os, 'symlink') and not is_win:
-        logger.info('Symlinking %s', dest)
+    if symlink and hasattr(os, "symlink") and not is_win:
+        logger.info("Symlinking %s", dest)
         try:
             os.symlink(srcpath, dest)
         except (OSError, NotImplementedError):
-            logger.info('Symlinking failed, copying to %s', dest)
+            logger.info("Symlinking failed, copying to %s", dest)
             copyfileordir(src, dest)
     else:
-        logger.info('Copying to %s', dest)
+        logger.info("Copying to %s", dest)
         copyfileordir(src, dest)
+
 
 def writefile(dest, content, overwrite=True):
     if not os.path.exists(dest):
-        logger.info('Writing %s', dest)
-        f = open(dest, 'wb')
-        f.write(content.encode('utf-8'))
+        logger.info("Writing %s", dest)
+        f = open(dest, "wb")
+        f.write(content.encode("utf-8"))
         f.close()
         return
     else:
-        f = open(dest, 'rb')
+        f = open(dest, "rb")
         c = f.read()
         f.close()
         if c != content.encode("utf-8"):
             if not overwrite:
-                logger.notify('File %s exists with different content; not overwriting', dest)
+                logger.notify(
+                    "File %s exists with different content; not overwriting", dest
+                )
                 return
-            logger.notify('Overwriting %s with new content', dest)
-            f = open(dest, 'wb')
-            f.write(content.encode('utf-8'))
+            logger.notify("Overwriting %s with new content", dest)
+            f = open(dest, "wb")
+            f.write(content.encode("utf-8"))
             f.close()
         else:
-            logger.info('Content %s already in place', dest)
+            logger.info("Content %s already in place", dest)
+
 
 def rmtree(dir):
     if os.path.exists(dir):
-        logger.notify('Deleting tree %s', dir)
+        logger.notify("Deleting tree %s", dir)
         shutil.rmtree(dir)
     else:
-        logger.info('Do not need to delete %s; already gone', dir)
+        logger.info("Do not need to delete %s; already gone", dir)
+
 
 def make_exe(fn):
-    if hasattr(os, 'chmod'):
-        oldmode = os.stat(fn).st_mode & 0xFFF # 0o7777
-        newmode = (oldmode | 0x16D) & 0xFFF # 0o555, 0o7777
+    if hasattr(os, "chmod"):
+        oldmode = os.stat(fn).st_mode & 0xFFF  # 0o7777
+        newmode = (oldmode | 0x16D) & 0xFFF  # 0o555, 0o7777
         os.chmod(fn, newmode)
-        logger.info('Changed mode of %s to %s', fn, oct(newmode))
+        logger.info("Changed mode of %s to %s", fn, oct(newmode))
+
 
 def _find_file(filename, dirs):
     for dir in reversed(dirs):
@@ -477,21 +531,22 @@ def _find_file(filename, dirs):
             return join(dir, filename)
     return filename
 
-def _install_req(py_executable, unzip=False, distribute=False,
-                 search_dirs=None, never_download=False):
 
+def _install_req(
+    py_executable, unzip=False, distribute=False, search_dirs=None, never_download=False
+):
     if search_dirs is None:
         search_dirs = file_search_dirs()
 
     if not distribute:
-        setup_fn = 'setuptools-0.6c11-py%s.egg' % sys.version[:3]
-        project_name = 'setuptools'
+        setup_fn = "setuptools-0.6c11-py%s.egg" % sys.version[:3]
+        project_name = "setuptools"
         bootstrap_script = EZ_SETUP_PY
         source = None
     else:
         setup_fn = None
-        source = 'distribute-0.6.27.tar.gz'
-        project_name = 'distribute'
+        source = "distribute-0.6.27.tar.gz"
+        project_name = "distribute"
         bootstrap_script = DISTRIBUTE_SETUP_PY
 
     if setup_fn is not None:
@@ -500,57 +555,58 @@ def _install_req(py_executable, unzip=False, distribute=False,
     if source is not None:
         source = _find_file(source, search_dirs)
 
-    if is_jython and os._name == 'nt':
+    if is_jython and os._name == "nt":
         # Jython's .bat sys.executable can't handle a command line
         # argument with newlines
-        fd, ez_setup = tempfile.mkstemp('.py')
+        fd, ez_setup = tempfile.mkstemp(".py")
         os.write(fd, bootstrap_script)
         os.close(fd)
         cmd = [py_executable, ez_setup]
     else:
-        cmd = [py_executable, '-c', bootstrap_script]
+        cmd = [py_executable, "-c", bootstrap_script]
     if unzip:
-        cmd.append('--always-unzip')
+        cmd.append("--always-unzip")
     env = {}
     remove_from_env = []
     if logger.stdout_level_matches(logger.DEBUG):
-        cmd.append('-v')
+        cmd.append("-v")
 
     old_chdir = os.getcwd()
     if setup_fn is not None and os.path.exists(setup_fn):
-        logger.info('Using existing %s egg: %s' % (project_name, setup_fn))
+        logger.info("Using existing %s egg: %s" % (project_name, setup_fn))
         cmd.append(setup_fn)
-        if os.environ.get('PYTHONPATH'):
-            env['PYTHONPATH'] = setup_fn + os.path.pathsep + os.environ['PYTHONPATH']
+        if os.environ.get("PYTHONPATH"):
+            env["PYTHONPATH"] = setup_fn + os.path.pathsep + os.environ["PYTHONPATH"]
         else:
-            env['PYTHONPATH'] = setup_fn
+            env["PYTHONPATH"] = setup_fn
     else:
         # the source is found, let's chdir
         if source is not None and os.path.exists(source):
-            logger.info('Using existing %s egg: %s' % (project_name, source))
+            logger.info("Using existing %s egg: %s" % (project_name, source))
             os.chdir(os.path.dirname(source))
             # in this case, we want to be sure that PYTHONPATH is unset (not
             # just empty, really unset), else CPython tries to import the
             # site.py that it's in virtualenv_support
-            remove_from_env.append('PYTHONPATH')
+            remove_from_env.append("PYTHONPATH")
         else:
             if never_download:
-                logger.fatal("Can't find any local distributions of %s to install "
-                             "and --never-download is set.  Either re-run virtualenv "
-                             "without the --never-download option, or place a %s "
-                             "distribution (%s) in one of these "
-                             "locations: %r" % (project_name, project_name,
-                                                setup_fn or source,
-                                                search_dirs))
+                logger.fatal(
+                    "Can't find any local distributions of %s to install "
+                    "and --never-download is set.  Either re-run virtualenv "
+                    "without the --never-download option, or place a %s "
+                    "distribution (%s) in one of these "
+                    "locations: %r"
+                    % (project_name, project_name, setup_fn or source, search_dirs)
+                )
                 sys.exit(1)
 
-            logger.info('No %s egg found; downloading' % project_name)
-        cmd.extend(['--always-copy', '-U', project_name])
-    logger.start_progress('Installing %s...' % project_name)
+            logger.info("No %s egg found; downloading" % project_name)
+        cmd.extend(["--always-copy", "-U", project_name])
+    logger.start_progress("Installing %s..." % project_name)
     logger.indent += 2
     cwd = None
-    if project_name == 'distribute':
-        env['DONT_PATCH_SETUPTOOLS'] = 'true'
+    if project_name == "distribute":
+        env["DONT_PATCH_SETUPTOOLS"] = "true"
 
     def _filter_ez_setup(line):
         return filter_ez_setup(line, project_name)
@@ -563,11 +619,14 @@ def _install_req(py_executable, unzip=False, distribute=False,
             target = os.path.join(cwd, os.path.split(source)[-1])
             shutil.copy(source, target)
     try:
-        call_subprocess(cmd, show_stdout=False,
-                        filter_stdout=_filter_ez_setup,
-                        extra_env=env,
-                        remove_from_env=remove_from_env,
-                        cwd=cwd)
+        call_subprocess(
+            cmd,
+            show_stdout=False,
+            filter_stdout=_filter_ez_setup,
+            extra_env=env,
+            remove_from_env=remove_from_env,
+            cwd=cwd,
+        )
     finally:
         logger.indent -= 2
         logger.end_progress()
@@ -575,52 +634,71 @@ def _install_req(py_executable, unzip=False, distribute=False,
             shutil.rmtree(cwd)
         if os.getcwd() != old_chdir:
             os.chdir(old_chdir)
-        if is_jython and os._name == 'nt':
+        if is_jython and os._name == "nt":
             os.remove(ez_setup)
+
 
 def file_search_dirs():
     here = os.path.dirname(os.path.abspath(__file__))
-    dirs = ['.', here,
-            join(here, 'virtualenv_support')]
-    if os.path.splitext(os.path.dirname(__file__))[0] != 'virtualenv':
+    dirs = [".", here, join(here, "virtualenv_support")]
+    if os.path.splitext(os.path.dirname(__file__))[0] != "virtualenv":
         # Probably some boot script; just in case virtualenv is installed...
         try:
             import virtualenv
         except ImportError:
             pass
         else:
-            dirs.append(os.path.join(os.path.dirname(virtualenv.__file__), 'virtualenv_support'))
+            dirs.append(
+                os.path.join(os.path.dirname(virtualenv.__file__), "virtualenv_support")
+            )
     return [d for d in dirs if os.path.isdir(d)]
 
-def install_setuptools(py_executable, unzip=False,
-                       search_dirs=None, never_download=False):
-    _install_req(py_executable, unzip,
-                 search_dirs=search_dirs, never_download=never_download)
 
-def install_distribute(py_executable, unzip=False,
-                       search_dirs=None, never_download=False):
-    _install_req(py_executable, unzip, distribute=True,
-                 search_dirs=search_dirs, never_download=never_download)
+def install_setuptools(
+    py_executable, unzip=False, search_dirs=None, never_download=False
+):
+    _install_req(
+        py_executable, unzip, search_dirs=search_dirs, never_download=never_download
+    )
 
-_pip_re = re.compile(r'^pip-.*(zip|tar.gz|tar.bz2|tgz|tbz)$', re.I)
+
+def install_distribute(
+    py_executable, unzip=False, search_dirs=None, never_download=False
+):
+    _install_req(
+        py_executable,
+        unzip,
+        distribute=True,
+        search_dirs=search_dirs,
+        never_download=never_download,
+    )
+
+
+_pip_re = re.compile(r"^pip-.*(zip|tar.gz|tar.bz2|tgz|tbz)$", re.I)
+
+
 def install_pip(py_executable, search_dirs=None, never_download=False):
     if search_dirs is None:
         search_dirs = file_search_dirs()
 
     filenames = []
     for dir in search_dirs:
-        filenames.extend([join(dir, fn) for fn in os.listdir(dir)
-                          if _pip_re.search(fn)])
-    filenames = [(os.path.basename(filename).lower(), i, filename) for i, filename in enumerate(filenames)]
+        filenames.extend(
+            [join(dir, fn) for fn in os.listdir(dir) if _pip_re.search(fn)]
+        )
+    filenames = [
+        (os.path.basename(filename).lower(), i, filename)
+        for i, filename in enumerate(filenames)
+    ]
     filenames.sort()
     filenames = [filename for basename, i, filename in filenames]
     if not filenames:
-        filename = 'pip'
+        filename = "pip"
     else:
         filename = filenames[-1]
-    easy_install_script = 'easy_install'
-    if sys.platform == 'win32':
-        easy_install_script = 'easy_install-script.py'
+    easy_install_script = "easy_install"
+    if sys.platform == "win32":
+        easy_install_script = "easy_install-script.py"
     # There's two subtle issues here when invoking easy_install.
     # 1. On unix-like systems the easy_install script can *only* be executed
     #    directly if its full filesystem path is no longer than 78 characters.
@@ -629,48 +707,79 @@ def install_pip(py_executable, search_dirs=None, never_download=False):
     #    you can't put the file encoding declaration before the shebang line.
     # The solution is to use Python's -x flag to skip the first line of the
     # script (and any ASCII decoding errors that may have occurred in that line)
-    cmd = [py_executable, '-x', join(os.path.dirname(py_executable), easy_install_script), filename]
+    cmd = [
+        py_executable,
+        "-x",
+        join(os.path.dirname(py_executable), easy_install_script),
+        filename,
+    ]
     # jython and pypy don't yet support -x
     if is_jython or is_pypy:
-        cmd.remove('-x')
-    if filename == 'pip':
+        cmd.remove("-x")
+    if filename == "pip":
         if never_download:
-            logger.fatal("Can't find any local distributions of pip to install "
-                         "and --never-download is set.  Either re-run virtualenv "
-                         "without the --never-download option, or place a pip "
-                         "source distribution (zip/tar.gz/tar.bz2) in one of these "
-                         "locations: %r" % search_dirs)
+            logger.fatal(
+                "Can't find any local distributions of pip to install "
+                "and --never-download is set.  Either re-run virtualenv "
+                "without the --never-download option, or place a pip "
+                "source distribution (zip/tar.gz/tar.bz2) in one of these "
+                "locations: %r" % search_dirs
+            )
             sys.exit(1)
-        logger.info('Installing pip from network...')
+        logger.info("Installing pip from network...")
     else:
-        logger.info('Installing existing %s distribution: %s' % (
-                os.path.basename(filename), filename))
-    logger.start_progress('Installing pip...')
+        logger.info(
+            "Installing existing %s distribution: %s"
+            % (os.path.basename(filename), filename)
+        )
+    logger.start_progress("Installing pip...")
     logger.indent += 2
+
     def _filter_setup(line):
-        return filter_ez_setup(line, 'pip')
+        return filter_ez_setup(line, "pip")
+
     try:
-        call_subprocess(cmd, show_stdout=False,
-                        filter_stdout=_filter_setup)
+        call_subprocess(cmd, show_stdout=False, filter_stdout=_filter_setup)
     finally:
         logger.indent -= 2
         logger.end_progress()
 
-def filter_ez_setup(line, project_name='setuptools'):
+
+def filter_ez_setup(line, project_name="setuptools"):
     if not line.strip():
         return Logger.DEBUG
-    if project_name == 'distribute':
-        for prefix in ('Extracting', 'Now working', 'Installing', 'Before',
-                       'Scanning', 'Setuptools', 'Egg', 'Already',
-                       'running', 'writing', 'reading', 'installing',
-                       'creating', 'copying', 'byte-compiling', 'removing',
-                       'Processing'):
+    if project_name == "distribute":
+        for prefix in (
+            "Extracting",
+            "Now working",
+            "Installing",
+            "Before",
+            "Scanning",
+            "Setuptools",
+            "Egg",
+            "Already",
+            "running",
+            "writing",
+            "reading",
+            "installing",
+            "creating",
+            "copying",
+            "byte-compiling",
+            "removing",
+            "Processing",
+        ):
             if line.startswith(prefix):
                 return Logger.DEBUG
         return Logger.DEBUG
-    for prefix in ['Reading ', 'Best match', 'Processing setuptools',
-                   'Copying setuptools', 'Adding setuptools',
-                   'Installing ', 'Installed ']:
+    for prefix in [
+        "Reading ",
+        "Best match",
+        "Processing setuptools",
+        "Copying setuptools",
+        "Adding setuptools",
+        "Installing ",
+        "Installed ",
+    ]:
         if line.startswith(prefix):
             return Logger.DEBUG
     return Logger.INFO
@@ -682,6 +791,7 @@ class UpdatingDefaultsHelpFormatter(optparse.IndentedHelpFormatter):
     the defaults before expanding them, allowing them to show up correctly
     in the help listing
     """
+
     def expand_default(self, option):
         if self.parser is not None:
             self.parser.update_defaults(self.parser.defaults)
@@ -693,6 +803,7 @@ class ConfigOptionParser(optparse.OptionParser):
     Custom option parser which updates its defaults by by checking the
     configuration files and environmental variables
     """
+
     def __init__(self, *args, **kwargs):
         self.config = configparser.RawConfigParser()
         self.files = self.get_config_files()
@@ -700,7 +811,7 @@ class ConfigOptionParser(optparse.OptionParser):
         optparse.OptionParser.__init__(self, *args, **kwargs)
 
     def get_config_files(self):
-        config_file = os.environ.get('VIRTUALENV_CONFIG_FILE', False)
+        config_file = os.environ.get("VIRTUALENV_CONFIG_FILE", False)
         if config_file and os.path.exists(config_file):
             return [config_file]
         return [default_config_file]
@@ -714,25 +825,25 @@ class ConfigOptionParser(optparse.OptionParser):
         # Then go and look for the other sources of configuration:
         config = {}
         # 1. config files
-        config.update(dict(self.get_config_section('virtualenv')))
+        config.update(dict(self.get_config_section("virtualenv")))
         # 2. environmental variables
         config.update(dict(self.get_environ_vars()))
         # Then set the options with those values
         for key, val in list(config.items()):
-            key = key.replace('_', '-')
-            if not key.startswith('--'):
-                key = '--%s' % key  # only prefer long opts
+            key = key.replace("_", "-")
+            if not key.startswith("--"):
+                key = "--%s" % key  # only prefer long opts
             option = self.get_option(key)
             if option is not None:
                 # ignore empty values
                 if not val:
                     continue
                 # handle multiline configs
-                if option.action == 'append':
+                if option.action == "append":
                     val = val.split()
                 else:
                     option.nargs = 1
-                if option.action in ('store_true', 'store_false', 'count'):
+                if option.action in ("store_true", "store_false", "count"):
                     val = strtobool(val)
                 try:
                     val = option.convert_value(key, val)
@@ -751,13 +862,13 @@ class ConfigOptionParser(optparse.OptionParser):
             return self.config.items(name)
         return []
 
-    def get_environ_vars(self, prefix='VIRTUALENV_'):
+    def get_environ_vars(self, prefix="VIRTUALENV_"):
         """
         Returns a generator with all environmental vars with prefix VIRTUALENV
         """
         for key, val in list(os.environ.items()):
             if key.startswith(prefix):
-                yield (key.replace(prefix, '').lower(), val)
+                yield (key.replace(prefix, "").lower(), val)
 
     def get_default_values(self):
         """
@@ -781,114 +892,131 @@ def main():
     parser = ConfigOptionParser(
         version=virtualenv_version,
         usage="%prog [OPTIONS] DEST_DIR",
-        formatter=UpdatingDefaultsHelpFormatter())
+        formatter=UpdatingDefaultsHelpFormatter(),
+    )
 
     parser.add_option(
-        '-v', '--verbose',
-        action='count',
-        dest='verbose',
+        "-v",
+        "--verbose",
+        action="count",
+        dest="verbose",
         default=0,
-        help="Increase verbosity")
+        help="Increase verbosity",
+    )
 
     parser.add_option(
-        '-q', '--quiet',
-        action='count',
-        dest='quiet',
+        "-q",
+        "--quiet",
+        action="count",
+        dest="quiet",
         default=0,
-        help='Decrease verbosity')
+        help="Decrease verbosity",
+    )
 
     parser.add_option(
-        '-p', '--python',
-        dest='python',
-        metavar='PYTHON_EXE',
-        help='The Python interpreter to use, e.g., --python=python2.5 will use the python2.5 '
-        'interpreter to create the new environment.  The default is the interpreter that '
-        'virtualenv was installed with (%s)' % sys.executable)
+        "-p",
+        "--python",
+        dest="python",
+        metavar="PYTHON_EXE",
+        help="The Python interpreter to use, e.g., --python=python2.5 will use the python2.5 "
+        "interpreter to create the new environment.  The default is the interpreter that "
+        "virtualenv was installed with (%s)" % sys.executable,
+    )
 
     parser.add_option(
-        '--clear',
-        dest='clear',
-        action='store_true',
-        help="Clear out the non-root install and start from scratch")
+        "--clear",
+        dest="clear",
+        action="store_true",
+        help="Clear out the non-root install and start from scratch",
+    )
 
     parser.add_option(
-        '--no-site-packages',
-        dest='no_site_packages',
-        action='store_true',
+        "--no-site-packages",
+        dest="no_site_packages",
+        action="store_true",
         help="Don't give access to the global site-packages dir to the "
-             "virtual environment (default; deprecated)")
+        "virtual environment (default; deprecated)",
+    )
 
     parser.add_option(
-        '--system-site-packages',
-        dest='system_site_packages',
-        action='store_true',
+        "--system-site-packages",
+        dest="system_site_packages",
+        action="store_true",
         help="Give access to the global site-packages dir to the "
-             "virtual environment")
+        "virtual environment",
+    )
 
     parser.add_option(
-        '--unzip-setuptools',
-        dest='unzip_setuptools',
-        action='store_true',
-        help="Unzip Setuptools or Distribute when installing it")
+        "--unzip-setuptools",
+        dest="unzip_setuptools",
+        action="store_true",
+        help="Unzip Setuptools or Distribute when installing it",
+    )
 
     parser.add_option(
-        '--relocatable',
-        dest='relocatable',
-        action='store_true',
-        help='Make an EXISTING virtualenv environment relocatable.  '
-        'This fixes up scripts and makes all .pth files relative')
+        "--relocatable",
+        dest="relocatable",
+        action="store_true",
+        help="Make an EXISTING virtualenv environment relocatable.  "
+        "This fixes up scripts and makes all .pth files relative",
+    )
 
     parser.add_option(
-        '--distribute', '--use-distribute',  # the second option is for legacy reasons here. Hi Kenneth!
-        dest='use_distribute',
-        action='store_true',
-        help='Use Distribute instead of Setuptools. Set environ variable '
-        'VIRTUALENV_DISTRIBUTE to make it the default ')
+        "--distribute",
+        "--use-distribute",  # the second option is for legacy reasons here. Hi Kenneth!
+        dest="use_distribute",
+        action="store_true",
+        help="Use Distribute instead of Setuptools. Set environ variable "
+        "VIRTUALENV_DISTRIBUTE to make it the default ",
+    )
 
     default_search_dirs = file_search_dirs()
     parser.add_option(
-        '--extra-search-dir',
+        "--extra-search-dir",
         dest="search_dirs",
         action="append",
         default=default_search_dirs,
         help="Directory to look for setuptools/distribute/pip distributions in. "
-        "You can add any number of additional --extra-search-dir paths.")
+        "You can add any number of additional --extra-search-dir paths.",
+    )
 
     parser.add_option(
-        '--never-download',
+        "--never-download",
         dest="never_download",
         action="store_true",
         help="Never download anything from the network.  Instead, virtualenv will fail "
-        "if local distributions of setuptools/distribute/pip are not present.")
+        "if local distributions of setuptools/distribute/pip are not present.",
+    )
 
     parser.add_option(
-        '--prompt',
-        dest='prompt',
-        help='Provides an alternative prompt prefix for this environment')
+        "--prompt",
+        dest="prompt",
+        help="Provides an alternative prompt prefix for this environment",
+    )
 
-    if 'extend_parser' in globals():
+    if "extend_parser" in globals():
         extend_parser(parser)
 
     options, args = parser.parse_args()
 
     global logger
 
-    if 'adjust_options' in globals():
+    if "adjust_options" in globals():
         adjust_options(options, args)
 
     verbosity = options.verbose - options.quiet
     logger = Logger([(Logger.level_for_integer(2 - verbosity), sys.stdout)])
 
-    if options.python and not os.environ.get('VIRTUALENV_INTERPRETER_RUNNING'):
+    if options.python and not os.environ.get("VIRTUALENV_INTERPRETER_RUNNING"):
         env = os.environ.copy()
         interpreter = resolve_interpreter(options.python)
         if interpreter == sys.executable:
-            logger.warn('Already using interpreter %s' % interpreter)
+            logger.warn("Already using interpreter %s" % interpreter)
         else:
-            logger.notify('Running virtualenv with interpreter %s' % interpreter)
-            env['VIRTUALENV_INTERPRETER_RUNNING'] = 'true'
+            logger.notify("Running virtualenv with interpreter %s" % interpreter)
+            env["VIRTUALENV_INTERPRETER_RUNNING"] = "true"
             file = __file__
-            if file.endswith('.pyc'):
+            if file.endswith(".pyc"):
                 file = file[:-1]
             popen = subprocess.Popen([interpreter, file] + sys.argv[1:], env=env)
             raise SystemExit(popen.wait())
@@ -897,69 +1025,86 @@ def main():
     if majver > 2:
         options.use_distribute = True
 
-    if os.environ.get('PYTHONDONTWRITEBYTECODE') and not options.use_distribute:
+    if os.environ.get("PYTHONDONTWRITEBYTECODE") and not options.use_distribute:
         print(
             "The PYTHONDONTWRITEBYTECODE environment variable is "
             "not compatible with setuptools. Either use --distribute "
-            "or unset PYTHONDONTWRITEBYTECODE.")
+            "or unset PYTHONDONTWRITEBYTECODE."
+        )
         sys.exit(2)
     if not args:
-        print('You must provide a DEST_DIR')
+        print("You must provide a DEST_DIR")
         parser.print_help()
         sys.exit(2)
     if len(args) > 1:
-        print(('There must be only one argument: DEST_DIR (you gave %s)' % (
-            ' '.join(args))))
+        print(
+            (
+                "There must be only one argument: DEST_DIR (you gave %s)"
+                % (" ".join(args))
+            )
+        )
         parser.print_help()
         sys.exit(2)
 
     home_dir = args[0]
 
-    if os.environ.get('WORKING_ENV'):
-        logger.fatal('ERROR: you cannot run virtualenv while in a workingenv')
-        logger.fatal('Please deactivate your workingenv, then re-run this script')
+    if os.environ.get("WORKING_ENV"):
+        logger.fatal("ERROR: you cannot run virtualenv while in a workingenv")
+        logger.fatal("Please deactivate your workingenv, then re-run this script")
         sys.exit(3)
 
-    if 'PYTHONHOME' in os.environ:
-        logger.warn('PYTHONHOME is set.  You *must* activate the virtualenv before using it')
-        del os.environ['PYTHONHOME']
+    if "PYTHONHOME" in os.environ:
+        logger.warn(
+            "PYTHONHOME is set.  You *must* activate the virtualenv before using it"
+        )
+        del os.environ["PYTHONHOME"]
 
     if options.relocatable:
         make_environment_relocatable(home_dir)
         return
 
     if options.no_site_packages:
-        logger.warn('The --no-site-packages flag is deprecated; it is now '
-                    'the default behavior.')
+        logger.warn(
+            "The --no-site-packages flag is deprecated; it is now "
+            "the default behavior."
+        )
 
-    create_environment(home_dir,
-                       site_packages=options.system_site_packages,
-                       clear=options.clear,
-                       unzip_setuptools=options.unzip_setuptools,
-                       use_distribute=options.use_distribute,
-                       prompt=options.prompt,
-                       search_dirs=options.search_dirs,
-                       never_download=options.never_download)
-    if 'after_install' in globals():
+    create_environment(
+        home_dir,
+        site_packages=options.system_site_packages,
+        clear=options.clear,
+        unzip_setuptools=options.unzip_setuptools,
+        use_distribute=options.use_distribute,
+        prompt=options.prompt,
+        search_dirs=options.search_dirs,
+        never_download=options.never_download,
+    )
+    if "after_install" in globals():
         after_install(options, home_dir)
 
-def call_subprocess(cmd, show_stdout=True,
-                    filter_stdout=None, cwd=None,
-                    raise_on_returncode=True, extra_env=None,
-                    remove_from_env=None):
+
+def call_subprocess(
+    cmd,
+    show_stdout=True,
+    filter_stdout=None,
+    cwd=None,
+    raise_on_returncode=True,
+    extra_env=None,
+    remove_from_env=None,
+):
     cmd_parts = []
     for part in cmd:
         if len(part) > 45:
-            part = part[:20]+"..."+part[-20:]
-        if ' ' in part or '\n' in part or '"' in part or "'" in part:
+            part = part[:20] + "..." + part[-20:]
+        if " " in part or "\n" in part or '"' in part or "'" in part:
             part = '"%s"' % part.replace('"', '\\"')
-        if hasattr(part, 'decode'):
+        if hasattr(part, "decode"):
             try:
                 part = part.decode(sys.getdefaultencoding())
             except UnicodeDecodeError:
                 part = part.decode(sys.getfilesystemencoding())
         cmd_parts.append(part)
-    cmd_desc = ' '.join(cmd_parts)
+    cmd_desc = " ".join(cmd_parts)
     if show_stdout:
         stdout = None
     else:
@@ -976,12 +1121,11 @@ def call_subprocess(cmd, show_stdout=True,
         env = None
     try:
         proc = subprocess.Popen(
-            cmd, stderr=subprocess.STDOUT, stdin=None, stdout=stdout,
-            cwd=cwd, env=env)
+            cmd, stderr=subprocess.STDOUT, stdin=None, stdout=stdout, cwd=cwd, env=env
+        )
     except Exception:
         e = sys.exc_info()[1]
-        logger.fatal(
-            "Error %s while executing command %s" % (e, cmd_desc))
+        logger.fatal("Error %s while executing command %s" % (e, cmd_desc))
         raise
     all_output = []
     if stdout is not None:
@@ -1013,20 +1157,27 @@ def call_subprocess(cmd, show_stdout=True,
     if proc.returncode:
         if raise_on_returncode:
             if all_output:
-                logger.notify('Complete output from command %s:' % cmd_desc)
-                logger.notify('\n'.join(all_output) + '\n----------------------------------------')
+                logger.notify("Complete output from command %s:" % cmd_desc)
+                logger.notify(
+                    "\n".join(all_output) + "\n----------------------------------------"
+                )
             raise OSError(
-                "Command %s failed with error code %s"
-                % (cmd_desc, proc.returncode))
+                "Command %s failed with error code %s" % (cmd_desc, proc.returncode)
+            )
         else:
-            logger.warn(
-                "Command %s had error code %s"
-                % (cmd_desc, proc.returncode))
+            logger.warn("Command %s had error code %s" % (cmd_desc, proc.returncode))
 
 
-def create_environment(home_dir, site_packages=False, clear=False,
-                       unzip_setuptools=False, use_distribute=False,
-                       prompt=None, search_dirs=None, never_download=False):
+def create_environment(
+    home_dir,
+    site_packages=False,
+    clear=False,
+    unzip_setuptools=False,
+    use_distribute=False,
+    prompt=None,
+    search_dirs=None,
+    never_download=False,
+):
     """
     Creates a new environment in ``home_dir``.
 
@@ -1038,57 +1189,75 @@ def create_environment(home_dir, site_packages=False, clear=False,
     """
     home_dir, lib_dir, inc_dir, bin_dir = path_locations(home_dir)
 
-    py_executable = os.path.abspath(install_python(
-        home_dir, lib_dir, inc_dir, bin_dir,
-        site_packages=site_packages, clear=clear))
+    py_executable = os.path.abspath(
+        install_python(
+            home_dir,
+            lib_dir,
+            inc_dir,
+            bin_dir,
+            site_packages=site_packages,
+            clear=clear,
+        )
+    )
 
     install_distutils(home_dir)
 
     if use_distribute:
-        install_distribute(py_executable, unzip=unzip_setuptools,
-                           search_dirs=search_dirs, never_download=never_download)
+        install_distribute(
+            py_executable,
+            unzip=unzip_setuptools,
+            search_dirs=search_dirs,
+            never_download=never_download,
+        )
     else:
-        install_setuptools(py_executable, unzip=unzip_setuptools,
-                           search_dirs=search_dirs, never_download=never_download)
+        install_setuptools(
+            py_executable,
+            unzip=unzip_setuptools,
+            search_dirs=search_dirs,
+            never_download=never_download,
+        )
 
     install_pip(py_executable, search_dirs=search_dirs, never_download=never_download)
 
     install_activate(home_dir, bin_dir, prompt)
+
 
 def path_locations(home_dir):
     """Return the path locations for the environment (where libraries are,
     where scripts go, etc)"""
     # XXX: We'd use distutils.sysconfig.get_python_inc/lib but its
     # prefix arg is broken: http://bugs.python.org/issue3386
-    if sys.platform == 'win32':
+    if sys.platform == "win32":
         # Windows has lots of problems with executables with spaces in
         # the name; this function will remove them (using the ~1
         # format):
         mkdir(home_dir)
-        if ' ' in home_dir:
+        if " " in home_dir:
             try:
                 import win32api
             except ImportError:
                 print(('Error: the path "%s" has a space in it' % home_dir))
-                print('To handle these kinds of paths, the win32api module must be installed:')
-                print('  http://sourceforge.net/projects/pywin32/')
+                print(
+                    "To handle these kinds of paths, the win32api module must be installed:"
+                )
+                print("  http://sourceforge.net/projects/pywin32/")
                 sys.exit(3)
             home_dir = win32api.GetShortPathName(home_dir)
-        lib_dir = join(home_dir, 'Lib')
-        inc_dir = join(home_dir, 'Include')
-        bin_dir = join(home_dir, 'Scripts')
+        lib_dir = join(home_dir, "Lib")
+        inc_dir = join(home_dir, "Include")
+        bin_dir = join(home_dir, "Scripts")
     if is_jython:
-        lib_dir = join(home_dir, 'Lib')
-        inc_dir = join(home_dir, 'Include')
-        bin_dir = join(home_dir, 'bin')
+        lib_dir = join(home_dir, "Lib")
+        inc_dir = join(home_dir, "Include")
+        bin_dir = join(home_dir, "bin")
     elif is_pypy:
         lib_dir = home_dir
-        inc_dir = join(home_dir, 'include')
-        bin_dir = join(home_dir, 'bin')
-    elif sys.platform != 'win32':
-        lib_dir = join(home_dir, 'lib', py_version)
-        inc_dir = join(home_dir, 'include', py_version + abiflags)
-        bin_dir = join(home_dir, 'bin')
+        inc_dir = join(home_dir, "include")
+        bin_dir = join(home_dir, "bin")
+    elif sys.platform != "win32":
+        lib_dir = join(home_dir, "lib", py_version)
+        inc_dir = join(home_dir, "include", py_version + abiflags)
+        bin_dir = join(home_dir, "bin")
     return home_dir, lib_dir, inc_dir, bin_dir
 
 
@@ -1096,12 +1265,17 @@ def change_prefix(filename, dst_prefix):
     prefixes = [sys.prefix]
 
     if sys.platform == "darwin":
-        prefixes.extend((
-            os.path.join("/Library/Python", sys.version[:3], "site-packages"),
-            os.path.join(sys.prefix, "Extras", "lib", "python"),
-            os.path.join("~", "Library", "Python", sys.version[:3], "site-packages")))
+        prefixes.extend(
+            (
+                os.path.join("/Library/Python", sys.version[:3], "site-packages"),
+                os.path.join(sys.prefix, "Extras", "lib", "python"),
+                os.path.join(
+                    "~", "Library", "Python", sys.version[:3], "site-packages"
+                ),
+            )
+        )
 
-    if hasattr(sys, 'real_prefix'):
+    if hasattr(sys, "real_prefix"):
         prefixes.append(sys.real_prefix)
     prefixes = list(map(os.path.abspath, prefixes))
     filename = os.path.abspath(filename)
@@ -1111,11 +1285,15 @@ def change_prefix(filename, dst_prefix):
             assert relpath[0] == os.sep
             relpath = relpath[1:]
             return join(dst_prefix, relpath)
-    assert False, "Filename %s does not start with any of these prefixes: %s" % \
-        (filename, prefixes)
+    assert False, "Filename %s does not start with any of these prefixes: %s" % (
+        filename,
+        prefixes,
+    )
+
 
 def copy_required_modules(dst_prefix):
     import imp
+
     # If we are running under -p, we need to remove the current
     # directory from sys.path temporarily here, so that we
     # definitely get the modules from the site directory of
@@ -1123,7 +1301,7 @@ def copy_required_modules(dst_prefix):
     # virtualenv.py is installed under (which might lead to py2/py3
     # incompatibility issues)
     _prev_sys_path = sys.path
-    if os.environ.get('VIRTUALENV_INTERPRETER_RUNNING'):
+    if os.environ.get("VIRTUALENV_INTERPRETER_RUNNING"):
         sys.path = sys.path[1:]
     try:
         for modname in REQUIRED_MODULES:
@@ -1139,41 +1317,42 @@ def copy_required_modules(dst_prefix):
                     f.close()
                 dst_filename = change_prefix(filename, dst_prefix)
                 copyfile(filename, dst_filename)
-                if filename.endswith('.pyc'):
+                if filename.endswith(".pyc"):
                     pyfile = filename[:-1]
                     if os.path.exists(pyfile):
                         copyfile(pyfile, dst_filename[:-1])
     finally:
         sys.path = _prev_sys_path
 
+
 def install_python(home_dir, lib_dir, inc_dir, bin_dir, site_packages, clear):
     """Install just the base environment, no distutils patches etc"""
     if sys.executable.startswith(bin_dir):
-        print('Please use the *system* python to run this script')
+        print("Please use the *system* python to run this script")
         return
 
     if clear:
         rmtree(lib_dir)
         ## FIXME: why not delete it?
         ## Maybe it should delete everything with #!/path/to/venv/python in it
-        logger.notify('Not deleting %s', bin_dir)
+        logger.notify("Not deleting %s", bin_dir)
 
-    if hasattr(sys, 'real_prefix'):
-        logger.notify('Using real prefix %r' % sys.real_prefix)
+    if hasattr(sys, "real_prefix"):
+        logger.notify("Using real prefix %r" % sys.real_prefix)
         prefix = sys.real_prefix
     else:
         prefix = sys.prefix
     mkdir(lib_dir)
     fix_lib64(lib_dir)
     stdlib_dirs = [os.path.dirname(os.__file__)]
-    if sys.platform == 'win32':
-        stdlib_dirs.append(join(os.path.dirname(stdlib_dirs[0]), 'DLLs'))
-    elif sys.platform == 'darwin':
-        stdlib_dirs.append(join(stdlib_dirs[0], 'site-packages'))
-    if hasattr(os, 'symlink'):
-        logger.info('Symlinking Python bootstrap modules')
+    if sys.platform == "win32":
+        stdlib_dirs.append(join(os.path.dirname(stdlib_dirs[0]), "DLLs"))
+    elif sys.platform == "darwin":
+        stdlib_dirs.append(join(stdlib_dirs[0], "site-packages"))
+    if hasattr(os, "symlink"):
+        logger.info("Symlinking Python bootstrap modules")
     else:
-        logger.info('Copying Python bootstrap modules')
+        logger.info("Copying Python bootstrap modules")
     logger.indent += 2
     try:
         # copy required files...
@@ -1182,236 +1361,272 @@ def install_python(home_dir, lib_dir, inc_dir, bin_dir, site_packages, clear):
                 continue
             for fn in os.listdir(stdlib_dir):
                 bn = os.path.splitext(fn)[0]
-                if fn != 'site-packages' and bn in REQUIRED_FILES:
+                if fn != "site-packages" and bn in REQUIRED_FILES:
                     copyfile(join(stdlib_dir, fn), join(lib_dir, fn))
         # ...and modules
         copy_required_modules(home_dir)
     finally:
         logger.indent -= 2
-    mkdir(join(lib_dir, 'site-packages'))
+    mkdir(join(lib_dir, "site-packages"))
     import site
+
     site_filename = site.__file__
-    if site_filename.endswith('.pyc'):
+    if site_filename.endswith(".pyc"):
         site_filename = site_filename[:-1]
-    elif site_filename.endswith('$py.class'):
-        site_filename = site_filename.replace('$py.class', '.py')
+    elif site_filename.endswith("$py.class"):
+        site_filename = site_filename.replace("$py.class", ".py")
     site_filename_dst = change_prefix(site_filename, home_dir)
     site_dir = os.path.dirname(site_filename_dst)
     writefile(site_filename_dst, SITE_PY)
-    writefile(join(site_dir, 'orig-prefix.txt'), prefix)
-    site_packages_filename = join(site_dir, 'no-global-site-packages.txt')
+    writefile(join(site_dir, "orig-prefix.txt"), prefix)
+    site_packages_filename = join(site_dir, "no-global-site-packages.txt")
     if not site_packages:
-        writefile(site_packages_filename, '')
+        writefile(site_packages_filename, "")
     else:
         if os.path.exists(site_packages_filename):
-            logger.info('Deleting %s' % site_packages_filename)
+            logger.info("Deleting %s" % site_packages_filename)
             os.unlink(site_packages_filename)
 
     if is_pypy or is_win:
-        stdinc_dir = join(prefix, 'include')
+        stdinc_dir = join(prefix, "include")
     else:
-        stdinc_dir = join(prefix, 'include', py_version + abiflags)
+        stdinc_dir = join(prefix, "include", py_version + abiflags)
     if os.path.exists(stdinc_dir):
         copyfile(stdinc_dir, inc_dir)
     else:
-        logger.debug('No include dir %s' % stdinc_dir)
+        logger.debug("No include dir %s" % stdinc_dir)
 
     # pypy never uses exec_prefix, just ignore it
     if sys.exec_prefix != prefix and not is_pypy:
-        if sys.platform == 'win32':
-            exec_dir = join(sys.exec_prefix, 'lib')
+        if sys.platform == "win32":
+            exec_dir = join(sys.exec_prefix, "lib")
         elif is_jython:
-            exec_dir = join(sys.exec_prefix, 'Lib')
+            exec_dir = join(sys.exec_prefix, "Lib")
         else:
-            exec_dir = join(sys.exec_prefix, 'lib', py_version)
+            exec_dir = join(sys.exec_prefix, "lib", py_version)
         for fn in os.listdir(exec_dir):
             copyfile(join(exec_dir, fn), join(lib_dir, fn))
 
     if is_jython:
         # Jython has either jython-dev.jar and javalib/ dir, or just
         # jython.jar
-        for name in 'jython-dev.jar', 'javalib', 'jython.jar':
+        for name in "jython-dev.jar", "javalib", "jython.jar":
             src = join(prefix, name)
             if os.path.exists(src):
                 copyfile(src, join(home_dir, name))
         # XXX: registry should always exist after Jython 2.5rc1
-        src = join(prefix, 'registry')
+        src = join(prefix, "registry")
         if os.path.exists(src):
-            copyfile(src, join(home_dir, 'registry'), symlink=False)
-        copyfile(join(prefix, 'cachedir'), join(home_dir, 'cachedir'),
-                 symlink=False)
+            copyfile(src, join(home_dir, "registry"), symlink=False)
+        copyfile(join(prefix, "cachedir"), join(home_dir, "cachedir"), symlink=False)
 
     mkdir(bin_dir)
     py_executable = join(bin_dir, os.path.basename(sys.executable))
-    if 'Python.framework' in prefix:
-        if re.search(r'/Python(?:-32|-64)*$', py_executable):
+    if "Python.framework" in prefix:
+        if re.search(r"/Python(?:-32|-64)*$", py_executable):
             # The name of the python executable is not quite what
             # we want, rename it.
-            py_executable = os.path.join(
-                    os.path.dirname(py_executable), 'python')
+            py_executable = os.path.join(os.path.dirname(py_executable), "python")
 
-    logger.notify('New %s executable in %s', expected_exe, py_executable)
+    logger.notify("New %s executable in %s", expected_exe, py_executable)
     pcbuild_dir = os.path.dirname(sys.executable)
-    pyd_pth = os.path.join(lib_dir, 'site-packages', 'virtualenv_builddir_pyd.pth')
-    if is_win and os.path.exists(os.path.join(pcbuild_dir, 'build.bat')):
-        logger.notify('Detected python running from build directory %s', pcbuild_dir)
-        logger.notify('Writing .pth file linking to build directory for *.pyd files')
+    pyd_pth = os.path.join(lib_dir, "site-packages", "virtualenv_builddir_pyd.pth")
+    if is_win and os.path.exists(os.path.join(pcbuild_dir, "build.bat")):
+        logger.notify("Detected python running from build directory %s", pcbuild_dir)
+        logger.notify("Writing .pth file linking to build directory for *.pyd files")
         writefile(pyd_pth, pcbuild_dir)
     else:
         pcbuild_dir = None
         if os.path.exists(pyd_pth):
-            logger.info('Deleting %s (not Windows env or not build directory python)' % pyd_pth)
+            logger.info(
+                "Deleting %s (not Windows env or not build directory python)" % pyd_pth
+            )
             os.unlink(pyd_pth)
 
     if sys.executable != py_executable:
         ## FIXME: could I just hard link?
         executable = sys.executable
-        if sys.platform == 'cygwin' and os.path.exists(executable + '.exe'):
+        if sys.platform == "cygwin" and os.path.exists(executable + ".exe"):
             # Cygwin misreports sys.executable sometimes
-            executable += '.exe'
-            py_executable += '.exe'
-            logger.info('Executable actually exists in %s' % executable)
+            executable += ".exe"
+            py_executable += ".exe"
+            logger.info("Executable actually exists in %s" % executable)
         shutil.copyfile(executable, py_executable)
         make_exe(py_executable)
-        if sys.platform == 'win32' or sys.platform == 'cygwin':
-            pythonw = os.path.join(os.path.dirname(sys.executable), 'pythonw.exe')
+        if sys.platform == "win32" or sys.platform == "cygwin":
+            pythonw = os.path.join(os.path.dirname(sys.executable), "pythonw.exe")
             if os.path.exists(pythonw):
-                logger.info('Also created pythonw.exe')
-                shutil.copyfile(pythonw, os.path.join(os.path.dirname(py_executable), 'pythonw.exe'))
-            python_d = os.path.join(os.path.dirname(sys.executable), 'python_d.exe')
-            python_d_dest = os.path.join(os.path.dirname(py_executable), 'python_d.exe')
+                logger.info("Also created pythonw.exe")
+                shutil.copyfile(
+                    pythonw, os.path.join(os.path.dirname(py_executable), "pythonw.exe")
+                )
+            python_d = os.path.join(os.path.dirname(sys.executable), "python_d.exe")
+            python_d_dest = os.path.join(os.path.dirname(py_executable), "python_d.exe")
             if os.path.exists(python_d):
-                logger.info('Also created python_d.exe')
+                logger.info("Also created python_d.exe")
                 shutil.copyfile(python_d, python_d_dest)
             elif os.path.exists(python_d_dest):
-                logger.info('Removed python_d.exe as it is no longer at the source')
+                logger.info("Removed python_d.exe as it is no longer at the source")
                 os.unlink(python_d_dest)
             # we need to copy the DLL to enforce that windows will load the correct one.
             # may not exist if we are cygwin.
-            py_executable_dll = 'python%s%s.dll' % (
-                sys.version_info[0], sys.version_info[1])
-            py_executable_dll_d = 'python%s%s_d.dll' % (
-                sys.version_info[0], sys.version_info[1])
+            py_executable_dll = "python%s%s.dll" % (
+                sys.version_info[0],
+                sys.version_info[1],
+            )
+            py_executable_dll_d = "python%s%s_d.dll" % (
+                sys.version_info[0],
+                sys.version_info[1],
+            )
             pythondll = os.path.join(os.path.dirname(sys.executable), py_executable_dll)
-            pythondll_d = os.path.join(os.path.dirname(sys.executable), py_executable_dll_d)
-            pythondll_d_dest = os.path.join(os.path.dirname(py_executable), py_executable_dll_d)
+            pythondll_d = os.path.join(
+                os.path.dirname(sys.executable), py_executable_dll_d
+            )
+            pythondll_d_dest = os.path.join(
+                os.path.dirname(py_executable), py_executable_dll_d
+            )
             if os.path.exists(pythondll):
-                logger.info('Also created %s' % py_executable_dll)
-                shutil.copyfile(pythondll, os.path.join(os.path.dirname(py_executable), py_executable_dll))
+                logger.info("Also created %s" % py_executable_dll)
+                shutil.copyfile(
+                    pythondll,
+                    os.path.join(os.path.dirname(py_executable), py_executable_dll),
+                )
             if os.path.exists(pythondll_d):
-                logger.info('Also created %s' % py_executable_dll_d)
+                logger.info("Also created %s" % py_executable_dll_d)
                 shutil.copyfile(pythondll_d, pythondll_d_dest)
             elif os.path.exists(pythondll_d_dest):
-                logger.info('Removed %s as the source does not exist' % pythondll_d_dest)
+                logger.info(
+                    "Removed %s as the source does not exist" % pythondll_d_dest
+                )
                 os.unlink(pythondll_d_dest)
         if is_pypy:
             # make a symlink python --> pypy-c
-            python_executable = os.path.join(os.path.dirname(py_executable), 'python')
-            if sys.platform in ('win32', 'cygwin'):
-                python_executable += '.exe'
-            logger.info('Also created executable %s' % python_executable)
+            python_executable = os.path.join(os.path.dirname(py_executable), "python")
+            if sys.platform in ("win32", "cygwin"):
+                python_executable += ".exe"
+            logger.info("Also created executable %s" % python_executable)
             copyfile(py_executable, python_executable)
 
-            if sys.platform == 'win32':
-                for name in 'libexpat.dll', 'libpypy.dll', 'libpypy-c.dll', 'libeay32.dll', 'ssleay32.dll', 'sqlite.dll':
+            if sys.platform == "win32":
+                for name in (
+                    "libexpat.dll",
+                    "libpypy.dll",
+                    "libpypy-c.dll",
+                    "libeay32.dll",
+                    "ssleay32.dll",
+                    "sqlite.dll",
+                ):
                     src = join(prefix, name)
                     if os.path.exists(src):
                         copyfile(src, join(bin_dir, name))
 
     if os.path.splitext(os.path.basename(py_executable))[0] != expected_exe:
-        secondary_exe = os.path.join(os.path.dirname(py_executable),
-                                     expected_exe)
+        secondary_exe = os.path.join(os.path.dirname(py_executable), expected_exe)
         py_executable_ext = os.path.splitext(py_executable)[1]
-        if py_executable_ext == '.exe':
+        if py_executable_ext == ".exe":
             # python2.4 gives an extension of '.4' :P
             secondary_exe += py_executable_ext
         if os.path.exists(secondary_exe):
-            logger.warn('Not overwriting existing %s script %s (you must use %s)'
-                        % (expected_exe, secondary_exe, py_executable))
+            logger.warn(
+                "Not overwriting existing %s script %s (you must use %s)"
+                % (expected_exe, secondary_exe, py_executable)
+            )
         else:
-            logger.notify('Also creating executable in %s' % secondary_exe)
+            logger.notify("Also creating executable in %s" % secondary_exe)
             shutil.copyfile(sys.executable, secondary_exe)
             make_exe(secondary_exe)
 
-    if '.framework' in prefix:
-        if 'Python.framework' in prefix:
-            logger.debug('MacOSX Python framework detected')
+    if ".framework" in prefix:
+        if "Python.framework" in prefix:
+            logger.debug("MacOSX Python framework detected")
             # Make sure we use the the embedded interpreter inside
             # the framework, even if sys.executable points to
             # the stub executable in ${sys.prefix}/bin
             # See http://groups.google.com/group/python-virtualenv/
             #                              browse_thread/thread/17cab2f85da75951
             original_python = os.path.join(
-                prefix, 'Resources/Python.app/Contents/MacOS/Python')
-        if 'EPD' in prefix:
-            logger.debug('EPD framework detected')
-            original_python = os.path.join(prefix, 'bin/python')
+                prefix, "Resources/Python.app/Contents/MacOS/Python"
+            )
+        if "EPD" in prefix:
+            logger.debug("EPD framework detected")
+            original_python = os.path.join(prefix, "bin/python")
         shutil.copy(original_python, py_executable)
 
         # Copy the framework's dylib into the virtual
         # environment
-        virtual_lib = os.path.join(home_dir, '.Python')
+        virtual_lib = os.path.join(home_dir, ".Python")
 
         if os.path.exists(virtual_lib):
             os.unlink(virtual_lib)
-        copyfile(
-            os.path.join(prefix, 'Python'),
-            virtual_lib)
+        copyfile(os.path.join(prefix, "Python"), virtual_lib)
 
         # And then change the install_name of the copied python executable
         try:
-            mach_o_change(py_executable,
-                          os.path.join(prefix, 'Python'),
-                          '@executable_path/../.Python')
+            mach_o_change(
+                py_executable,
+                os.path.join(prefix, "Python"),
+                "@executable_path/../.Python",
+            )
         except:
             e = sys.exc_info()[1]
-            logger.warn("Could not call mach_o_change: %s. "
-                        "Trying to call install_name_tool instead." % e)
+            logger.warn(
+                "Could not call mach_o_change: %s. "
+                "Trying to call install_name_tool instead." % e
+            )
             try:
                 call_subprocess(
-                    ["install_name_tool", "-change",
-                     os.path.join(prefix, 'Python'),
-                     '@executable_path/../.Python',
-                     py_executable])
+                    [
+                        "install_name_tool",
+                        "-change",
+                        os.path.join(prefix, "Python"),
+                        "@executable_path/../.Python",
+                        py_executable,
+                    ]
+                )
             except:
-                logger.fatal("Could not call install_name_tool -- you must "
-                             "have Apple's development tools installed")
+                logger.fatal(
+                    "Could not call install_name_tool -- you must "
+                    "have Apple's development tools installed"
+                )
                 raise
 
         # Some tools depend on pythonX.Y being present
-        py_executable_version = '%s.%s' % (
-            sys.version_info[0], sys.version_info[1])
+        py_executable_version = "%s.%s" % (sys.version_info[0], sys.version_info[1])
         if not py_executable.endswith(py_executable_version):
             # symlinking pythonX.Y > python
-            pth = py_executable + '%s.%s' % (
-                    sys.version_info[0], sys.version_info[1])
+            pth = py_executable + "%s.%s" % (sys.version_info[0], sys.version_info[1])
             if os.path.exists(pth):
                 os.unlink(pth)
-            os.symlink('python', pth)
+            os.symlink("python", pth)
         else:
             # reverse symlinking python -> pythonX.Y (with --python)
-            pth = join(bin_dir, 'python')
+            pth = join(bin_dir, "python")
             if os.path.exists(pth):
                 os.unlink(pth)
             os.symlink(os.path.basename(py_executable), pth)
 
-    if sys.platform == 'win32' and ' ' in py_executable:
+    if sys.platform == "win32" and " " in py_executable:
         # There's a bug with subprocess on Windows when using a first
         # argument that has a space in it.  Instead we have to quote
         # the value:
         py_executable = '"%s"' % py_executable
     # NOTE: keep this check as one line, cmd.exe doesn't cope with line breaks
-    cmd = [py_executable, '-c', 'import sys;out=sys.stdout;'
-        'getattr(out, "buffer", out).write(sys.prefix.encode("utf-8"))']
+    cmd = [
+        py_executable,
+        "-c",
+        "import sys;out=sys.stdout;"
+        'getattr(out, "buffer", out).write(sys.prefix.encode("utf-8"))',
+    ]
     logger.info('Testing executable with %s %s "%s"' % tuple(cmd))
     try:
-        proc = subprocess.Popen(cmd,
-                            stdout=subprocess.PIPE)
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
         proc_stdout, proc_stderr = proc.communicate()
     except OSError:
         e = sys.exc_info()[1]
         if e.errno == errno.EACCES:
-            logger.fatal('ERROR: The executable %s could not be run: %s' % (py_executable, e))
+            logger.fatal(
+                "ERROR: The executable %s could not be run: %s" % (py_executable, e)
+            )
             sys.exit(100)
         else:
             raise e
@@ -1419,31 +1634,35 @@ def install_python(home_dir, lib_dir, inc_dir, bin_dir, site_packages, clear):
     proc_stdout = proc_stdout.strip().decode("utf-8")
     proc_stdout = os.path.normcase(os.path.abspath(proc_stdout))
     norm_home_dir = os.path.normcase(os.path.abspath(home_dir))
-    if hasattr(norm_home_dir, 'decode'):
+    if hasattr(norm_home_dir, "decode"):
         norm_home_dir = norm_home_dir.decode(sys.getfilesystemencoding())
     if proc_stdout != norm_home_dir:
+        logger.fatal("ERROR: The executable %s is not functioning" % py_executable)
         logger.fatal(
-            'ERROR: The executable %s is not functioning' % py_executable)
+            "ERROR: It thinks sys.prefix is %r (should be %r)"
+            % (proc_stdout, norm_home_dir)
+        )
         logger.fatal(
-            'ERROR: It thinks sys.prefix is %r (should be %r)'
-            % (proc_stdout, norm_home_dir))
-        logger.fatal(
-            'ERROR: virtualenv is not compatible with this system or executable')
-        if sys.platform == 'win32':
+            "ERROR: virtualenv is not compatible with this system or executable"
+        )
+        if sys.platform == "win32":
             logger.fatal(
-                'Note: some Windows users have reported this error when they '
+                "Note: some Windows users have reported this error when they "
                 'installed Python for "Only this user" or have multiple '
-                'versions of Python installed. Copying the appropriate '
-                'PythonXX.dll to the virtualenv Scripts/ directory may fix '
-                'this problem.')
+                "versions of Python installed. Copying the appropriate "
+                "PythonXX.dll to the virtualenv Scripts/ directory may fix "
+                "this problem."
+            )
         sys.exit(100)
     else:
-        logger.info('Got sys.prefix result: %r' % proc_stdout)
+        logger.info("Got sys.prefix result: %r" % proc_stdout)
 
-    pydistutils = os.path.expanduser('~/.pydistutils.cfg')
+    pydistutils = os.path.expanduser("~/.pydistutils.cfg")
     if os.path.exists(pydistutils):
-        logger.notify('Please make sure you remove any previous custom paths from '
-                      'your %s file.' % pydistutils)
+        logger.notify(
+            "Please make sure you remove any previous custom paths from "
+            "your %s file." % pydistutils
+        )
     ## FIXME: really this should be calculated earlier
 
     fix_local_scheme(home_dir)
@@ -1453,43 +1672,46 @@ def install_python(home_dir, lib_dir, inc_dir, bin_dir, site_packages, clear):
 
 def install_activate(home_dir, bin_dir, prompt=None):
     home_dir = os.path.abspath(home_dir)
-    if sys.platform == 'win32' or is_jython and os._name == 'nt':
+    if sys.platform == "win32" or is_jython and os._name == "nt":
         files = {
-            'activate.bat': ACTIVATE_BAT,
-            'deactivate.bat': DEACTIVATE_BAT,
-            'activate.ps1': ACTIVATE_PS,
+            "activate.bat": ACTIVATE_BAT,
+            "deactivate.bat": DEACTIVATE_BAT,
+            "activate.ps1": ACTIVATE_PS,
         }
 
         # MSYS needs paths of the form /c/path/to/file
-        drive, tail = os.path.splitdrive(home_dir.replace(os.sep, '/'))
+        drive, tail = os.path.splitdrive(home_dir.replace(os.sep, "/"))
         home_dir_msys = (drive and "/%s%s" or "%s%s") % (drive[:1], tail)
 
         # Run-time conditional enables (basic) Cygwin compatibility
-        home_dir_sh = ("""$(if [ "$OSTYPE" "==" "cygwin" ]; then cygpath -u '%s'; else echo '%s'; fi;)""" %
-                       (home_dir, home_dir_msys))
-        files['activate'] = ACTIVATE_SH.replace('__VIRTUAL_ENV__', home_dir_sh)
+        home_dir_sh = (
+            """$(if [ "$OSTYPE" "==" "cygwin" ]; then cygpath -u '%s'; else echo '%s'; fi;)"""
+            % (home_dir, home_dir_msys)
+        )
+        files["activate"] = ACTIVATE_SH.replace("__VIRTUAL_ENV__", home_dir_sh)
 
     else:
-        files = {'activate': ACTIVATE_SH}
+        files = {"activate": ACTIVATE_SH}
 
         # suppling activate.fish in addition to, not instead of, the
         # bash script support.
-        files['activate.fish'] = ACTIVATE_FISH
+        files["activate.fish"] = ACTIVATE_FISH
 
         # same for csh/tcsh support...
-        files['activate.csh'] = ACTIVATE_CSH
+        files["activate.csh"] = ACTIVATE_CSH
 
-    files['activate_this.py'] = ACTIVATE_THIS
-    if hasattr(home_dir, 'decode'):
+    files["activate_this.py"] = ACTIVATE_THIS
+    if hasattr(home_dir, "decode"):
         home_dir = home_dir.decode(sys.getfilesystemencoding())
     vname = os.path.basename(home_dir)
     for name, content in list(files.items()):
-        content = content.replace('__VIRTUAL_PROMPT__', prompt or '')
-        content = content.replace('__VIRTUAL_WINPROMPT__', prompt or '(%s)' % vname)
-        content = content.replace('__VIRTUAL_ENV__', home_dir)
-        content = content.replace('__VIRTUAL_NAME__', vname)
-        content = content.replace('__BIN_NAME__', os.path.basename(bin_dir))
+        content = content.replace("__VIRTUAL_PROMPT__", prompt or "")
+        content = content.replace("__VIRTUAL_WINPROMPT__", prompt or "(%s)" % vname)
+        content = content.replace("__VIRTUAL_ENV__", home_dir)
+        content = content.replace("__VIRTUAL_NAME__", vname)
+        content = content.replace("__BIN_NAME__", os.path.basename(bin_dir))
         writefile(os.path.join(bin_dir, name), content)
+
 
 def install_distutils(home_dir):
     distutils_path = change_prefix(distutils.__path__[0], home_dir)
@@ -1498,9 +1720,12 @@ def install_distutils(home_dir):
     ## there's a local distutils.cfg with a prefix setting?
     home_dir = os.path.abspath(home_dir)
     ## FIXME: this is breaking things, removing for now:
-    #distutils_cfg = DISTUTILS_CFG + "\n[install]\nprefix=%s\n" % home_dir
-    writefile(os.path.join(distutils_path, '__init__.py'), DISTUTILS_INIT)
-    writefile(os.path.join(distutils_path, 'distutils.cfg'), DISTUTILS_CFG, overwrite=False)
+    # distutils_cfg = DISTUTILS_CFG + "\n[install]\nprefix=%s\n" % home_dir
+    writefile(os.path.join(distutils_path, "__init__.py"), DISTUTILS_INIT)
+    writefile(
+        os.path.join(distutils_path, "distutils.cfg"), DISTUTILS_CFG, overwrite=False
+    )
+
 
 def fix_local_scheme(home_dir):
     """
@@ -1512,15 +1737,18 @@ def fix_local_scheme(home_dir):
     except ImportError:
         pass
     else:
-        if sysconfig._get_default_scheme() == 'posix_local':
-            local_path = os.path.join(home_dir, 'local')
+        if sysconfig._get_default_scheme() == "posix_local":
+            local_path = os.path.join(home_dir, "local")
             if not os.path.exists(local_path):
                 os.mkdir(local_path)
                 for subdir_name in os.listdir(home_dir):
-                    if subdir_name == 'local':
+                    if subdir_name == "local":
                         continue
-                    os.symlink(os.path.abspath(os.path.join(home_dir, subdir_name)), \
-                                                            os.path.join(local_path, subdir_name))
+                    os.symlink(
+                        os.path.abspath(os.path.join(home_dir, subdir_name)),
+                        os.path.join(local_path, subdir_name),
+                    )
+
 
 def fix_lib64(lib_dir):
     """
@@ -1528,40 +1756,51 @@ def fix_lib64(lib_dir):
     instead of lib/pythonX.Y.  If this is such a platform we'll just create a
     symlink so lib64 points to lib
     """
-    if [p for p in list(distutils.sysconfig.get_config_vars().values())
-        if isinstance(p, str) and 'lib64' in p]:
-        logger.debug('This system uses lib64; symlinking lib64 to lib')
-        assert os.path.basename(lib_dir) == 'python%s' % sys.version[:3], (
-            "Unexpected python lib dir: %r" % lib_dir)
+    if [
+        p
+        for p in list(distutils.sysconfig.get_config_vars().values())
+        if isinstance(p, str) and "lib64" in p
+    ]:
+        logger.debug("This system uses lib64; symlinking lib64 to lib")
+        assert os.path.basename(lib_dir) == "python%s" % sys.version[:3], (
+            "Unexpected python lib dir: %r" % lib_dir
+        )
         lib_parent = os.path.dirname(lib_dir)
-        assert os.path.basename(lib_parent) == 'lib', (
-            "Unexpected parent dir: %r" % lib_parent)
-        copyfile(lib_parent, os.path.join(os.path.dirname(lib_parent), 'lib64'))
+        assert os.path.basename(lib_parent) == "lib", (
+            "Unexpected parent dir: %r" % lib_parent
+        )
+        copyfile(lib_parent, os.path.join(os.path.dirname(lib_parent), "lib64"))
+
 
 def resolve_interpreter(exe):
     """
     If the executable given isn't an absolute path, search $PATH for the interpreter
     """
     if os.path.abspath(exe) != exe:
-        paths = os.environ.get('PATH', '').split(os.pathsep)
+        paths = os.environ.get("PATH", "").split(os.pathsep)
         for path in paths:
             if os.path.exists(os.path.join(path, exe)):
                 exe = os.path.join(path, exe)
                 break
     if not os.path.exists(exe):
-        logger.fatal('The executable %s (from --python=%s) does not exist' % (exe, exe))
+        logger.fatal("The executable %s (from --python=%s) does not exist" % (exe, exe))
         raise SystemExit(3)
     if not is_executable(exe):
-        logger.fatal('The executable %s (from --python=%s) is not executable' % (exe, exe))
+        logger.fatal(
+            "The executable %s (from --python=%s) is not executable" % (exe, exe)
+        )
         raise SystemExit(3)
     return exe
+
 
 def is_executable(exe):
     """Checks a file is executable"""
     return os.access(exe, os.X_OK)
 
+
 ############################################################
 ## Relocating the environment:
+
 
 def make_environment_relocatable(home_dir):
     """
@@ -1569,28 +1808,36 @@ def make_environment_relocatable(home_dir):
     the #!-based environment selection in scripts.
     """
     home_dir, lib_dir, inc_dir, bin_dir = path_locations(home_dir)
-    activate_this = os.path.join(bin_dir, 'activate_this.py')
+    activate_this = os.path.join(bin_dir, "activate_this.py")
     if not os.path.exists(activate_this):
         logger.fatal(
-            'The environment doesn\'t have a file %s -- please re-run virtualenv '
-            'on this environment to update it' % activate_this)
+            "The environment doesn't have a file %s -- please re-run virtualenv "
+            "on this environment to update it" % activate_this
+        )
     fixup_scripts(home_dir)
     fixup_pth_and_egg_link(home_dir)
     ## FIXME: need to fix up distutils.cfg
 
-OK_ABS_SCRIPTS = ['python', 'python%s' % sys.version[:3],
-                  'activate', 'activate.bat', 'activate_this.py']
+
+OK_ABS_SCRIPTS = [
+    "python",
+    "python%s" % sys.version[:3],
+    "activate",
+    "activate.bat",
+    "activate_this.py",
+]
+
 
 def fixup_scripts(home_dir):
     # This is what we expect at the top of scripts:
-    shebang = '#!%s/bin/python' % os.path.normcase(os.path.abspath(home_dir))
+    shebang = "#!%s/bin/python" % os.path.normcase(os.path.abspath(home_dir))
     # This is what we'll put:
-    new_shebang = '#!/usr/bin/env python%s' % sys.version[:3]
+    new_shebang = "#!/usr/bin/env python%s" % sys.version[:3]
     activate = "import os; activate_this=os.path.join(os.path.dirname(os.path.realpath(__file__)), 'activate_this.py'); execfile(activate_this, dict(__file__=activate_this)); del os, activate_this"
-    if sys.platform == 'win32':
-        bin_suffix = 'Scripts'
+    if sys.platform == "win32":
+        bin_suffix = "Scripts"
     else:
-        bin_suffix = 'bin'
+        bin_suffix = "bin"
     bin_dir = os.path.join(home_dir, bin_suffix)
     home_dir, lib_dir, inc_dir, bin_dir = path_locations(home_dir)
     for filename in os.listdir(bin_dir):
@@ -1598,10 +1845,10 @@ def fixup_scripts(home_dir):
         if not os.path.isfile(filename):
             # ignore subdirs, e.g. .svn ones.
             continue
-        f = open(filename, 'rb')
+        f = open(filename, "rb")
         try:
             try:
-                lines = f.read().decode('utf-8').splitlines()
+                lines = f.read().decode("utf-8").splitlines()
             except UnicodeDecodeError:
                 # This is probably a binary program instead
                 # of a script, so just ignore it.
@@ -1609,22 +1856,25 @@ def fixup_scripts(home_dir):
         finally:
             f.close()
         if not lines:
-            logger.warn('Script %s is an empty file' % filename)
+            logger.warn("Script %s is an empty file" % filename)
             continue
         if not lines[0].strip().startswith(shebang):
             if os.path.basename(filename) in OK_ABS_SCRIPTS:
-                logger.debug('Cannot make script %s relative' % filename)
+                logger.debug("Cannot make script %s relative" % filename)
             elif lines[0].strip() == new_shebang:
-                logger.info('Script %s has already been made relative' % filename)
+                logger.info("Script %s has already been made relative" % filename)
             else:
-                logger.warn('Script %s cannot be made relative (it\'s not a normal script that starts with %s)'
-                            % (filename, shebang))
+                logger.warn(
+                    "Script %s cannot be made relative (it's not a normal script that starts with %s)"
+                    % (filename, shebang)
+                )
             continue
-        logger.notify('Making script %s relative' % filename)
-        lines = [new_shebang+'\n', activate+'\n'] + lines[1:]
-        f = open(filename, 'wb')
-        f.write('\n'.join(lines).encode('utf-8'))
+        logger.notify("Making script %s relative" % filename)
+        lines = [new_shebang + "\n", activate + "\n"] + lines[1:]
+        f = open(filename, "wb")
+        f.write("\n".join(lines).encode("utf-8"))
         f.close()
+
 
 def fixup_pth_and_egg_link(home_dir, sys_path=None):
     """Makes .pth and .egg-link files use relative paths"""
@@ -1633,25 +1883,26 @@ def fixup_pth_and_egg_link(home_dir, sys_path=None):
         sys_path = sys.path
     for path in sys_path:
         if not path:
-            path = '.'
+            path = "."
         if not os.path.isdir(path):
             continue
         path = os.path.normcase(os.path.abspath(path))
         if not path.startswith(home_dir):
-            logger.debug('Skipping system (non-environment) directory %s' % path)
+            logger.debug("Skipping system (non-environment) directory %s" % path)
             continue
         for filename in os.listdir(path):
             filename = os.path.join(path, filename)
-            if filename.endswith('.pth'):
+            if filename.endswith(".pth"):
                 if not os.access(filename, os.W_OK):
-                    logger.warn('Cannot write .pth file %s, skipping' % filename)
+                    logger.warn("Cannot write .pth file %s, skipping" % filename)
                 else:
                     fixup_pth_file(filename)
-            if filename.endswith('.egg-link'):
+            if filename.endswith(".egg-link"):
                 if not os.access(filename, os.W_OK):
-                    logger.warn('Cannot write .egg-link file %s, skipping' % filename)
+                    logger.warn("Cannot write .egg-link file %s, skipping" % filename)
                 else:
                     fixup_egg_link(filename)
+
 
 def fixup_pth_file(filename):
     lines = []
@@ -1661,34 +1912,42 @@ def fixup_pth_file(filename):
     f.close()
     for line in prev_lines:
         line = line.strip()
-        if (not line or line.startswith('#') or line.startswith('import ')
-            or os.path.abspath(line) != line):
+        if (
+            not line
+            or line.startswith("#")
+            or line.startswith("import ")
+            or os.path.abspath(line) != line
+        ):
             lines.append(line)
         else:
             new_value = make_relative_path(filename, line)
             if line != new_value:
-                logger.debug('Rewriting path %s as %s (in %s)' % (line, new_value, filename))
+                logger.debug(
+                    "Rewriting path %s as %s (in %s)" % (line, new_value, filename)
+                )
             lines.append(new_value)
     if lines == prev_lines:
-        logger.info('No changes to .pth file %s' % filename)
+        logger.info("No changes to .pth file %s" % filename)
         return
-    logger.notify('Making paths in .pth file %s relative' % filename)
-    f = open(filename, 'w')
-    f.write('\n'.join(lines) + '\n')
+    logger.notify("Making paths in .pth file %s relative" % filename)
+    f = open(filename, "w")
+    f.write("\n".join(lines) + "\n")
     f.close()
+
 
 def fixup_egg_link(filename):
     f = open(filename)
     link = f.readline().strip()
     f.close()
     if os.path.abspath(link) != link:
-        logger.debug('Link in %s already relative' % filename)
+        logger.debug("Link in %s already relative" % filename)
         return
     new_link = make_relative_path(filename, link)
-    logger.notify('Rewriting link %s in %s as %s' % (link, filename, new_link))
-    f = open(filename, 'w')
+    logger.notify("Rewriting link %s in %s as %s" % (link, filename, new_link))
+    f = open(filename, "w")
     f.write(new_link)
     f.close()
+
 
 def make_relative_path(source, dest, dest_is_directory=True):
     """
@@ -1715,20 +1974,20 @@ def make_relative_path(source, dest, dest_is_directory=True):
     while dest_parts and source_parts and dest_parts[0] == source_parts[0]:
         dest_parts.pop(0)
         source_parts.pop(0)
-    full_parts = ['..']*len(source_parts) + dest_parts
+    full_parts = [".."] * len(source_parts) + dest_parts
     if not dest_is_directory:
         full_parts.append(dest_filename)
     if not full_parts:
         # Special case for the current directory (otherwise it'd be '')
-        return './'
+        return "./"
     return os.path.sep.join(full_parts)
-
 
 
 ############################################################
 ## Bootstrap script creation:
 
-def create_bootstrap_script(extra_text, python_version=''):
+
+def create_bootstrap_script(extra_text, python_version=""):
     """
     Creates a bootstrap script, which is like this script but with
     extend_parser, adjust_options, and after_install hooks.
@@ -1769,22 +2028,27 @@ def create_bootstrap_script(extra_text, python_version=''):
     be run with a particular Python version.
     """
     filename = __file__
-    if filename.endswith('.pyc'):
+    if filename.endswith(".pyc"):
         filename = filename[:-1]
-    f = codecs.open(filename, 'r', encoding='utf-8')
+    f = codecs.open(filename, "r", encoding="utf-8")
     content = f.read()
     f.close()
-    py_exe = 'python%s' % python_version
-    content = (('#!/usr/bin/env %s\n' % py_exe)
-               + '## WARNING: This file is generated\n'
-               + content)
-    return content.replace('##EXT' 'END##', extra_text)
+    py_exe = "python%s" % python_version
+    content = (
+        ("#!/usr/bin/env %s\n" % py_exe)
+        + "## WARNING: This file is generated\n"
+        + content
+    )
+    return content.replace("##EXT" "END##", extra_text)
+
 
 ##EXTEND##
 
+
 def convert(s):
-    b = base64.b64decode(s.encode('ascii'))
-    return zlib.decompress(b).decode('utf-8')
+    b = base64.b64decode(s.encode("ascii"))
+    return zlib.decompress(b).decode("utf-8")
+
 
 ##file site.py
 SITE_PY = convert("""
@@ -2286,15 +2550,15 @@ YdN2dEngUlbC4PG60M1WEN0piu7Nq7on0mgyyUw3iV1etLo6r/81biWdQ9MWHFaePWZYaq+nmp+t
 s3az+sj7eA0jfgPfeoN1
 """)
 
-MH_MAGIC = 0xfeedface
-MH_CIGAM = 0xcefaedfe
-MH_MAGIC_64 = 0xfeedfacf
-MH_CIGAM_64 = 0xcffaedfe
-FAT_MAGIC = 0xcafebabe
-BIG_ENDIAN = '>'
-LITTLE_ENDIAN = '<'
-LC_LOAD_DYLIB = 0xc
-maxint = majver == 3 and getattr(sys, 'maxsize') or getattr(sys, 'maxint')
+MH_MAGIC = 0xFEEDFACE
+MH_CIGAM = 0xCEFAEDFE
+MH_MAGIC_64 = 0xFEEDFACF
+MH_CIGAM_64 = 0xCFFAEDFE
+FAT_MAGIC = 0xCAFEBABE
+BIG_ENDIAN = ">"
+LITTLE_ENDIAN = "<"
+LC_LOAD_DYLIB = 0xC
+maxint = majver == 3 and getattr(sys, "maxsize") or getattr(sys, "maxint")
 
 
 class fileview(object):
@@ -2313,16 +2577,17 @@ class fileview(object):
         self._pos = 0
 
     def __repr__(self):
-        return '<fileview [%d, %d] %r>' % (
-            self._start, self._end, self._fileobj)
+        return "<fileview [%d, %d] %r>" % (self._start, self._end, self._fileobj)
 
     def tell(self):
         return self._pos
 
     def _checkwindow(self, seekto, op):
         if not (self._start <= seekto <= self._end):
-            raise IOError("%s to offset %d is outside window [%d, %d]" % (
-                op, seekto, self._start, self._end))
+            raise IOError(
+                "%s to offset %d is outside window [%d, %d]"
+                % (op, seekto, self._start, self._end)
+            )
 
     def seek(self, offset, whence=0):
         seekto = offset
@@ -2334,14 +2599,14 @@ class fileview(object):
             seekto += self._end
         else:
             raise IOError("Invalid whence argument to seek: %r" % (whence,))
-        self._checkwindow(seekto, 'seek')
+        self._checkwindow(seekto, "seek")
         self._fileobj.seek(seekto)
         self._pos = seekto - self._start
 
     def write(self, bytes):
         here = self._start + self._pos
-        self._checkwindow(here, 'write')
-        self._checkwindow(here + len(bytes), 'write')
+        self._checkwindow(here, "write")
+        self._checkwindow(here + len(bytes), "write")
         self._fileobj.seek(here, os.SEEK_SET)
         self._fileobj.write(bytes)
         self._pos += len(bytes)
@@ -2349,7 +2614,7 @@ class fileview(object):
     def read(self, size=maxint):
         assert size >= 0
         here = self._start + self._pos
-        self._checkwindow(here, 'read')
+        self._checkwindow(here, "read")
         size = min(size, self._end - here)
         self._fileobj.seek(here, os.SEEK_SET)
         bytes = self._fileobj.read(size)
@@ -2362,7 +2627,7 @@ def read_data(file, endian, num=1):
     Read a given number of 32-bits unsigned integers from the given file
     with the given endianness.
     """
-    res = struct.unpack(endian + 'L' * num, file.read(num * 4))
+    res = struct.unpack(endian + "L" * num, file.read(num * 4))
     if len(res) == 1:
         return res[0]
     return res
@@ -2376,7 +2641,9 @@ def mach_o_change(path, what, value):
 
     def do_macho(file, bits, endian):
         # Read Mach-O header (the magic number is assumed read by the caller)
-        cputype, cpusubtype, filetype, ncmds, sizeofcmds, flags = read_data(file, endian, 6)
+        cputype, cpusubtype, filetype, ncmds, sizeofcmds, flags = read_data(
+            file, endian, 6
+        )
         # 64-bits header has one more field.
         if bits == 64:
             read_data(file, endian)
@@ -2393,11 +2660,11 @@ def mach_o_change(path, what, value):
                 file.seek(where + name_offset, os.SEEK_SET)
                 # Read the NUL terminated string
                 load = file.read(cmdsize - name_offset)
-                load = load[:load.index('\0')]
+                load = load[: load.index("\0")]
                 # If the string is what is being replaced, overwrite it.
                 if load == what:
                     file.seek(where + name_offset, os.SEEK_SET)
-                    file.write(value + '\0')
+                    file.write(value + "\0")
             # Seek to the next command
             file.seek(where + cmdsize, os.SEEK_SET)
 
@@ -2410,7 +2677,9 @@ def mach_o_change(path, what, value):
             nfat_arch = read_data(file, BIG_ENDIAN)
             for n in range(nfat_arch):
                 # Read arch header
-                cputype, cpusubtype, offset, size, align = read_data(file, BIG_ENDIAN, 5)
+                cputype, cpusubtype, offset, size, align = read_data(
+                    file, BIG_ENDIAN, 5
+                )
                 do_file(file, offset, size)
         elif magic == MH_MAGIC:
             do_macho(file, 32, BIG_ENDIAN)
@@ -2421,11 +2690,11 @@ def mach_o_change(path, what, value):
         elif magic == MH_CIGAM_64:
             do_macho(file, 64, LITTLE_ENDIAN)
 
-    assert(len(what) >= len(value))
-    do_file(open(path, 'r+b'))
+    assert len(what) >= len(value)
+    do_file(open(path, "r+b"))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
 
 ## TODO:

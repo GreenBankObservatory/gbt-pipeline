@@ -33,7 +33,6 @@ from .ObservationRows import ObservationRows
 
 
 class SdFitsIndexRowReader:
-
     def __init__(self, lookup_table):
         self.lookup = lookup_table
         self.row = None
@@ -45,7 +44,7 @@ class SdFitsIndexRowReader:
         try:
             val = self.row[self.lookup[key]].lstrip()
         except KeyError:
-            val = ''
+            val = ""
         finally:
             return val
 
@@ -61,7 +60,6 @@ class SdFits:
     """
 
     def __init__(self):
-
         self.pu = Pipeutils()
 
     def find_maps(self, indexfile, debug=False):
@@ -87,40 +85,48 @@ class SdFits:
 
         # print results
         if debug:
-            print('------------------------- All scans')
+            print("------------------------- All scans")
             for scanid in sorted(observation.scans()):
                 scanstruct = observation.get(scanid, feed, window, pol)
-                print(('scan \'{0}\' obsid \'{1}\' procname \'{2}\' procscan \'{3}\''.format(scanid,
-                                                                                            scanstruct['OBSID'],
-                                                                                            scanstruct['PROCNAME'],
-                                                                                            scanstruct['PROCSCAN'])))
+                print(
+                    (
+                        "scan '{0}' obsid '{1}' procname '{2}' procscan '{3}'".format(
+                            scanid,
+                            scanstruct["OBSID"],
+                            scanstruct["PROCNAME"],
+                            scanstruct["PROCSCAN"],
+                        )
+                    )
+                )
 
         for scanid in observation.scans():
             scanstruct = observation.get(scanid, feed, window, pol)
-            obsid = scanstruct['OBSID'].upper()
-            procname = scanstruct['PROCNAME'].upper()
-            procscan = scanstruct['PROCSCAN'].upper()
+            obsid = scanstruct["OBSID"].upper()
+            procname = scanstruct["PROCNAME"].upper()
+            procscan = scanstruct["PROCSCAN"].upper()
 
             # keyword check should depend on presence of PROCSCAN key, which is an
             # alternative to checking SDFITVER.
             # OBSID is the old way, PROCSCAN is the new way MR8Q312
 
             # create a new list that only has 'MAP' and 'OFF' scans
-            if not procscan and (obsid == 'MAP' or obsid == 'OFF'):
+            if not procscan and (obsid == "MAP" or obsid == "OFF"):
                 map_scans[scanid] = obsid
-            elif (procscan == 'MAP' or
-                  procname == 'TRACK' or
-                  (procname == 'ONOFF' and procscan == 'OFF') or
-                  (procname == 'OFFON' and procscan == 'OFF')):
+            elif (
+                procscan == "MAP"
+                or procname == "TRACK"
+                or (procname == "ONOFF" and procscan == "OFF")
+                or (procname == "OFFON" and procscan == "OFF")
+            ):
                 map_scans[scanid] = procscan
 
         mapkeys = list(map_scans.keys())
         mapkeys.sort()
 
         if debug:
-            print('------------------------- Relavant scans')
+            print("------------------------- Relavant scans")
             for scanid in mapkeys:
-                print('scan', scanid, map_scans[scanid])
+                print("scan", scanid, map_scans[scanid])
 
         maps = []  # final list of maps
         ref1 = None
@@ -129,13 +135,12 @@ class SdFits:
         mapscans = []  # temporary list of map scans for a single map
 
         if debug:
-            print('mapkeys', mapkeys)
+            print("mapkeys", mapkeys)
 
         MapParams = namedtuple("MapParams", "refscan1 mapscans refscan2")
         for idx, scan in enumerate(mapkeys):
-
             # look for the reference scans
-            if (map_scans[scan]).upper() == 'OFF' or (map_scans[scan]).upper() == 'ON':
+            if (map_scans[scan]).upper() == "OFF" or (map_scans[scan]).upper() == "ON":
                 # if there is no ref1 or this is another ref1
                 if not ref1 or (ref1 and bool(mapscans) == False):
                     ref1 = scan
@@ -143,7 +148,7 @@ class SdFits:
                     ref2 = scan
                     prev_ref2 = ref2
 
-            elif (map_scans[scan]).upper() == 'MAP':
+            elif (map_scans[scan]).upper() == "MAP":
                 if not ref1 and prev_ref2:
                     ref1 = prev_ref2
 
@@ -152,7 +157,7 @@ class SdFits:
             # see if this scan is the last one in the relevant scan list
             # or see if we have a ref2
             # if so, close out
-            if ref2 or idx == len(mapkeys)-1:
+            if ref2 or idx == len(mapkeys) - 1:
                 maps.append(MapParams(ref1, mapscans, ref2))
                 ref1 = False
                 ref2 = False
@@ -160,6 +165,7 @@ class SdFits:
 
         if debug:
             import pprint
+
             pprint.pprint(maps)
 
             for idx, mm in enumerate(maps):
@@ -173,12 +179,15 @@ class SdFits:
         return maps
 
     def parseSdfitsIndex(self, infile, mapscans=[]):
-
         try:
             ifile = open(infile)
         except IOError:
-            print(("ERROR: Could not open file: {0}\n"
-                  "Please check and try again.".format(infile)))
+            print(
+                (
+                    "ERROR: Could not open file: {0}\n"
+                    "Please check and try again.".format(infile)
+                )
+            )
             raise
 
         observation = ObservationRows()
@@ -186,62 +195,69 @@ class SdFits:
         while True:
             line = ifile.readline()
             # look for start of row data or EOF (i.e. not line)
-            if '[rows]' in line or not line:
+            if "[rows]" in line or not line:
                 break
 
         lookup_table = {}
         header = ifile.readline()
 
-        fields = [xx.lstrip() for xx in re.findall(r' *\S+', header)]
+        fields = [xx.lstrip() for xx in re.findall(r" *\S+", header)]
 
-        iterator = re.finditer(r' *\S+', header)
+        iterator = re.finditer(r" *\S+", header)
         for idx, mm in enumerate(iterator):
             lookup_table[fields[idx]] = slice(mm.start(), mm.end())
 
         rr = SdFitsIndexRowReader(lookup_table)
 
-        summary = {'WINDOWS': set([]), 'FEEDS': set([])}
+        summary = {"WINDOWS": set([]), "FEEDS": set([])}
 
         # keep a list of suspect scans so we can know if the
         # user has already been warned
         suspectScans = set()
 
         for row in ifile:
-
             rr.setrow(row)
 
-            scanid = int(rr['SCAN'])
+            scanid = int(rr["SCAN"])
 
             # have a look at the procedure
             #  if it is "Unknown", the data is suspect, so skip it
-            procname = rr['PROCEDURE']
+            procname = rr["PROCEDURE"]
             if scanid in suspectScans:
                 continue
 
-            if ((scanid not in suspectScans) and procname.lower() == 'unknown'):
-
+            if (scanid not in suspectScans) and procname.lower() == "unknown":
                 suspectScans.add(scanid)
                 if scanid in mapscans:
-                    print('WARNING: scan', scanid, 'has "Unknown" procedure. Skipping.')
+                    print("WARNING: scan", scanid, 'has "Unknown" procedure. Skipping.')
                 continue
 
-            feed = int(rr['FDNUM'])
-            windowNum = int(rr['IFNUM'])
-            pol = int(rr['PLNUM'])
-            fitsExtension = int(rr['EXT'])
-            rowOfFitsFile = int(rr['ROW'])
-            obsid = rr['OBSID']
-            procscan = rr['PROCSCAN']
-            nchans = rr['NUMCHN']
+            feed = int(rr["FDNUM"])
+            windowNum = int(rr["IFNUM"])
+            pol = int(rr["PLNUM"])
+            fitsExtension = int(rr["EXT"])
+            rowOfFitsFile = int(rr["ROW"])
+            obsid = rr["OBSID"]
+            procscan = rr["PROCSCAN"]
+            nchans = rr["NUMCHN"]
 
-            summary['WINDOWS'].add((windowNum, float(rr['RESTFREQ'])/1e9))
-            summary['FEEDS'].add(rr['FDNUM'])
+            summary["WINDOWS"].add((windowNum, float(rr["RESTFREQ"]) / 1e9))
+            summary["FEEDS"].add(rr["FDNUM"])
 
             # we can assume all integrations of a single scan are within the same
             #   FITS extension
-            observation.addRow(scanid, feed, windowNum, pol,
-                               fitsExtension, rowOfFitsFile, obsid,
-                               procname, procscan, nchans)
+            observation.addRow(
+                scanid,
+                feed,
+                windowNum,
+                pol,
+                fitsExtension,
+                rowOfFitsFile,
+                obsid,
+                procname,
+                procscan,
+                nchans,
+            )
 
         try:
             ifile.close()
@@ -251,39 +267,44 @@ class SdFits:
         return observation, summary
 
     def getReferenceIntegration(self, cal_on, cal_off, scale):
-
         cal = Calibration()
-        cal_ondata = cal_on['DATA']
-        cal_offdata = cal_off['DATA']
-        cref, exposure = cal.total_power(cal_ondata, cal_offdata, cal_on['EXPOSURE'], cal_off['EXPOSURE'])
+        cal_ondata = cal_on["DATA"]
+        cal_offdata = cal_off["DATA"]
+        cref, exposure = cal.total_power(
+            cal_ondata, cal_offdata, cal_on["EXPOSURE"], cal_off["EXPOSURE"]
+        )
 
-        tcal = cal_off['TCAL'] * scale
+        tcal = cal_off["TCAL"] * scale
         tsys = cal.tsys(tcal, cal_ondata, cal_offdata)
 
-        dateobs = cal_off['DATE-OBS']
+        dateobs = cal_off["DATE-OBS"]
         timestamp = self.pu.dateToMjd(dateobs)
 
-        tambient = cal_off['TAMBIENT']
-        elevation = cal_off['ELEVATIO']
+        tambient = cal_off["TAMBIENT"]
+        elevation = cal_off["ELEVATIO"]
 
         return cref, tsys, exposure, timestamp, tambient, elevation
 
     def nameIndexFile(self, pathname):
         # -------------------------------------------------  name index file
         if not os.path.exists(pathname):
-            print(('ERROR: Path does not exist {0}.\n'
-                   '       Please check and try again'.format(pathname)))
+            print(
+                (
+                    "ERROR: Path does not exist {0}.\n"
+                    "       Please check and try again".format(pathname)
+                )
+            )
             sys.exit(9)
 
         if os.path.isdir(pathname):
-            bn = os.path.basename(pathname.rstrip('/'))
-            return '{0}/{1}.index'.format(pathname, bn)
+            bn = os.path.basename(pathname.rstrip("/"))
+            return "{0}/{1}.index".format(pathname, bn)
 
-        elif os.path.isfile(pathname) and pathname.endswith('.fits'):
-            return os.path.splitext(pathname)[0]+'.index'
+        elif os.path.isfile(pathname) and pathname.endswith(".fits"):
+            return os.path.splitext(pathname)[0] + ".index"
 
         else:
             # doMessage(logger,msg.ERR,'input file not recognized as a fits file.',\
             #  ' Please check the file extension and change to \'fits\' if necessary.')
-            print('ERROR: Input file does not end with .fits:', pathname)
+            print("ERROR: Input file does not end with .fits:", pathname)
             sys.exit(9)

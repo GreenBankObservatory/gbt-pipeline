@@ -26,9 +26,7 @@ import numpy as np
 
 
 class Pipeutils:
-
     def __init__(self, log=None):
-
         self.log = log
 
     def _gregorian_to_julian_date(self, day, month, year, hour, minute, second):
@@ -53,15 +51,23 @@ class Pipeutils:
         minute = float(minute)
         sec = float(second)
 
-        UT = hh+minute/60+sec/3600
+        UT = hh + minute / 60 + sec / 3600
 
         if (100 * yyyy + mm - 190002.5) > 0:
             sig = 1
         else:
             sig = -1
 
-        JD = (367 * yyyy - int(7 * (yyyy + int((mm + 9) / 12)) / 4) +
-              int(275 * mm / 9) + dd + 1721013.5 + UT / 24 - 0.5 * sig + 0.5)
+        JD = (
+            367 * yyyy
+            - int(7 * (yyyy + int((mm + 9) / 12)) / 4)
+            + int(275 * mm / 9)
+            + dd
+            + 1721013.5
+            + UT / 24
+            - 0.5 * sig
+            + 0.5
+        )
 
         return JD
 
@@ -102,8 +108,8 @@ class Pipeutils:
         0.013034
 
         """
-        c = 299792458.  # speed of light in m/s
-        return (c/f)
+        c = 299792458.0  # speed of light in m/s
+        return c / f
 
     def masked_array(self, array):
         """Mask nans in an array

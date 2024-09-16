@@ -33,11 +33,9 @@ from Wizardry.AIPSData import AIPSImage as WizAIPSImage
 
 
 class Task(object):
-    """An object to represent an AIPS task.
-    """
+    """An object to represent an AIPS task."""
 
     def __init__(self, taskname, name, klass, seq):
-
         self.task = AIPSTask(taskname)
         self.task.name = name
         self.task.klass = klass
@@ -48,10 +46,11 @@ class Task(object):
 
 
 class Catalog(object):
-    """Utility class to operate on the AIPS catalog.
-    """
+    """Utility class to operate on the AIPS catalog."""
 
-    def __len__(self,):
+    def __len__(
+        self,
+    ):
         """Get the number of catalog entries."""
         return len(AIPSCat()[self.DISK_ID])
 
@@ -66,10 +65,10 @@ class Catalog(object):
         AIPS.userno = userno
         self.DISK_ID = disk_id
 
-    def show(self,):
-        """Print to screen the contents of the AIPS catalog.
-
-        """
+    def show(
+        self,
+    ):
+        """Print to screen the contents of the AIPS catalog."""
         msg = "AIPS Catalog"
         print("")
         print("-" * len(msg))
@@ -78,7 +77,9 @@ class Catalog(object):
         print("")
         print(AIPSCat(self.DISK_ID))
 
-    def last_entry(self,):
+    def last_entry(
+        self,
+    ):
         """Retrieve the most recent AIPS catalog entry.
 
         Returns:
@@ -147,13 +148,16 @@ class Catalog(object):
 
         """
         if not do_empty:
-            choice = input('Is it OK to clear your AIPS '
-                               'catalog (id={0})? [y/n] '.format(AIPS.userno))
-            if choice.lower() == 'n':
+            choice = input(
+                "Is it OK to clear your AIPS " "catalog (id={0})? [y/n] ".format(
+                    AIPS.userno
+                )
+            )
+            if choice.lower() == "n":
                 print("Can not continue without an empty catalog.  Exiting.")
                 sys.exit()
-            elif choice.lower() == 'y':
-                AIPSCat().zap()                 # empty the catalog
+            elif choice.lower() == "y":
+                AIPSCat().zap()  # empty the catalog
             else:
                 self.empty(do_empty)  # if they didn't type 'y' or 'n', ask again.
         else:
