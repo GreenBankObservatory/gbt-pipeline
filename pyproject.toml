@@ -1,0 +1,28 @@
+[project]
+name = "gbtpipeline"
+version = "1.6.0a1"
+description = "Green Bank Telescope (GBT) calibration and mapping pipeline"
+readme = "README.md"
+classifiers=[
+    "Development Status :: 5 - Production/Stable",
+    "Programming Language :: Python :: 3 :: Only",
+]
+keywords=["singledish", "gridder", "gridding"]
+
+requires-python = ">=3.11"
+dependencies = [
+    "numpy",
+    "fitsio",
+    "blessings",
+    "astropy",
+]
+[project.urls]
+Repository = "https://github.com/GreenBankObservatory/gbt-pipeline"
+
+
+[project.scripts]
+gbtpipeline = "gbt_pipeline:runPipeline"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
