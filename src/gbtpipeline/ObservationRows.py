@@ -22,7 +22,6 @@
 
 # $Id$
 
-from ordereddict import OrderedDict
 from collections import namedtuple
 
 
@@ -44,7 +43,7 @@ class ObservationRows:
 
     """
     def __init__(self):
-        self.rows = OrderedDict()
+        self.rows = {}
         self.Key = namedtuple('key', 'scan, feed, window, polarization')
 
     def __repr__(self):

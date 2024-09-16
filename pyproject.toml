@@ -21,7 +21,7 @@ Repository = "https://github.com/GreenBankObservatory/gbt-pipeline"
 
 
 [project.scripts]
-gbtpipeline = "gbt_pipeline:runPipeline"
+gbtpipeline = "gbtpipeline.gbt_pipeline:runPipeline"
 
 [build-system]
 requires = ["hatchling"]

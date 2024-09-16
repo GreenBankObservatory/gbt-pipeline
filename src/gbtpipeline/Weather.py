@@ -180,28 +180,28 @@ class Weather:
              not (self.time_range[0] <= integration_mjd_timestamp < self.time_range[1])) or
             (self.db_time_range and
              not (self.db_time_range[0] <= integration_mjd_timestamp < self.db_time_range[1]))):
-
-            log.doMessage('DBG', '-----------------------------------------------------')
-            log.doMessage('DBG', 'Time or Frequency out of range. Determine new opacity')
-            log.doMessage('DBG', '-----------------------------------------------------')
-            log.doMessage('DBG', 'opacity', self.zenith_opacity)
-            log.doMessage('DBG', 'timestamp', integration_mjd_timestamp, 'prev.', self.last_integration_mjd_timestamp)
-            log.doMessage('DBG', 'freq', freq_ghz, 'prev.', self.last_requested_freq_ghz)
-            log.doMessage('DBG', 'freq range', self.frequency_range)
-            if bool(self.frequency_range):
-                log.doMessage('DBG', '   freq in range == ', bool(self.frequency_range[0] <= freq_ghz <= self.frequency_range[1]))
-            log.doMessage('DBG', 'time range', self.time_range)
-            if bool(self.time_range):
-                log.doMessage('DBG', '   time in range ==', bool(self.time_range and (self.time_range[0] <= integration_mjd_timestamp <= self.time_range[1])))
-            log.doMessage('DBG', 'DB time range', self.db_time_range)
-            if bool(self.db_time_range):
-                log.doMessage('DBG', '   time in DB range ==', bool(self.db_time_range and (self.db_time_range[0] <= integration_mjd_timestamp <= self.db_time_range[1])))
+            if self.log:
+                log.doMessage('DBG', '-----------------------------------------------------')
+                log.doMessage('DBG', 'Time or Frequency out of range. Determine new opacity')
+                log.doMessage('DBG', '-----------------------------------------------------')
+                log.doMessage('DBG', 'opacity', self.zenith_opacity)
+                log.doMessage('DBG', 'timestamp', integration_mjd_timestamp, 'prev.', self.last_integration_mjd_timestamp)
+                log.doMessage('DBG', 'freq', freq_ghz, 'prev.', self.last_requested_freq_ghz)
+                log.doMessage('DBG', 'freq range', self.frequency_range)
+                if bool(self.frequency_range):
+                    log.doMessage('DBG', '   freq in range == ', bool(self.frequency_range[0] <= freq_ghz <= self.frequency_range[1]))
+                log.doMessage('DBG', 'time range', self.time_range)
+                if bool(self.time_range):
+                    log.doMessage('DBG', '   time in range ==', bool(self.time_range and (self.time_range[0] <= integration_mjd_timestamp <= self.time_range[1])))
+                log.doMessage('DBG', 'DB time range', self.db_time_range)
+                if bool(self.db_time_range):
+                    log.doMessage('DBG', '   time in DB range ==', bool(self.db_time_range and (self.db_time_range[0] <= integration_mjd_timestamp <= self.db_time_range[1])))
 
             self.opacity_coeffs, self.db_time_range = self._opacity_database(integration_mjd_timestamp)
             if (not self.opacity_coeffs) or (not self.db_time_range):
                 return False
-
-            log.doMessage('DBG', 'DB time range:', self.db_time_range)
+            if self.log:
+                log.doMessage('DBG', 'DB time range:', self.db_time_range)
 
         for coeffs_line in self.opacity_coeffs:
             if (2 <= freq_ghz <= 22):
@@ -226,7 +226,8 @@ class Weather:
                 break
 
         self.time_range = (prev_time, next_time)
-        log.doMessage('DBG', 'Coefficient entry time range:', self.time_range)
+        if self.log:
+            log.doMessage('DBG', 'Coefficient entry time range:', self.time_range)
 
         time_corrected_coeffs = []
         for coeff in zip(prev_coeffs, next_coeffs):
@@ -236,6 +237,7 @@ class Weather:
             time_corrected_coeffs.append(new_coeff)
 
         self.zenith_opacity = self.cal.zenith_opacity(time_corrected_coeffs, freq_ghz)
-        log.doMessage('DBG', 'Zenith opacity:', self.zenith_opacity)
+        if self.log:
+            log.doMessage('DBG', 'Zenith opacity:', self.zenith_opacity)
 
         return self.zenith_opacity

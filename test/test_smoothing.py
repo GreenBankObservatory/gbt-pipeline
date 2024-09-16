@@ -1,7 +1,7 @@
-from nose.tools import *
 import numpy as np
+import pytest
 
-from smoothing import *
+from gbtpipeline.smoothing import *
 
 
 class test_smoothing:

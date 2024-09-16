@@ -293,7 +293,7 @@ class Calibration(object):
         high = int(.9 * nchan)
         cal_off = (cal_off[low:high]).mean()
         cal_on = (cal_on[low:high]).mean()
-        return np.float(tcal * (cal_off / (cal_on - cal_off)) + tcal / 2)
+        return float(tcal * (cal_off / (cal_on - cal_off)) + tcal / 2)
 
     def antenna_temp(self, tsys, sig, ref, t_sig, t_ref):
         r"""Calibrate a spectrum to units of antenna temperature.
