@@ -1,11 +1,11 @@
 #!/usr/bin/env groovy
 
 def schedule = env.BRANCH_NAME == 'master'       ? '@weekly' :
-               env.BRANCH_NAME == 'release_19.4' ? '@weekly' : ''
+               env.BRANCH_NAME == 'release_24.4' ? '@weekly' : ''
 
 pipeline {
   agent {
-    label 'rhel7'
+    label 'rhel8-not-broken'
   }
 
   triggers {
@@ -13,9 +13,9 @@ pipeline {
     cron(schedule)
   }
 
-  environment {
-    LD_LIBRARY_PATH = "/opt/local/lib"
-  }
+  //environment {
+  //  LD_LIBRARY_PATH = "/opt/local/lib"
+  //}
 
   stages {
     stage('Init') {
@@ -47,10 +47,7 @@ pipeline {
       steps {
         sh '''
           source jenkins-pipeline-env/bin/activate
-          nosetests --with-xunit --xunit-file=unittests.xml test/gbtpipeline_unit_tests.py
-          nosetests --with-xunit --xunit-file=calibration.xml test/test_Calibration.py
-          nosetests --with-xunit --xunit-file=pipeutils.xml test/test_Pipeutils.py
-          nosetests --with-xunit --xunit-file=smoothing.xml test/test_smoothing.py
+          ./RunAllUnitTests
         '''
         junit '**/*.xml'
       }
@@ -59,7 +56,7 @@ pipeline {
 
   post {
     always {
-      do_notify(to: 'sddev@nrao.edu')
+      do_notify("""to: 'sddev@nrao.edu'""")
     }
   }
 }

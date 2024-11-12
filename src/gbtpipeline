@@ -86,7 +86,7 @@ if [ $# -gt 0 ]; then
     fi
 fi
 
-# source /home/gbt7/pipeline/${GBTPIPEVERSION}-env/bin/activate
+# below is only in production, uncomment this when pushing to main branch
 source /home/gbt7/pipeline/release/bin/activate
 export LD_LIBRARY_PATH=/opt/local/lib:$LD_LIBRARY_PATH
 
