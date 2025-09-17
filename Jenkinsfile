@@ -1,21 +1,14 @@
 #!/usr/bin/env groovy
 
-def schedule = env.BRANCH_NAME == 'master'       ? '@weekly' :
-               env.BRANCH_NAME == 'release_24.4' ? '@weekly' : ''
-
 pipeline {
   agent {
-    label 'rhel8-not-broken'
+    label 'rhel8'
   }
 
   triggers {
     // trigger a weekly build on the master branch
-    cron(schedule)
+    cron('@weekly')
   }
-
-  //environment {
-  //  LD_LIBRARY_PATH = "/opt/local/lib"
-  //}
 
   stages {
     stage('Init') {
